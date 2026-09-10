@@ -10,6 +10,9 @@ use macroquad_toolkit::ui::Pointer;
 mod panels;
 mod selection;
 
+#[cfg(test)]
+mod tests;
+
 pub(super) fn draw_compact_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
     let pointer = Pointer::read(|point| ctx.ui.screen_to_ui(point));
     let mut actions = Vec::new();
@@ -295,9 +298,9 @@ fn draw_compact_navigation(
         ),
         (Panel::Feed, "Notes", true),
     ];
-    let gap = 4.0;
-    let button_width = ((sheet.w - 24.0 - gap * 6.0) / 7.0).max(44.0);
-    let text_size = if button_width < 56.0 { 9.0 } else { 12.0 };
+    let gap = COMPACT_NAV_GAP;
+    let button_width = compact_nav_button_width(sheet.w);
+    let text_size = compact_nav_text_size(button_width);
     for (index, (panel, label, enabled)) in entries.into_iter().enumerate() {
         let label = if button_width < 56.0 {
             match panel {
@@ -330,6 +333,25 @@ fn draw_compact_navigation(
         ) {
             actions.push(UiAction::TogglePanel(panel));
         }
+    }
+}
+
+const COMPACT_NAV_ENTRIES: f32 = 7.0;
+const COMPACT_NAV_GAP: f32 = 4.0;
+const COMPACT_NAV_MARGIN: f32 = 24.0;
+const COMPACT_NAV_MIN_BUTTON: f32 = 44.0;
+
+fn compact_nav_button_width(width: f32) -> f32 {
+    ((width - COMPACT_NAV_MARGIN - COMPACT_NAV_GAP * (COMPACT_NAV_ENTRIES - 1.0))
+        / COMPACT_NAV_ENTRIES)
+        .max(COMPACT_NAV_MIN_BUTTON)
+}
+
+fn compact_nav_text_size(button_width: f32) -> f32 {
+    if button_width < 56.0 {
+        9.0
+    } else {
+        12.0
     }
 }
 
