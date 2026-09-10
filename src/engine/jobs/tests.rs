@@ -218,6 +218,65 @@ fn patrol_zone_moves_guards_to_its_anchor() {
 }
 
 #[test]
+fn domain_work_rule_accelerates_digging_on_marked_tiles() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let plot_position = session.world.plots[0].position;
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![plot_position],
+    });
+    session.workforce.workers[0].position = plot_position;
+    session.workforce.workers[0].assignment = JobKind::Dig;
+
+    simulate(&mut session, &data, 1.0);
+
+    assert!(
+        (session.workforce.workers[0].progress - districts::WORK_SPEED_MULTIPLIER).abs() < 0.001
+    );
+}
+
+#[test]
+fn domain_storage_rule_increases_haul_bundle() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let stockpile = crate::state::WorldState::stockpile_position();
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![stockpile],
+    });
+    session.economy.loose_bones = 20;
+    session.workforce.workers[0].position = stockpile;
+    session.workforce.workers[0].assignment = JobKind::Haul;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].carrying, 12);
+    assert_eq!(session.economy.loose_bones, 8);
+}
+
+#[test]
+fn domain_patrol_rule_strengthens_guard_mitigation() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let patrol = crate::state::WorldState::guard_position(session.world.road_x);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Patrol,
+        tiles: vec![patrol],
+    });
+    session.pressure.suspicion = 20.0;
+    session.workforce.workers[0].position = patrol;
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    simulate(&mut session, &data, 1.0);
+
+    assert!((session.pressure.suspicion - 18.5).abs() < 0.001);
+}
+
+#[test]
 fn hauler_walks_to_storage_before_transfer() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

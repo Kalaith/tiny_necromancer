@@ -3,7 +3,7 @@
 use super::components::virtual_button;
 use super::{DomainOverlay, UiAction, UiContext};
 use crate::data::SuspicionStage;
-use crate::engine::alerts;
+use crate::engine::{alerts, districts};
 use crate::state::{GamePhase, JobKind, Selection, Technology};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -263,6 +263,16 @@ fn draw_stewardship_readout(
         12.0,
         0.0,
         dark::TEXT_DIM,
+    );
+    draw_text_block(
+        &districts::rule_summary(ctx.session),
+        rect.x + 228.0,
+        rect.y + 392.0,
+        390.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
     );
 
     let operational = alerts::collect(ctx.session, ctx.data);

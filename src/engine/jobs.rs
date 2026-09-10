@@ -1,7 +1,7 @@
 //! Worker assignment and fixed-timestep job progression.
 
 use crate::data::GameData;
-use crate::engine::{corpses, movement, navigation, progression, suspicion};
+use crate::engine::{corpses, districts, movement, navigation, progression, suspicion};
 use crate::state::{
     BuildingKind, GameSession, JobKind, PlotStatus, ResourceKind, WorkerStatus, WorldState,
     ZoneKind,
@@ -244,7 +244,7 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
             .guard_mitigation_per_second;
         suspicion::adjust_quiet(
             session,
-            -(mitigation * guards as f32 * dt),
+            -(mitigation * guards as f32 * districts::guard_mitigation_multiplier(session) * dt),
             "guards keep the road quiet",
         );
     }
@@ -369,9 +369,10 @@ fn simulate_dig(
     if !move_worker_to(session, index, plot_position) {
         return;
     }
+    let district_speed = districts::work_speed_multiplier(session, plot_position);
     let worker = &mut session.workforce.workers[index];
     worker.status = WorkerStatus::Working;
-    worker.progress += dt * speed * job.base_speed;
+    worker.progress += dt * speed * job.base_speed * district_speed;
     if worker.progress < job.work_seconds {
         return;
     }
@@ -414,7 +415,8 @@ fn simulate_haul(
         .undead
         .get(session.workforce.workers[index].kind.id())
         .expect("validated undead type")
-        .haul_capacity;
+        .haul_capacity
+        + districts::haul_capacity_bonus(session);
     if session.workforce.workers[index].carrying <= 0 {
         let (resource, source) = if session.economy.loose_bones > 0 {
             (
@@ -544,9 +546,10 @@ fn simulate_wood(
     if !move_worker_to(session, index, work_position) {
         return;
     }
+    let district_speed = districts::work_speed_multiplier(session, work_position);
     let worker = &mut session.workforce.workers[index];
     worker.status = WorkerStatus::Working;
-    worker.progress += dt * speed * job.base_speed;
+    worker.progress += dt * speed * job.base_speed * district_speed;
     if worker.progress >= job.work_seconds {
         worker.progress = 0.0;
         session.economy.loose_wood += job.output_amount;

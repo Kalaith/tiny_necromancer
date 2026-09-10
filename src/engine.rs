@@ -2,6 +2,7 @@
 
 pub mod alerts;
 pub mod corpses;
+pub mod districts;
 pub mod jobs;
 pub mod movement;
 pub mod navigation;

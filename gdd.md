@@ -111,6 +111,12 @@ Rumour pressure, and Harvest brings Dig, Haul, and Wood forward when those
 orders are available. The policy affects only automated workers; direct orders
 remain authoritative.
 
+After Domain Stewardship, marked districts also carry small operational rules:
+Work tiles speed Dig and Wood work, Storage tiles increase a hauler's bundle,
+and Patrol tiles strengthen guard mitigation. Empty districts and pre-domain
+saves keep the original behavior, so the system remains additive rather than
+making zone painting mandatory.
+
 ### 5.4 Determinism and saves
 
 `SeededRng` is stored with the session and serialized into the versioned save.
@@ -204,9 +210,9 @@ Storage, and Patrol zones choose nearby destinations, actors interpolate between
 simulation tiles, and procedural animation makes digging, hauling, gathering,
 construction, guarding, refining, walking, and ritual focus readable. Domain
 Stewardship now surfaces a compact district overview, actionable operational
-alerts, and toggleable zone, route, and pressure overlays. The next milestone
-now extends those policies with deeper district rules while preserving the
-clear touch-first interaction at smaller viewport sizes.
+alerts, toggleable zone, route, and pressure overlays, and small bonuses for
+marked district rules. The next milestone preserves those rules while improving
+the touch-first interaction at smaller viewport sizes.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.
