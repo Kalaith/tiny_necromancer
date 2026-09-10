@@ -144,12 +144,12 @@ touch path.
 
 ## 9. Scope and roadmap
 
-The current implementation covers the first three visual-direction milestones:
-world-first UI, a convincing cemetery scene, and the first research transition.
-The next milestone is a deeper colony slice with walkability and linked-storage
-routes around structure footprints. Later work can add district summaries and
-domain controls only after the current interaction remains clear at smaller
-viewport sizes.
+The current implementation covers the first colony slice beyond the initial
+visual-direction milestones: workers route around structure footprints, Work,
+Storage, and Patrol zones choose nearby destinations, and Domain Stewardship
+surfaces a compact district overview. The next milestone can add richer route
+overlays, production alerts, and stewardship controls while preserving the
+clear touch-first interaction at smaller viewport sizes.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.

@@ -104,7 +104,7 @@ Do not add conventional food and housing needs automatically. If later design re
 
 ## Current prototype and remaining direction
 
-The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, work areas, basic deterministic worker routing, an Ossuary Kiln production recipe with a three-cycle queue, and a settlement overview. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; richer linked-storage routing and district simulation remain future work.
+The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, editable work areas, deterministic worker routing, nearest-tile Work/Storage/Patrol destinations, an Ossuary Kiln production recipe with a three-cycle queue, and a district overview with a stateful minimap. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; richer route overlays, production alerts, and stewardship controls remain future work.
 
 | Implemented foundation | Remaining direction |
 | --- | --- |
@@ -114,7 +114,7 @@ The current game has a 10 × 8 world, six authored grave positions, one starting
 | `src/main.rs`: neutral native window caption | Keep the game name on the title page only |
 | `src/game.rs`: camera, input, captures, and action dispatch | Add touch camera gestures if the world outgrows one viewport |
 | `src/state.rs`: positioned buildings, research, zones, and save migration | Expand the persistent colony model without resetting existing saves |
-| `src/engine/progression.rs`: research-driven capabilities and milestone | Extend production into richer linked-storage and district systems |
+| `src/engine/progression.rs`: research-driven capabilities and milestone | Extend production alerts and stewardship systems |
 | `assets/data/texture_manifest.json` and asset registry | Add later terrain, props, effects, and HUD assets as they become playable |
 
 Keep simulation independent of camera zoom and panel visibility. UI should read a shared capability model derived from research; the simulation must validate those same capabilities when accepting orders. Do not implement technology progression only by hiding buttons.
@@ -126,8 +126,8 @@ Existing saves already receive deterministic defaults for positioned buildings, 
 1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, and victory scenes.
 2. **One convincing cemetery scene (implemented for the slice).** Terrain and sprites cover the necromancer, skeleton, graves, trees, stockpile, shed, and lantern. Digging, hauling, construction progress, selection, and camera transforms are readable.
 3. **First research transition (implemented for the slice).** Binding Routines and the research chain gate repeat priorities, placement, work areas, logistics, and domain controls. Versioned saves preserve the new state with deterministic defaults.
-4. **First colony slice (in progress).** The Ossuary Kiln now completes a material → construction → production chain after Ossuary Logistics, and workers route around basic obstructions before working. Add richer linked-storage routes and visual route feedback while keeping the original cemetery recognizable as part of the expanded settlement.
-5. **Scale and domain controls (later).** Extend the current settlement overview with useful zoom levels, district summaries, production alerts, and stewardship systems. Validate worker selection and simulation performance before growing the content set.
+4. **First colony slice (implemented for the current slice).** The Ossuary Kiln completes a material → construction → production chain after Ossuary Logistics, workers route around basic obstructions before working, and painted Work, Storage, and Patrol areas select nearby destinations. The minimap and worker/grave cues provide first-pass domain feedback while keeping the original cemetery recognizable as part of the expanded settlement.
+5. **Scale and domain controls (later).** Extend the current settlement overview with useful zoom levels, richer route overlays, production alerts, and stewardship systems. Validate worker selection and simulation performance before growing the content set.
 
 Defer trade, farms, housing, multiple biomes, and large defence systems until the first colony slice works. Art for later systems follows approved gameplay rather than committing production effort based solely on the reference.
 
