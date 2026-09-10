@@ -555,7 +555,11 @@ fn draw_building_inspector(
                 .and_then(|def| def.production.as_ref())
                 .map_or(8.0, |recipe| recipe.seconds);
             draw_text_block(
-                "Refining ward charge",
+                &format!(
+                    "Refining ward charge · queued {}/{}",
+                    ctx.session.progress.production_queue,
+                    crate::engine::progression::MAX_PRODUCTION_QUEUE
+                ),
                 panel.x + 18.0,
                 panel.y + 126.0,
                 panel.w - 36.0,
@@ -630,16 +634,24 @@ fn draw_building_inspector(
                 .production
                 .as_ref()
                 .is_some_and(|order| order.building == building.kind);
+            let queued = ctx.session.progress.production_queue;
             let label = if active {
-                "Ward cycle in progress".to_owned()
+                if queued < crate::engine::progression::MAX_PRODUCTION_QUEUE {
+                    format!(
+                        "Queue ward cycle · B{} W{}",
+                        recipe.bones_cost, recipe.wood_cost
+                    )
+                } else {
+                    "Ward queue full".to_owned()
+                }
             } else {
                 format!("Load kiln · B{} W{}", recipe.bones_cost, recipe.wood_cost)
             };
             if virtual_button(
                 Rect::new(panel.x + 18.0, panel.y + 232.0, panel.w - 36.0, 44.0),
                 &label,
-                !active
-                    && ctx.session.phase == GamePhase::Playing
+                ctx.session.phase == GamePhase::Playing
+                    && queued < crate::engine::progression::MAX_PRODUCTION_QUEUE
                     && ctx.session.economy.bones >= recipe.bones_cost
                     && ctx.session.economy.wood >= recipe.wood_cost,
                 ButtonTone::Positive,
@@ -658,8 +670,11 @@ fn draw_building_inspector(
             }
             draw_text_block(
                 &format!(
-                    "Ward charges · {} · stored {}",
-                    recipe.effect_text, ctx.session.economy.ward_charges
+                    "Ward charges · {} · stored {} · queued {}/{}",
+                    recipe.effect_text,
+                    ctx.session.economy.ward_charges,
+                    queued,
+                    crate::engine::progression::MAX_PRODUCTION_QUEUE
                 ),
                 panel.x + 18.0,
                 panel.y + 348.0,

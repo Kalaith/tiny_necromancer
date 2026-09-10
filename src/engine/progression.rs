@@ -7,6 +7,8 @@ use crate::state::{
 };
 use macroquad_toolkit::grid::TilePos;
 
+pub const MAX_PRODUCTION_QUEUE: usize = 3;
+
 pub fn queue_building(
     session: &mut GameSession,
     data: &GameData,
@@ -177,14 +179,16 @@ pub fn start_production(
     if !session.has_building(kind) {
         return Err("The kiln must be complete before it can refine wards.".to_owned());
     }
-    if session.progress.production.is_some() {
-        return Err("The ossuary kiln is already refining a ward.".to_owned());
-    }
     let recipe = data
         .buildings
         .get(kind.id())
         .and_then(|building| building.production.as_ref())
         .ok_or_else(|| "That structure has no production recipe.".to_owned())?;
+    if session.progress.production.is_some()
+        && session.progress.production_queue >= MAX_PRODUCTION_QUEUE
+    {
+        return Err("The kiln's ward queue is full.".to_owned());
+    }
     if session.economy.bones < recipe.bones_cost || session.economy.wood < recipe.wood_cost {
         return Err(format!(
             "Need {} bones and {} wood to load the kiln.",
@@ -193,11 +197,16 @@ pub fn start_production(
     }
     session.economy.bones -= recipe.bones_cost;
     session.economy.wood -= recipe.wood_cost;
-    session.progress.production = Some(ProductionOrder {
-        building: kind,
-        progress: 0.0,
-    });
-    session.add_feed("The Ossuary Kiln is loaded; assign a worker to Refine Wards.");
+    if session.progress.production.is_some() {
+        session.progress.production_queue += 1;
+        session.add_feed("Another ward cycle is reserved in the kiln.");
+    } else {
+        session.progress.production = Some(ProductionOrder {
+            building: kind,
+            progress: 0.0,
+        });
+        session.add_feed("The Ossuary Kiln is loaded; assign a worker to Refine Wards.");
+    }
     Ok(())
 }
 
@@ -214,10 +223,25 @@ pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -
         return None;
     }
     session.economy.ward_charges += recipe.output_amount;
-    session.progress.production = None;
+    let next_cycle = session.progress.production_queue > 0;
+    if next_cycle {
+        session.progress.production_queue -= 1;
+        session.progress.production = Some(ProductionOrder {
+            building: order.building,
+            progress: 0.0,
+        });
+    } else {
+        session.progress.production = None;
+    }
     let message = format!(
-        "{} Ward charge ready. {}",
-        recipe.output_amount, recipe.effect_text
+        "{} Ward charge ready. {}{}",
+        recipe.output_amount,
+        recipe.effect_text,
+        if next_cycle {
+            " Next reserved cycle begins."
+        } else {
+            ""
+        }
     );
     session.add_feed(message.clone());
     Some(message)

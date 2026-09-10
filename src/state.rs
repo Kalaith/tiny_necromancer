@@ -418,6 +418,8 @@ pub struct ProgressState {
     pub first_building_started: bool,
     #[serde(default)]
     pub production: Option<ProductionOrder>,
+    #[serde(default)]
+    pub production_queue: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -539,6 +541,7 @@ impl GameSession {
                 first_corpse_found: false,
                 first_building_started: false,
                 production: None,
+                production_queue: 0,
             },
             research: ResearchState::default(),
             rng: SeededRng::new(config.starting_seed),

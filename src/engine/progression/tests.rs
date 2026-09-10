@@ -120,3 +120,42 @@ fn buildings_cannot_cover_graves_or_the_forest_edge() {
     )
     .is_err());
 }
+
+#[test]
+fn kiln_queue_rolls_into_the_next_reserved_cycle() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    queue_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_construction(&mut session, &data, 14.0);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    assert_eq!(session.progress.production_queue, 1);
+    advance_production(&mut session, &data, 8.0);
+    assert_eq!(session.economy.ward_charges, 1);
+    assert!(session.progress.production.is_some());
+    advance_production(&mut session, &data, 8.0);
+    assert_eq!(session.economy.ward_charges, 2);
+    assert!(session.progress.production.is_none());
+}
+
+#[test]
+fn full_kiln_queue_does_not_spend_more_materials() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    queue_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_construction(&mut session, &data, 14.0);
+    for _ in 0..=MAX_PRODUCTION_QUEUE {
+        start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    }
+    let bones = session.economy.bones;
+    let wood = session.economy.wood;
+    assert!(start_production(&mut session, &data, BuildingKind::OssuaryKiln).is_err());
+    assert_eq!(session.economy.bones, bones);
+    assert_eq!(session.economy.wood, wood);
+}

@@ -266,6 +266,7 @@ impl Game {
             building: BuildingKind::OssuaryKiln,
             progress: 4.0,
         });
+        self.session.progress.production_queue = 1;
         self.session.workforce.workers[0].assignment = JobKind::Refine;
         self.session.workforce.workers[0].status = WorkerStatus::Working;
         self.session.workforce.workers[0].position = TilePos::new(5, 4);

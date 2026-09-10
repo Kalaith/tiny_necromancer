@@ -98,6 +98,11 @@ The kiln's first specialized production loop is playable, while district
 policy, larger populations, trade, farms, housing, and additional biomes remain
 deliberately deferred from the current victory slice.
 
+The Ossuary Kiln loads one ward-charge cycle at a time and accepts up to three
+reserved follow-up cycles. Reserved materials are removed when the cycle is
+queued, so the player can see the true available stock before committing to a
+longer production run.
+
 ## 7. UI and interaction flow
 
 The main menu shows the game identity and visible **New Game** / **Continue**

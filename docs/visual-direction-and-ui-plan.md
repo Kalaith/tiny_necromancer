@@ -104,7 +104,7 @@ Do not add conventional food and housing needs automatically. If later design re
 
 ## Current prototype and remaining direction
 
-The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, work areas, basic deterministic worker routing, an Ossuary Kiln production recipe, and a settlement overview. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; richer linked-storage routing and district simulation remain future work.
+The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, work areas, basic deterministic worker routing, an Ossuary Kiln production recipe with a three-cycle queue, and a settlement overview. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; richer linked-storage routing and district simulation remain future work.
 
 | Implemented foundation | Remaining direction |
 | --- | --- |
