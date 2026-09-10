@@ -66,3 +66,25 @@ fn rule_summary_names_only_marked_districts() {
         "Rules: Storage +4 haul"
     );
 }
+
+#[test]
+fn empty_districts_keep_original_job_values() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    let tile = session.world.plots[0].position;
+
+    assert_eq!(
+        work_speed_multiplier(&session, &data.config.district_rules, tile),
+        1.0
+    );
+    assert_eq!(
+        haul_capacity_bonus(&session, &data.config.district_rules),
+        0
+    );
+    assert_eq!(
+        guard_mitigation_multiplier(&session, &data.config.district_rules),
+        1.0
+    );
+    assert!(rule_summary(&session, &data.config.district_rules).starts_with("No district rules"));
+}
