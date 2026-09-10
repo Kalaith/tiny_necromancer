@@ -266,9 +266,18 @@ fn draw_stewardship_readout(
             dark::WARNING
         },
     );
+    let ward_label = if ctx.session.phase != GamePhase::Playing {
+        "Paused"
+    } else if ctx.session.economy.ward_charges == 0 {
+        "No wards"
+    } else if ctx.session.pressure.suspicion <= 0.0 {
+        "No pressure"
+    } else {
+        "Quiet ward"
+    };
     if virtual_button(
         Rect::new(rect.x + 492.0, rect.y + 406.0, 142.0, 48.0),
-        "Quiet ward",
+        ward_label,
         ctx.session.phase == GamePhase::Playing
             && ctx.session.economy.ward_charges > 0
             && ctx.session.pressure.suspicion > 0.0,
