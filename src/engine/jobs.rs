@@ -88,28 +88,27 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
             if worker.carrying > 0 {
                 Some(storage_destination(session, worker.position))
             } else if session.economy.loose_bones > 0 {
-                session
-                    .economy
-                    .loose_bones_source
-                    .or_else(|| {
-                        let dug = session
-                            .world
-                            .plots
-                            .iter()
-                            .filter(|plot| plot.status == PlotStatus::Dug)
-                            .map(|plot| plot.position)
-                            .collect::<Vec<_>>();
-                        nearest_reachable_or_nearest(session, worker.position, dug)
-                    })
-                    .or(Some(WorldState::stockpile_position()))
+                let dug = session
+                    .world
+                    .plots
+                    .iter()
+                    .filter(|plot| plot.status == PlotStatus::Dug)
+                    .map(|plot| plot.position)
+                    .collect::<Vec<_>>();
+                preferred_source_or_reachable_alternative(
+                    session,
+                    worker.position,
+                    session.economy.loose_bones_source,
+                    dug,
+                )
+                .or(Some(WorldState::stockpile_position()))
             } else if session.economy.loose_wood > 0 {
-                session.economy.loose_wood_source.or_else(|| {
-                    nearest_reachable_or_nearest(
-                        session,
-                        worker.position,
-                        session.world.forest_tiles.clone(),
-                    )
-                })
+                preferred_source_or_reachable_alternative(
+                    session,
+                    worker.position,
+                    session.economy.loose_wood_source,
+                    session.world.forest_tiles.clone(),
+                )
             } else {
                 None
             }
@@ -207,6 +206,20 @@ fn nearest_tile(origin: TilePos, candidates: Vec<TilePos>) -> Option<TilePos> {
             tile.x,
         )
     })
+}
+
+fn preferred_source_or_reachable_alternative(
+    session: &GameSession,
+    origin: TilePos,
+    preferred: Option<TilePos>,
+    alternatives: Vec<TilePos>,
+) -> Option<TilePos> {
+    if let Some(preferred) = preferred {
+        if navigation::plan_route(session, origin, preferred).is_ok() {
+            return Some(preferred);
+        }
+    }
+    nearest_reachable_or_nearest(session, origin, alternatives).or(preferred)
 }
 
 fn storage_destination(session: &GameSession, origin: TilePos) -> TilePos {

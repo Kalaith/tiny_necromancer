@@ -269,6 +269,32 @@ fn marked_patrol_posts_follow_guard_roster_order() {
 }
 
 #[test]
+fn hauler_switches_to_a_reachable_loose_bone_source() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let reachable_source = session.world.plots[0].position;
+    session.world.plots[0].status = PlotStatus::Dug;
+    session.economy.loose_bones = 8;
+    session.economy.loose_bones_source = Some(macroquad_toolkit::grid::TilePos::new(7, 1));
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(crate::state::Building {
+            kind: crate::state::BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: macroquad_toolkit::grid::TilePos::new(3, y),
+            width: 1,
+            height: 1,
+        });
+    }
+
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        Some(reachable_source)
+    );
+}
+
+#[test]
 fn storage_routing_aggregates_tiles_from_multiple_marked_districts() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
