@@ -277,7 +277,11 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
         dark::TEXT_BRIGHT,
     );
     draw_text_block(
-        "Recent changes, discoveries, and orders remain close at hand.",
+        &format!(
+            "{} notes · {} road events logged.",
+            ctx.session.pressure.feed.len(),
+            ctx.session.pressure.event_history.len()
+        ),
         rect.x + 24.0,
         rect.y + 50.0,
         500.0,
