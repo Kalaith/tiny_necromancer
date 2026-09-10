@@ -330,8 +330,13 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
                 dark::TEXT
             },
         );
+        let age_label = if index == 0 {
+            format!("LATEST · {:.0}s", entry.age_seconds)
+        } else {
+            format!("{:.0}s ago", entry.age_seconds)
+        };
         draw_text_block(
-            &format!("{:.0}s ago", entry.age_seconds),
+            &age_label,
             row.x + 520.0,
             row.y + 14.0,
             96.0,
