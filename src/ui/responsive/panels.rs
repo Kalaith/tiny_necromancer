@@ -274,8 +274,17 @@ fn draw_compact_zones_panel(
     sheet: Rect,
 ) {
     compact_panel_title("WORK AREAS", sheet);
+    let instruction = if ctx
+        .session
+        .research
+        .is_unlocked(Technology::DomainStewardship)
+    {
+        "Mark a Work, Storage, or Patrol tile; Domain bonuses stay local."
+    } else {
+        "Choose a tool, then tap world tiles to mark or clear them."
+    };
     draw_text_block(
-        "Choose a tool, then tap world tiles to mark or clear them.",
+        instruction,
         sheet.x + 16.0,
         sheet.y + 112.0,
         sheet.w - 32.0,

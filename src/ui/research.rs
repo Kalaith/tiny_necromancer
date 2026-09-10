@@ -197,9 +197,7 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
         .is_unlocked(Technology::DomainStewardship)
     {
         format!(
-            "District 01 · {} undead · {} structures · zones W{} S{} P{}.",
-            ctx.session.active_undead(),
-            ctx.session.world.buildings.len(),
+            "District 01 · zones W{} S{} P{} · rules apply on marked tiles.",
             zone_count(ctx, ZoneKind::Work),
             zone_count(ctx, ZoneKind::Storage),
             zone_count(ctx, ZoneKind::Patrol),
