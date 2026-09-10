@@ -118,6 +118,22 @@ fn draw_worker(
         0.0,
         dark::TEXT_BRIGHT,
     );
+    if let Some(route_summary) = super::super::world_feedback::worker_route_summary(ctx, worker) {
+        draw_text_block(
+            &route_summary,
+            sheet.x + 16.0,
+            sheet.y + 104.0,
+            sheet.w - 32.0,
+            16.0,
+            11.0,
+            0.0,
+            if route_summary.starts_with("NO ROUTE") {
+                dark::WARNING
+            } else {
+                dark::ACCENT
+            },
+        );
+    }
     let jobs = [
         JobKind::Dig,
         JobKind::Haul,
@@ -131,7 +147,7 @@ fn draw_worker(
     for (job_index, job) in jobs.into_iter().enumerate() {
         let button = Rect::new(
             sheet.x + 16.0 + (job_index % 3) as f32 * (button_width + gap),
-            sheet.y + 112.0 + (job_index / 3) as f32 * 50.0,
+            sheet.y + 120.0 + (job_index / 3) as f32 * 50.0,
             button_width,
             44.0,
         );
