@@ -52,6 +52,15 @@ pub fn queue_building_at(
     if overlaps {
         return Err("That footprint overlaps another structure.".to_owned());
     }
+    if (0..width).any(|x| {
+        (0..height).any(|y| {
+            session
+                .world
+                .is_building_obstacle(TilePos::new(position.x + x, position.y + y))
+        })
+    }) {
+        return Err("That footprint covers a grave, trees, or the road.".to_owned());
+    }
     let def = data
         .buildings
         .get(kind.id())

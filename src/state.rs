@@ -310,6 +310,12 @@ impl WorldState {
             .iter()
             .any(|zone| zone.kind == kind && zone.tiles.contains(&tile))
     }
+
+    pub fn is_building_obstacle(&self, tile: TilePos) -> bool {
+        tile.x >= self.road_x
+            || self.forest_tiles.contains(&tile)
+            || self.plots.iter().any(|plot| plot.position == tile)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

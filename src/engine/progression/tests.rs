@@ -98,3 +98,25 @@ fn ward_charge_can_be_spent_to_quiet_suspicion() {
     assert_eq!(session.economy.ward_charges, 1);
     assert_eq!(session.pressure.suspicion, 12.0);
 }
+
+#[test]
+fn buildings_cannot_cover_graves_or_the_forest_edge() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    assert!(queue_building_at(
+        &mut session,
+        &data,
+        BuildingKind::WorkShed,
+        TilePos::new(2, 2),
+    )
+    .is_err());
+    assert!(queue_building_at(
+        &mut session,
+        &data,
+        BuildingKind::WorkShed,
+        TilePos::new(0, 0),
+    )
+    .is_err());
+}

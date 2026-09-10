@@ -522,6 +522,14 @@ fn placement_valid(
     });
     if overlaps {
         (false, "BLOCKED · overlaps a structure")
+    } else if (0..width).any(|x| {
+        (0..height).any(|y| {
+            ctx.session
+                .world
+                .is_building_obstacle(TilePos::new(position.x + x, position.y + y))
+        })
+    }) {
+        (false, "BLOCKED · grave, trees, or road")
     } else {
         (true, "PLACE · Tap CANCEL PLACEMENT to return")
     }
