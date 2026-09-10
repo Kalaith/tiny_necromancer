@@ -206,8 +206,7 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
         .research
         .is_unlocked(Technology::OssuaryLogistics)
     {
-        "Storage uses the nearest haul tile; Work favors nearby gathering, and Patrol places guards."
-            .to_owned()
+        "Storage and Patrol use nearby marked posts; Work favors nearby gathering.".to_owned()
     } else {
         "Work and patrol markings are visible; Logistics will connect storage and production."
             .to_owned()

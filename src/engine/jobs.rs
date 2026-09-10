@@ -123,7 +123,17 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
         match job {
             JobKind::Guard => {
                 guards += 1;
-                let patrol = session.world.patrol_position();
+                let worker_position = session.workforce.workers[index].position;
+                let patrol = if session
+                    .world
+                    .zones
+                    .iter()
+                    .any(|zone| zone.kind == ZoneKind::Patrol)
+                {
+                    session.world.patrol_position_for(worker_position)
+                } else {
+                    session.world.patrol_position()
+                };
                 if move_worker_to(session, index, patrol) {
                     let worker = &mut session.workforce.workers[index];
                     worker.status = WorkerStatus::Hiding;
