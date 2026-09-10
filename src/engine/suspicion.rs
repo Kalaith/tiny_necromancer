@@ -92,11 +92,27 @@ pub fn resolve_event(
     session.pressure.active_event = None;
     session.pressure.event_history.push(event_id.clone());
     if choice.pause_digging {
-        for worker in &mut session.workforce.workers {
-            if worker.assignment == crate::state::JobKind::Dig {
-                worker.assignment = crate::state::JobKind::Guard;
-                worker.progress = 0.0;
-                worker.target_plot = None;
+        let interrupted_plots: Vec<usize> = session
+            .workforce
+            .workers
+            .iter_mut()
+            .filter_map(|worker| {
+                if worker.assignment == crate::state::JobKind::Dig {
+                    let target_plot = worker.target_plot.take();
+                    worker.assignment = crate::state::JobKind::Guard;
+                    worker.progress = 0.0;
+                    target_plot
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for plot_id in interrupted_plots {
+            if let Some(plot) = session.world.plots.get_mut(plot_id) {
+                if plot.status == crate::state::PlotStatus::Digging {
+                    plot.status = crate::state::PlotStatus::Ready;
+                    plot.progress = 0.0;
+                }
             }
         }
         session.add_feed("Digging workers are hiding until the road is quiet.");

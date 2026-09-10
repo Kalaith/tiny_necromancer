@@ -23,3 +23,24 @@ fn resolving_a_ward_choice_reduces_suspicion_and_closes_event() {
     assert!(session.pressure.active_event.is_none());
     assert_eq!(session.economy.mana, 14);
 }
+
+#[test]
+fn pausing_digging_releases_the_interrupted_plot() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.world.plots[0].status = crate::state::PlotStatus::Digging;
+    session.world.plots[0].progress = 3.0;
+    session.workforce.workers[0].target_plot = Some(0);
+    session.pressure.active_event = Some("rumour".to_owned());
+    resolve_event(&mut session, &data, "pause").unwrap();
+    assert_eq!(
+        session.world.plots[0].status,
+        crate::state::PlotStatus::Ready
+    );
+    assert_eq!(session.world.plots[0].progress, 0.0);
+    assert_eq!(
+        session.workforce.workers[0].assignment,
+        crate::state::JobKind::Guard
+    );
+    assert_eq!(session.workforce.workers[0].target_plot, None);
+}
