@@ -4,7 +4,7 @@ use super::components::virtual_button;
 use super::{DomainOverlay, UiAction, UiContext};
 use crate::data::SuspicionStage;
 use crate::engine::alerts;
-use crate::state::{JobKind, Selection, Technology};
+use crate::state::{GamePhase, JobKind, Selection, Technology};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::Pointer;
@@ -269,7 +269,9 @@ fn draw_stewardship_readout(
     if virtual_button(
         Rect::new(rect.x + 492.0, rect.y + 406.0, 142.0, 48.0),
         "Quiet ward",
-        ctx.session.economy.ward_charges > 0 && ctx.session.pressure.suspicion > 0.0,
+        ctx.session.phase == GamePhase::Playing
+            && ctx.session.economy.ward_charges > 0
+            && ctx.session.pressure.suspicion > 0.0,
         ButtonTone::Secondary,
         pointer,
     ) {
