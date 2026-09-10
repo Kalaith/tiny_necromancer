@@ -264,41 +264,39 @@ fn district_rule_hint(
     ctx: &UiContext<'_>,
     worker: &Worker,
     destination: TilePos,
-) -> Option<&'static str> {
+) -> Option<String> {
     match worker.assignment {
-        JobKind::Dig | JobKind::Wood
-            if districts::work_speed_multiplier(
+        JobKind::Dig | JobKind::Wood => {
+            let multiplier = districts::work_speed_multiplier(
                 ctx.session,
                 &ctx.data.config.district_rules,
                 destination,
-            ) > 1.0 =>
-        {
-            Some("Work rule")
+            );
+            (multiplier > 1.0)
+                .then(|| format!("Work +{:.0}% at target", (multiplier - 1.0) * 100.0))
         }
-        JobKind::Haul
-            if worker.carrying > 0
-                && districts::haul_capacity_bonus(
-                    ctx.session,
-                    &ctx.data.config.district_rules,
-                    destination,
-                ) > 0 =>
-        {
-            Some("Storage rule")
+        JobKind::Haul if worker.carrying > 0 => {
+            let bonus = districts::haul_capacity_bonus(
+                ctx.session,
+                &ctx.data.config.district_rules,
+                destination,
+            );
+            (bonus > 0).then(|| format!("Storage +{bonus} at drop"))
         }
-        JobKind::Guard
-            if districts::guard_mitigation_multiplier(
+        JobKind::Guard => {
+            let multiplier = districts::guard_mitigation_multiplier(
                 ctx.session,
                 &ctx.data.config.district_rules,
                 worker.position,
-            ) > 1.0 =>
-        {
-            Some("Patrol rule")
+            );
+            (multiplier > 1.0)
+                .then(|| format!("Patrol +{:.0}% at post", (multiplier - 1.0) * 100.0))
         }
         _ => None,
     }
 }
 
-pub(super) fn worker_district_hint(ctx: &UiContext<'_>, worker: &Worker) -> Option<&'static str> {
+pub(super) fn worker_district_hint(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
     jobs::destination_for_worker(ctx.session, worker)
         .and_then(|destination| district_rule_hint(ctx, worker, destination))
 }
