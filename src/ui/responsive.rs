@@ -258,9 +258,10 @@ fn draw_compact_navigation(
                 .research
                 .is_unlocked(Technology::DomainStewardship),
         ),
+        (Panel::Feed, "Notes", true),
     ];
     let gap = 4.0;
-    let button_width = ((sheet.w - 24.0 - gap * 5.0) / 6.0).max(48.0);
+    let button_width = ((sheet.w - 24.0 - gap * 6.0) / 7.0).max(48.0);
     for (index, (panel, label, enabled)) in entries.into_iter().enumerate() {
         let button = Rect::new(
             sheet.x + 12.0 + index as f32 * (button_width + gap),
