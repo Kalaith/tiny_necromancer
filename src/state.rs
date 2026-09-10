@@ -302,7 +302,20 @@ impl WorldState {
     }
 
     pub fn storage_position(&self) -> TilePos {
-        self.zone_anchor(ZoneKind::Storage, Self::stockpile_position())
+        self.storage_position_for(Self::stockpile_position())
+    }
+
+    pub fn storage_position_for(&self, origin: TilePos) -> TilePos {
+        self.zones
+            .iter()
+            .find(|zone| zone.kind == ZoneKind::Storage)
+            .and_then(|zone| {
+                zone.tiles
+                    .iter()
+                    .min_by_key(|tile| tile_distance(origin, **tile))
+                    .copied()
+            })
+            .unwrap_or_else(Self::stockpile_position)
     }
 
     pub fn patrol_position(&self) -> TilePos {
@@ -328,6 +341,10 @@ impl WorldState {
             || self.forest_tiles.contains(&tile)
             || self.plots.iter().any(|plot| plot.position == tile)
     }
+}
+
+fn tile_distance(from: TilePos, to: TilePos) -> i32 {
+    (from.x - to.x).abs() + (from.y - to.y).abs()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -334,7 +334,17 @@ fn simulate_haul(
         session.workforce.workers[index].status = WorkerStatus::Idle;
         return;
     }
-    let storage_position = session.world.storage_position();
+    let worker_position = session.workforce.workers[index].position;
+    let storage_position = if session
+        .world
+        .zones
+        .iter()
+        .any(|zone| zone.kind == ZoneKind::Storage)
+    {
+        session.world.storage_position_for(worker_position)
+    } else {
+        session.world.storage_position()
+    };
     if !move_worker_to(session, index, storage_position) {
         return;
     }

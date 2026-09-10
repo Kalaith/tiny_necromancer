@@ -66,10 +66,12 @@ bands and Brute eligibility live in `corpses.json`; resurrection recipes live
 in `undead.json`.
 
 Painted Work areas guide digging and wood gathering, Storage areas choose the
-hauler's drop point, and Patrol areas choose the guard's post. An empty area
-keeps the original fallback target so marking a zone is never required to
-continue a job. Tapping a marked tile clears it, so an accidental mark can be
-corrected without restarting the colony.
+hauler's drop points, and Patrol areas choose the guard's post. Haulers use the
+nearest marked Storage tile from their current position, which keeps larger
+stockpile districts practical. An empty area keeps the original fallback
+target so marking a zone is never required to continue a job. Tapping a marked
+tile clears it, so an accidental mark can be corrected without restarting the
+colony.
 
 ### 5.3 Suspicion and events
 
