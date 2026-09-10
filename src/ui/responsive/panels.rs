@@ -361,8 +361,28 @@ fn draw_compact_domain_panel(
         0.0,
         dark::ACCENT,
     );
+    let (clear_routes, total_routes) = super::super::world_feedback::route_counts(ctx);
+    let route_summary = if total_routes == 0 {
+        "Routes · no destinations plotted".to_owned()
+    } else {
+        format!("Routes · {clear_routes}/{total_routes} clear")
+    };
+    draw_text_block(
+        &route_summary,
+        sheet.x + 16.0,
+        sheet.y + 194.0,
+        sheet.w - 32.0,
+        16.0,
+        11.0,
+        0.0,
+        if clear_routes == total_routes {
+            dark::POSITIVE
+        } else {
+            dark::WARNING
+        },
+    );
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 210.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 220.0, sheet.w - 32.0, 44.0),
         &format!("Policy · {}", ctx.session.stewardship_policy.label()),
         ctx.session.phase == GamePhase::Playing,
         ButtonTone::Secondary,
@@ -371,7 +391,7 @@ fn draw_compact_domain_panel(
         actions.push(UiAction::CycleStewardshipPolicy);
     }
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 260.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 270.0, sheet.w - 32.0, 44.0),
         "Quiet ward · -8 suspicion",
         ctx.session.phase == GamePhase::Playing
             && ctx.session.economy.ward_charges > 0
