@@ -261,8 +261,20 @@ fn draw_compact_navigation(
         (Panel::Feed, "Notes", true),
     ];
     let gap = 4.0;
-    let button_width = ((sheet.w - 24.0 - gap * 6.0) / 7.0).max(48.0);
+    let button_width = ((sheet.w - 24.0 - gap * 6.0) / 7.0).max(44.0);
+    let text_size = if button_width < 56.0 { 9.0 } else { 12.0 };
     for (index, (panel, label, enabled)) in entries.into_iter().enumerate() {
+        let label = if button_width < 56.0 {
+            match panel {
+                Panel::Orders => "Jobs",
+                Panel::Undead => "Dead",
+                Panel::Research => "Tech",
+                Panel::Domain => "Rules",
+                _ => label,
+            }
+        } else {
+            label
+        };
         let button = Rect::new(
             sheet.x + 12.0 + index as f32 * (button_width + gap),
             sheet.y + 24.0,
@@ -278,7 +290,7 @@ fn draw_compact_navigation(
             } else {
                 ButtonTone::Secondary
             },
-            12.0,
+            text_size,
             pointer,
         ) {
             actions.push(UiAction::TogglePanel(panel));
