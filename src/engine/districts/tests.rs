@@ -22,20 +22,32 @@ fn district_rules_wait_for_domain_stewardship() {
         },
     ];
 
-    assert_eq!(work_speed_multiplier(&session, work_tile), 1.0);
-    assert_eq!(haul_capacity_bonus(&session), 0);
-    assert_eq!(guard_mitigation_multiplier(&session), 1.0);
+    assert_eq!(
+        work_speed_multiplier(&session, &data.config.district_rules, work_tile),
+        1.0
+    );
+    assert_eq!(
+        haul_capacity_bonus(&session, &data.config.district_rules),
+        0
+    );
+    assert_eq!(
+        guard_mitigation_multiplier(&session, &data.config.district_rules),
+        1.0
+    );
 
     session.research.completed = vec![Technology::DomainStewardship];
 
     assert_eq!(
-        work_speed_multiplier(&session, work_tile),
-        WORK_SPEED_MULTIPLIER
+        work_speed_multiplier(&session, &data.config.district_rules, work_tile),
+        data.config.district_rules.work_speed_multiplier
     );
-    assert_eq!(haul_capacity_bonus(&session), STORAGE_CAPACITY_BONUS);
     assert_eq!(
-        guard_mitigation_multiplier(&session),
-        PATROL_MITIGATION_MULTIPLIER
+        haul_capacity_bonus(&session, &data.config.district_rules),
+        data.config.district_rules.storage_capacity_bonus
+    );
+    assert_eq!(
+        guard_mitigation_multiplier(&session, &data.config.district_rules),
+        data.config.district_rules.patrol_mitigation_multiplier
     );
 }
 
@@ -49,5 +61,8 @@ fn rule_summary_names_only_marked_districts() {
         tiles: vec![WorldState::stockpile_position()],
     });
 
-    assert_eq!(rule_summary(&session), "Rules: Storage +4 haul");
+    assert_eq!(
+        rule_summary(&session, &data.config.district_rules),
+        "Rules: Storage +4 haul"
+    );
 }

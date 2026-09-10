@@ -265,7 +265,7 @@ fn draw_stewardship_readout(
         dark::TEXT_DIM,
     );
     draw_text_block(
-        &districts::rule_summary(ctx.session),
+        &districts::rule_summary(ctx.session, &ctx.data.config.district_rules),
         rect.x + 228.0,
         rect.y + 392.0,
         390.0,

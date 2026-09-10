@@ -244,7 +244,10 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
             .guard_mitigation_per_second;
         suspicion::adjust_quiet(
             session,
-            -(mitigation * guards as f32 * districts::guard_mitigation_multiplier(session) * dt),
+            -(mitigation
+                * guards as f32
+                * districts::guard_mitigation_multiplier(session, &data.config.district_rules)
+                * dt),
             "guards keep the road quiet",
         );
     }
@@ -369,7 +372,8 @@ fn simulate_dig(
     if !move_worker_to(session, index, plot_position) {
         return;
     }
-    let district_speed = districts::work_speed_multiplier(session, plot_position);
+    let district_speed =
+        districts::work_speed_multiplier(session, &data.config.district_rules, plot_position);
     let worker = &mut session.workforce.workers[index];
     worker.status = WorkerStatus::Working;
     worker.progress += dt * speed * job.base_speed * district_speed;
@@ -416,7 +420,7 @@ fn simulate_haul(
         .get(session.workforce.workers[index].kind.id())
         .expect("validated undead type")
         .haul_capacity
-        + districts::haul_capacity_bonus(session);
+        + districts::haul_capacity_bonus(session, &data.config.district_rules);
     if session.workforce.workers[index].carrying <= 0 {
         let (resource, source) = if session.economy.loose_bones > 0 {
             (
@@ -546,7 +550,8 @@ fn simulate_wood(
     if !move_worker_to(session, index, work_position) {
         return;
     }
-    let district_speed = districts::work_speed_multiplier(session, work_position);
+    let district_speed =
+        districts::work_speed_multiplier(session, &data.config.district_rules, work_position);
     let worker = &mut session.workforce.workers[index];
     worker.status = WorkerStatus::Working;
     worker.progress += dt * speed * job.base_speed * district_speed;

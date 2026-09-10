@@ -37,7 +37,15 @@ pub struct GameConfig {
     pub suspicion_thresholds: [f32; 3],
     pub plot_unlock_base_wood: i32,
     pub plot_unlock_step_wood: i32,
+    pub district_rules: DistrictRules,
     pub research_durations: ResearchDurations,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DistrictRules {
+    pub work_speed_multiplier: f32,
+    pub storage_capacity_bonus: i32,
+    pub patrol_mitigation_multiplier: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -210,6 +218,14 @@ impl GameData {
         }
         if config.plot_unlock_base_wood < 0 || config.plot_unlock_step_wood < 0 {
             return Err("game_config.json: plot unlock costs cannot be negative".to_owned());
+        }
+        if config.district_rules.work_speed_multiplier < 1.0
+            || config.district_rules.storage_capacity_bonus < 0
+            || config.district_rules.patrol_mitigation_multiplier < 1.0
+        {
+            return Err(
+                "game_config.json: district rules must provide non-negative bonuses".to_owned(),
+            );
         }
         if [
             config.research_durations.binding_routines,

@@ -21,6 +21,11 @@
   "suspicion_thresholds": [25.0, 50.0, 70.0],
   "plot_unlock_base_wood": 6,
   "plot_unlock_step_wood": 2,
+  "district_rules": {
+    "work_speed_multiplier": 1.15,
+    "storage_capacity_bonus": 4,
+    "patrol_mitigation_multiplier": 1.25
+  },
   "research_durations": {
     "binding_routines": 6.0,
     "gravecraft": 10.0,

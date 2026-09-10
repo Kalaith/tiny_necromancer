@@ -233,7 +233,9 @@ fn domain_work_rule_accelerates_digging_on_marked_tiles() {
     simulate(&mut session, &data, 1.0);
 
     assert!(
-        (session.workforce.workers[0].progress - districts::WORK_SPEED_MULTIPLIER).abs() < 0.001
+        (session.workforce.workers[0].progress - data.config.district_rules.work_speed_multiplier)
+            .abs()
+            < 0.001
     );
 }
 
