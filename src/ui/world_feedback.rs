@@ -301,12 +301,14 @@ pub(super) fn worker_district_hint(ctx: &UiContext<'_>, worker: &Worker) -> Opti
 
 pub(super) fn worker_route_summary(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
     let destination = jobs::destination_for_worker(ctx.session, worker)?;
+    let summary = match navigation::plan_route(ctx.session, worker.position, destination) {
+        Ok(route) if route.step_count() == 0 => "AT DESTINATION".to_owned(),
+        Ok(route) => format!("ROUTE · {} steps", route.step_count()),
+        Err(failure) => format!("NO ROUTE · {}", failure.label()),
+    };
     Some(
-        match navigation::plan_route(ctx.session, worker.position, destination) {
-            Ok(route) if route.step_count() == 0 => "AT DESTINATION".to_owned(),
-            Ok(route) => format!("ROUTE · {} steps", route.step_count()),
-            Err(failure) => format!("NO ROUTE · {}", failure.label()),
-        },
+        jobs::patrol_post_number(ctx.session, worker)
+            .map_or(summary.clone(), |post| format!("POST P{post} · {summary}")),
     )
 }
 

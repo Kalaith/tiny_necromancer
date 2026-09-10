@@ -148,15 +148,7 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
 }
 
 pub fn patrol_coverage(session: &GameSession) -> PatrolCoverage {
-    let posts =
-        zone_tiles(session, ZoneKind::Patrol)
-            .into_iter()
-            .fold(Vec::new(), |mut posts, tile| {
-                if !posts.contains(&tile) {
-                    posts.push(tile);
-                }
-                posts
-            });
+    let posts = unique_tiles(zone_tiles(session, ZoneKind::Patrol));
     let mut covered = Vec::new();
     let mut guard_count = 0;
     for worker in &session.workforce.workers {
@@ -180,6 +172,17 @@ pub fn patrol_coverage(session: &GameSession) -> PatrolCoverage {
         covered_posts: covered.len(),
         guard_count,
     }
+}
+
+pub fn patrol_post_number(session: &GameSession, worker: &Worker) -> Option<usize> {
+    if worker.assignment != JobKind::Guard {
+        return None;
+    }
+    let destination = destination_for_worker(session, worker)?;
+    unique_tiles(zone_tiles(session, ZoneKind::Patrol))
+        .iter()
+        .position(|post| *post == destination)
+        .map(|index| index + 1)
 }
 
 fn dig_destination(session: &GameSession, worker: &Worker) -> Option<TilePos> {
@@ -322,6 +325,15 @@ fn zone_tiles(session: &GameSession, kind: ZoneKind) -> Vec<TilePos> {
         .filter(|zone| zone.kind == kind)
         .flat_map(|zone| zone.tiles.iter().copied())
         .collect()
+}
+
+fn unique_tiles(tiles: Vec<TilePos>) -> Vec<TilePos> {
+    tiles.into_iter().fold(Vec::new(), |mut unique, tile| {
+        if !unique.contains(&tile) {
+            unique.push(tile);
+        }
+        unique
+    })
 }
 
 fn wood_destination(session: &GameSession, origin: TilePos) -> Option<TilePos> {

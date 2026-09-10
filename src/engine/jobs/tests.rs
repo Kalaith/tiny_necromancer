@@ -291,6 +291,24 @@ fn patrol_coverage_counts_reachable_unique_posts() {
 }
 
 #[test]
+fn guard_route_names_its_marked_patrol_post() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_post = macroquad_toolkit::grid::TilePos::new(5, 1);
+    let second_post = macroquad_toolkit::grid::TilePos::new(5, 3);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Patrol,
+        tiles: vec![first_post, second_post],
+    });
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    assert_eq!(
+        patrol_post_number(&session, &session.workforce.workers[0]),
+        Some(1)
+    );
+}
+
+#[test]
 fn hauler_switches_to_a_reachable_loose_bone_source() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
