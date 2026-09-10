@@ -83,6 +83,16 @@ fn draw_compact_camera_controls(
     ) {
         actions.push(UiAction::CenterCamera);
     }
+    draw_text_block(
+        &format!("MAP ZOOM · {:.0}%", ctx.camera.zoom() * 100.0),
+        recenter.right() + 12.0,
+        recenter.y + 14.0,
+        (ctx.layout.logical_width - recenter.right() - 24.0).max(60.0),
+        16.0,
+        11.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
 }
 
 fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
