@@ -162,6 +162,11 @@ fn cancelling_a_reserved_cycle_refunds_materials_but_keeps_working_cycle() {
     assert_eq!(session.economy.bones, bones_after_two_loads + 12);
     assert_eq!(session.economy.wood, 70);
     assert_eq!(session.progress.production.unwrap().progress, 2.0);
+    assert!(session
+        .pressure
+        .feed
+        .first()
+        .is_some_and(|entry| entry.message.contains("+12 bones and +6 wood")));
 }
 
 #[test]

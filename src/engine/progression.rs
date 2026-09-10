@@ -232,7 +232,10 @@ pub fn cancel_production(
     session.progress.production_queue -= 1;
     session.economy.bones += recipe.bones_cost;
     session.economy.wood += recipe.wood_cost;
-    session.add_feed("A reserved ward cycle is cancelled; materials return to storage.");
+    session.add_feed(format!(
+        "A reserved ward cycle is cancelled; +{} bones and +{} wood return to storage.",
+        recipe.bones_cost, recipe.wood_cost
+    ));
     Ok(())
 }
 
