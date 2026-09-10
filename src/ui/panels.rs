@@ -68,6 +68,59 @@ pub(super) fn draw_minimap(ctx: &UiContext<'_>) {
             );
         }
     }
+    for zone in &ctx.session.world.zones {
+        let color = match zone.kind {
+            crate::state::ZoneKind::Work => Color::new(0.24, 0.72, 0.58, 0.75),
+            crate::state::ZoneKind::Storage => Color::new(0.88, 0.62, 0.24, 0.82),
+            crate::state::ZoneKind::Patrol => Color::new(0.42, 0.58, 0.92, 0.82),
+        };
+        for tile in &zone.tiles {
+            let marker = minimap_tile_rect(rect, sx, sy, *tile);
+            draw_rectangle(marker.x, marker.y, marker.w, marker.h, color);
+        }
+    }
+    for building in &ctx.session.world.buildings {
+        let marker = minimap_tile_rect(rect, sx, sy, building.position);
+        draw_rectangle(
+            marker.x,
+            marker.y,
+            sx * building.width as f32,
+            sy * building.height as f32,
+            if building.complete {
+                Color::new(0.74, 0.72, 0.62, 1.0)
+            } else {
+                Color::new(0.74, 0.48, 0.28, 1.0)
+            },
+        );
+    }
+    for worker in &ctx.session.workforce.workers {
+        let marker = minimap_tile_rect(rect, sx, sy, worker.position);
+        draw_circle(
+            marker.center().x,
+            marker.center().y,
+            marker.w * 0.22,
+            Color::new(0.92, 0.92, 0.78, 1.0),
+        );
+    }
+    let necromancer = minimap_tile_rect(rect, sx, sy, ctx.session.world.necromancer_position);
+    draw_rectangle(
+        necromancer.x + necromancer.w * 0.28,
+        necromancer.y + necromancer.h * 0.28,
+        necromancer.w * 0.44,
+        necromancer.h * 0.44,
+        Color::new(0.78, 0.48, 0.92, 1.0),
+    );
+    if let Some(tile) = minimap_selection_tile(ctx) {
+        let marker = minimap_tile_rect(rect, sx, sy, tile).inset(1.0);
+        draw_rectangle_lines(
+            marker.x,
+            marker.y,
+            marker.w,
+            marker.h,
+            1.0,
+            Color::new(0.95, 0.92, 0.62, 1.0),
+        );
+    }
     draw_text_block(
         "SETTLEMENT VIEW",
         rect.x + 10.0,
@@ -78,6 +131,38 @@ pub(super) fn draw_minimap(ctx: &UiContext<'_>) {
         0.0,
         dark::TEXT_DIM,
     );
+}
+
+fn minimap_tile_rect(rect: Rect, sx: f32, sy: f32, tile: macroquad_toolkit::grid::TilePos) -> Rect {
+    Rect::new(
+        rect.x + 10.0 + tile.x as f32 * sx,
+        rect.y + 18.0 + tile.y as f32 * sy,
+        sx,
+        sy,
+    )
+}
+
+fn minimap_selection_tile(ctx: &UiContext<'_>) -> Option<macroquad_toolkit::grid::TilePos> {
+    match ctx.session.world.selected {
+        Some(crate::state::Selection::Ground(tile)) => Some(tile),
+        Some(crate::state::Selection::Necromancer) => Some(ctx.session.world.necromancer_position),
+        Some(crate::state::Selection::Worker(index)) => ctx
+            .session
+            .workforce
+            .workers
+            .get(index)
+            .map(|worker| worker.position),
+        Some(crate::state::Selection::Building(index)) => ctx
+            .session
+            .world
+            .buildings
+            .get(index)
+            .map(|building| building.position),
+        Some(crate::state::Selection::Grave(index)) => {
+            ctx.session.world.plots.get(index).map(|plot| plot.position)
+        }
+        None => None,
+    }
 }
 
 pub(super) fn draw_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {

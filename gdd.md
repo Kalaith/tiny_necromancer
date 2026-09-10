@@ -118,9 +118,12 @@ job buttons and, after research, repeat priorities. A selected grave exposes
 dig and raise actions. Building placement previews footprint, collision, cost,
 and a textual failure reason, with **Cancel placement** always visible.
 
-The event modal blocks the world and presents only choice buttons. Pause,
-save, load, recovery, and replay actions are also visible controls. Desktop
-right-drag and wheel camera controls supplement the touch path.
+The Settlement View minimap echoes painted zones, structures, workers, the
+necromancer, and the current selection so the domain remains legible while
+the world is busy. The event modal blocks the world and presents only choice
+buttons. Pause, save, load, recovery, and replay actions are also visible
+controls. Desktop right-drag and wheel camera controls supplement the touch
+path.
 
 ## 8. Toolkit mapping
 
