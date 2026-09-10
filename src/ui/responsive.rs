@@ -93,6 +93,20 @@ fn draw_compact_camera_controls(
         0.0,
         dark::TEXT_DIM,
     );
+    draw_text_block(
+        if ctx.layout.logical_width < 520.0 {
+            "DRAG / PINCH"
+        } else {
+            "DRAG MAP · PINCH TO ZOOM"
+        },
+        recenter.right() + 12.0,
+        recenter.y + 28.0,
+        (ctx.layout.logical_width - recenter.right() - 24.0).max(60.0),
+        14.0,
+        9.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
 }
 
 fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
