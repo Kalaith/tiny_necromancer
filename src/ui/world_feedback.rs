@@ -68,6 +68,9 @@ fn draw_resource_pile(center: Vec2, glyph: &str, amount: i32, color: Color) {
 }
 
 pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
+    if ctx.domain_overlays.routes {
+        draw_route_legend(ctx);
+    }
     for (index, worker) in ctx.session.workforce.workers.iter().enumerate() {
         if ctx.domain_overlays.routes
             || ctx.session.world.selected == Some(Selection::Worker(index))
@@ -107,6 +110,29 @@ pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
             dark::ACCENT,
         );
     }
+}
+
+fn draw_route_legend(ctx: &UiContext<'_>) {
+    let rect = if ctx.layout.compact {
+        Rect::new(206.0, 146.0, 252.0, 26.0)
+    } else {
+        Rect::new(24.0, 92.0, 306.0, 28.0)
+    };
+    draw_surface(
+        rect,
+        &SurfaceStyle::new(Color::new(0.03, 0.06, 0.045, 0.90))
+            .with_border(1.0, dark::ACCENT.with_alpha(0.54)),
+    );
+    draw_text_block(
+        "ROUTE · dots = steps · amber = blocked",
+        rect.x + 8.0,
+        rect.y + 6.0,
+        rect.w - 16.0,
+        16.0,
+        11.0,
+        0.0,
+        dark::TEXT,
+    );
 }
 
 fn draw_route_hint(ctx: &UiContext<'_>, view: &GridView, worker: &Worker, destination: TilePos) {
