@@ -206,7 +206,7 @@ impl Game {
             },
             Zone {
                 kind: ZoneKind::Patrol,
-                tiles: vec![TilePos::new(7, 1)],
+                tiles: vec![TilePos::new(7, 1), TilePos::new(8, 3), TilePos::new(8, 5)],
             },
         ];
         self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
@@ -228,6 +228,13 @@ impl Game {
             worker.assignment = JobKind::Guard;
             worker.status = WorkerStatus::Hiding;
             worker.position = TilePos::new(5, 5);
+        }
+        for (index, position) in [(1, TilePos::new(5, 4)), (2, TilePos::new(4, 5))] {
+            if let Some(worker) = self.session.workforce.workers.get_mut(index) {
+                worker.assignment = JobKind::Guard;
+                worker.status = WorkerStatus::Hiding;
+                worker.position = position;
+            }
         }
     }
 

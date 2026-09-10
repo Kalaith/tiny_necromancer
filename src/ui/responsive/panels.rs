@@ -363,9 +363,15 @@ fn draw_compact_domain_panel(
     );
     let (clear_routes, total_routes) = super::super::world_feedback::route_counts(ctx);
     let route_summary = if total_routes == 0 {
-        "Routes · no destinations plotted".to_owned()
+        format!(
+            "Routes · no destinations · P{}",
+            super::super::world_feedback::patrol_post_count(ctx)
+        )
     } else {
-        format!("Routes · {clear_routes}/{total_routes} clear")
+        format!(
+            "Routes · {clear_routes}/{total_routes} clear · P{}",
+            super::super::world_feedback::patrol_post_count(ctx)
+        )
     };
     draw_text_block(
         &route_summary,

@@ -203,9 +203,15 @@ fn draw_stewardship_readout(
 ) {
     let (clear_routes, total_routes) = super::world_feedback::route_counts(ctx);
     let route_summary = if total_routes == 0 {
-        "no destinations plotted".to_owned()
+        format!(
+            "no destinations plotted · {} patrol posts",
+            super::world_feedback::patrol_post_count(ctx)
+        )
     } else {
-        format!("{clear_routes}/{total_routes} routes clear")
+        format!(
+            "{clear_routes}/{total_routes} routes clear · {} patrol posts",
+            super::world_feedback::patrol_post_count(ctx)
+        )
     };
     draw_text_block(
         "STEWARDSHIP READOUT",

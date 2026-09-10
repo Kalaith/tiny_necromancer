@@ -114,7 +114,7 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
                 None
             }
         }
-        JobKind::Guard => Some(patrol_destination(session, worker.position)),
+        JobKind::Guard => Some(patrol_destination(session, worker.position, worker.id)),
         JobKind::Wood => wood_destination(session, worker.position),
         JobKind::Build => session
             .world
@@ -211,25 +211,37 @@ fn nearest_tile(origin: TilePos, candidates: Vec<TilePos>) -> Option<TilePos> {
 
 fn storage_destination(session: &GameSession, origin: TilePos) -> TilePos {
     let fallback = session.world.storage_position();
-    let candidates = session
-        .world
-        .zones
-        .iter()
-        .find(|zone| zone.kind == ZoneKind::Storage)
-        .map_or_else(|| vec![fallback], |zone| zone.tiles.clone());
+    let candidates = zone_tiles(session, ZoneKind::Storage);
+    let candidates = if candidates.is_empty() {
+        vec![fallback]
+    } else {
+        candidates
+    };
     nearest_reachable_or_nearest(session, origin, candidates).unwrap_or(fallback)
 }
 
-fn patrol_destination(session: &GameSession, origin: TilePos) -> TilePos {
+fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> TilePos {
     let fallback = session.world.patrol_position();
-    let candidates = session
+    let candidates = zone_tiles(session, ZoneKind::Patrol);
+    if candidates.is_empty() {
+        return fallback;
+    }
+    let preferred = candidates[worker_id as usize % candidates.len()];
+    if navigation::plan_route(session, origin, preferred).is_ok() {
+        return preferred;
+    }
+    nearest_reachable_or_nearest(session, origin, candidates)
+        .unwrap_or_else(|| session.world.patrol_position_for(origin))
+}
+
+fn zone_tiles(session: &GameSession, kind: ZoneKind) -> Vec<TilePos> {
+    session
         .world
         .zones
         .iter()
-        .find(|zone| zone.kind == ZoneKind::Patrol)
-        .map_or_else(|| vec![fallback], |zone| zone.tiles.clone());
-    nearest_reachable_or_nearest(session, origin, candidates)
-        .unwrap_or_else(|| session.world.patrol_position_for(origin))
+        .filter(|zone| zone.kind == kind)
+        .flat_map(|zone| zone.tiles.iter().copied())
+        .collect()
 }
 
 fn wood_destination(session: &GameSession, origin: TilePos) -> Option<TilePos> {

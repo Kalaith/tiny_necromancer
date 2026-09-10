@@ -247,6 +247,53 @@ fn patrol_target_prefers_a_reachable_marked_post() {
 }
 
 #[test]
+fn marked_patrol_posts_distribute_across_guard_workers() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_post = macroquad_toolkit::grid::TilePos::new(5, 1);
+    let second_post = macroquad_toolkit::grid::TilePos::new(5, 3);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Patrol,
+        tiles: vec![first_post, second_post],
+    });
+    session.workforce.workers[0].assignment = JobKind::Guard;
+    let mut second_worker = session.workforce.workers[0].clone();
+    second_worker.id = 2;
+    session.workforce.workers.push(second_worker);
+
+    let first_destination = destination_for_worker(&session, &session.workforce.workers[0]);
+    let second_destination = destination_for_worker(&session, &session.workforce.workers[1]);
+
+    assert_eq!(first_destination, Some(second_post));
+    assert_eq!(second_destination, Some(first_post));
+}
+
+#[test]
+fn storage_routing_aggregates_tiles_from_multiple_marked_districts() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let near_storage = macroquad_toolkit::grid::TilePos::new(5, 1);
+    session.world.zones.extend([
+        crate::state::Zone {
+            kind: crate::state::ZoneKind::Storage,
+            tiles: vec![macroquad_toolkit::grid::TilePos::new(1, 1)],
+        },
+        crate::state::Zone {
+            kind: crate::state::ZoneKind::Storage,
+            tiles: vec![near_storage],
+        },
+    ]);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].carrying = 1;
+    session.workforce.workers[0].position = near_storage;
+
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        Some(near_storage)
+    );
+}
+
+#[test]
 fn idle_dig_preview_uses_a_reachable_grave() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
