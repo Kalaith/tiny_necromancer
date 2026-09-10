@@ -1,8 +1,11 @@
 //! Worker assignment and fixed-timestep job progression.
 
 use crate::data::GameData;
-use crate::engine::{corpses, navigation, progression, suspicion};
-use crate::state::{BuildingKind, GameSession, JobKind, PlotStatus, WorkerStatus, ZoneKind};
+use crate::engine::{corpses, movement, navigation, progression, suspicion};
+use crate::state::{
+    BuildingKind, GameSession, JobKind, PlotStatus, ResourceKind, WorkerStatus, WorldState,
+    ZoneKind,
+};
 use macroquad_toolkit::grid::TilePos;
 
 pub fn assign_job(session: &mut GameSession, job: JobKind) -> Result<(), String> {
@@ -16,6 +19,7 @@ pub fn assign_job(session: &mut GameSession, job: JobKind) -> Result<(), String>
     if session.workforce.workers[index].assignment == job {
         return Ok(());
     }
+    movement::drop_worker_cargo(session, index);
     let plot_id = session.workforce.workers[index].target_plot.take();
     if let Some(plot_id) = plot_id {
         if let Some(plot) = session.world.plots.get_mut(plot_id) {
@@ -46,6 +50,7 @@ pub fn toggle_automation(session: &mut GameSession) -> Result<(), String> {
     if session.workforce.workers.get(index).is_none() {
         return Err("No worker is selected.".to_owned());
     }
+    movement::drop_worker_cargo(session, index);
     let plot_id = session.workforce.workers[index].target_plot;
     if let Some(plot_id) = plot_id {
         if let Some(plot) = session.world.plots.get_mut(plot_id) {
@@ -103,6 +108,7 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
             previous_job
         };
         if automatic && job != previous_job {
+            movement::drop_worker_cargo(session, index);
             if let Some(plot_id) = session.workforce.workers[index].target_plot {
                 if let Some(plot) = session.world.plots.get_mut(plot_id) {
                     if plot.status == PlotStatus::Digging {
@@ -209,7 +215,15 @@ fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
     for priority in &session.workforce.priorities {
         let available = match priority {
             JobKind::Guard => session.pressure.suspicion >= data.config.suspicion_thresholds[1],
-            JobKind::Haul => session.economy.loose_bones > 0 || session.economy.loose_wood > 0,
+            JobKind::Haul => {
+                session.economy.loose_bones > 0
+                    || session.economy.loose_wood > 0
+                    || session
+                        .workforce
+                        .workers
+                        .iter()
+                        .any(|worker| worker.carrying > 0)
+            }
             JobKind::Dig => session
                 .world
                 .plots
@@ -316,6 +330,9 @@ fn simulate_dig(
         plot.progress = job.work_seconds;
     }
     session.economy.loose_bones += job.output_amount;
+    if session.economy.loose_bones_source.is_none() {
+        session.economy.loose_bones_source = Some(plot_position);
+    }
     suspicion::adjust(
         session,
         job.suspicion_per_cycle * lantern_bonus * conspicuousness,
@@ -341,9 +358,68 @@ fn simulate_haul(
     messages: &mut Vec<String>,
 ) {
     let job = data.jobs.get("haul").expect("validated haul job");
-    let has_material = session.economy.loose_bones > 0 || session.economy.loose_wood > 0;
-    if !has_material {
-        session.workforce.workers[index].status = WorkerStatus::Idle;
+    let capacity = data
+        .undead
+        .get(session.workforce.workers[index].kind.id())
+        .expect("validated undead type")
+        .haul_capacity;
+    if session.workforce.workers[index].carrying <= 0 {
+        let (resource, source) = if session.economy.loose_bones > 0 {
+            (
+                ResourceKind::Bones,
+                session
+                    .economy
+                    .loose_bones_source
+                    .or_else(|| nearest_dug_plot(session, index))
+                    .or(Some(WorldState::stockpile_position())),
+            )
+        } else if session.economy.loose_wood > 0 {
+            (
+                ResourceKind::Wood,
+                session
+                    .economy
+                    .loose_wood_source
+                    .or_else(|| session.world.forest_tiles.first().copied()),
+            )
+        } else {
+            session.workforce.workers[index].status = WorkerStatus::Idle;
+            session.workforce.workers[index].progress = 0.0;
+            session.workforce.workers[index].carrying_resource = None;
+            return;
+        };
+        let Some(source) = source else {
+            session.workforce.workers[index].status = WorkerStatus::Idle;
+            return;
+        };
+        if !move_worker_to(session, index, source) {
+            return;
+        }
+        let amount = match resource {
+            ResourceKind::Bones => session.economy.loose_bones.min(capacity),
+            ResourceKind::Wood => session.economy.loose_wood.min(capacity),
+        };
+        if amount <= 0 {
+            return;
+        }
+        match resource {
+            ResourceKind::Bones => {
+                session.economy.loose_bones -= amount;
+                if session.economy.loose_bones == 0 {
+                    session.economy.loose_bones_source = None;
+                }
+            }
+            ResourceKind::Wood => {
+                session.economy.loose_wood -= amount;
+                if session.economy.loose_wood == 0 {
+                    session.economy.loose_wood_source = None;
+                }
+            }
+        }
+        let worker = &mut session.workforce.workers[index];
+        worker.carrying = amount;
+        worker.carrying_resource = Some(resource);
+        worker.status = WorkerStatus::Carrying;
+        worker.progress = 0.0;
         return;
     }
     let worker_position = session.workforce.workers[index].position;
@@ -367,22 +443,32 @@ fn simulate_haul(
         return;
     }
     worker.progress = 0.0;
-    let capacity = data
-        .undead
-        .get(worker.kind.id())
-        .expect("validated undead type")
-        .haul_capacity;
-    let bones = session.economy.loose_bones.min(capacity);
-    if bones > 0 {
-        session.economy.loose_bones -= bones;
-        session.economy.bones += bones;
-        messages.push(format!("Hauled {bones} bones into the stockpile."));
-    } else {
-        let wood = session.economy.loose_wood.min(capacity);
-        session.economy.loose_wood -= wood;
-        session.economy.wood += wood;
-        messages.push(format!("Hauled {wood} wood into the stockpile."));
+    let resource = worker.carrying_resource.unwrap_or(ResourceKind::Bones);
+    let amount = worker.carrying;
+    worker.carrying = 0;
+    worker.carrying_resource = None;
+    worker.status = WorkerStatus::Idle;
+    match resource {
+        ResourceKind::Bones => {
+            session.economy.bones += amount;
+            messages.push(format!("Hauled {amount} bones into the stockpile."));
+        }
+        ResourceKind::Wood => {
+            session.economy.wood += amount;
+            messages.push(format!("Hauled {amount} wood into the stockpile."));
+        }
     }
+}
+
+fn nearest_dug_plot(session: &GameSession, index: usize) -> Option<TilePos> {
+    let worker_position = session.workforce.workers.get(index)?.position;
+    session
+        .world
+        .plots
+        .iter()
+        .filter(|plot| plot.status == PlotStatus::Dug)
+        .min_by_key(|plot| tile_distance(worker_position, plot.position))
+        .map(|plot| plot.position)
 }
 
 fn simulate_wood(
@@ -412,6 +498,7 @@ fn simulate_wood(
     if worker.progress >= job.work_seconds {
         worker.progress = 0.0;
         session.economy.loose_wood += job.output_amount;
+        session.economy.loose_wood_source = Some(work_position);
         suspicion::adjust(
             session,
             job.suspicion_per_cycle,
@@ -472,7 +559,11 @@ fn move_worker_to(session: &mut GameSession, index: usize, target: TilePos) -> b
     if let Some(next) = navigation::next_step(session, current, target) {
         let worker = &mut session.workforce.workers[index];
         worker.position = next;
-        worker.status = WorkerStatus::Walking;
+        worker.status = if worker.carrying > 0 {
+            WorkerStatus::Carrying
+        } else {
+            WorkerStatus::Walking
+        };
         worker.progress = 0.0;
     } else {
         let worker = &mut session.workforce.workers[index];

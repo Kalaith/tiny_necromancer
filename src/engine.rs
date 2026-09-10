@@ -2,6 +2,7 @@
 
 pub mod corpses;
 pub mod jobs;
+pub mod movement;
 pub mod navigation;
 pub mod progression;
 pub mod suspicion;
@@ -25,6 +26,9 @@ pub fn simulate_tick(session: &mut GameSession, data: &GameData, dt: f32) -> Tic
         session.economy.mana += 1;
     }
     let mut report = TickReport::default();
+    if let Some(message) = movement::simulate_necromancer(session) {
+        report.messages.push(message);
+    }
     report.messages.extend(jobs::simulate(session, data, dt));
     if let Some(message) = progression::advance_research(session, data, dt) {
         report.messages.push(message);

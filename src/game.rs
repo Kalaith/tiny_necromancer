@@ -1,11 +1,12 @@
 //! Runtime orchestration: input intents, simulation ticks, persistence, and feedback.
 
 use crate::data::{GameData, SuspicionStage};
-use crate::engine::{self, corpses, jobs, progression, suspicion};
+use crate::engine::{self, corpses, jobs, movement, progression, suspicion};
 use crate::state::{
     BuildingKind, GamePhase, GameSession, JobKind, ProductionOrder, SaveData, Selection,
     Technology, UndeadKind, WorkerStatus, Zone, ZoneKind,
 };
+use crate::ui::animation::AnimationClock;
 use crate::ui::{self, Panel, UiAction, UiContext};
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
@@ -31,6 +32,8 @@ pub struct Game {
     events: EventBus<UiAction>,
     save_exists: bool,
     tick_accumulator: f32,
+    motions: movement::MotionState,
+    animation: AnimationClock,
     panel: Panel,
     placement: Option<BuildingKind>,
     zone_mode: Option<ZoneKind>,
@@ -49,6 +52,7 @@ impl Game {
             "Cemetery ready; {loaded_assets} authored textures loaded"
         ));
         let session = GameSession::new(&data.config);
+        let motions = movement::MotionState::new(&session);
         let camera = CameraTransform::new(Vec2::ZERO, 1.0).expect("valid initial camera");
         let mut game = Self {
             data,
@@ -60,6 +64,8 @@ impl Game {
             events: EventBus::new(),
             save_exists: false,
             tick_accumulator: 0.0,
+            motions,
+            animation: AnimationClock::default(),
             panel: Panel::None,
             placement: None,
             zone_mode: None,
@@ -76,6 +82,8 @@ impl Game {
         self.notifications.clear();
         self.events.drain().for_each(drop);
         self.tick_accumulator = 0.0;
+        self.motions.reset(&self.session);
+        self.animation.reset();
         self.camera = CameraTransform::new(Vec2::ZERO, 1.0).expect("valid initial camera");
         self.camera_drag = None;
         self.panel = Panel::None;
@@ -96,6 +104,13 @@ impl Game {
                 self.session.pressure.stage = SuspicionStage::Rumour;
                 self.session.pressure.active_event = Some("rumour".to_owned());
             }
+            "worker-walking" => self.prepare_capture_worker_walking(),
+            "worker-carrying" => self.prepare_capture_worker_carrying(),
+            "worker-working" => self.prepare_capture_worker_working(),
+            "necromancer-walking" => self.prepare_capture_necromancer_walking(),
+            "necromancer-ritual" => self.prepare_capture_necromancer_ritual(),
+            "building" => self.prepare_capture_building(),
+            "kiln" => self.prepare_capture_kiln(),
             "victory" => self.prepare_capture_victory(),
             "zoomed" => {
                 self.camera.zoom_at(
@@ -108,6 +123,7 @@ impl Game {
             }
             other => panic!("Unknown Tiny Necromancer capture scene: {other}"),
         }
+        self.motions.reset(&self.session);
     }
 
     fn prepare_capture_victory(&mut self) {
@@ -274,6 +290,95 @@ impl Game {
         self.session.world.selected = Some(Selection::Building(1));
     }
 
+    fn prepare_capture_worker_walking(&mut self) {
+        let worker = &mut self.session.workforce.workers[0];
+        worker.position = TilePos::new(7, 6);
+        worker.assignment = JobKind::Dig;
+        worker.status = WorkerStatus::Walking;
+        self.session.world.selected_plot = Some(0);
+        self.session.world.selected = Some(Selection::Worker(0));
+    }
+
+    fn prepare_capture_worker_carrying(&mut self) {
+        let source = self.session.world.plots[0].position;
+        self.session.economy.loose_bones = 4;
+        self.session.economy.loose_bones_source = Some(source);
+        let worker = &mut self.session.workforce.workers[0];
+        worker.position = source;
+        worker.assignment = JobKind::Haul;
+        worker.status = WorkerStatus::Carrying;
+        worker.carrying = 8;
+        worker.carrying_resource = Some(crate::state::ResourceKind::Bones);
+        self.session.world.selected = Some(Selection::Worker(0));
+    }
+
+    fn prepare_capture_worker_working(&mut self) {
+        let plot = &mut self.session.world.plots[0];
+        plot.status = crate::state::PlotStatus::Digging;
+        plot.progress = 2.5;
+        let position = plot.position;
+        let worker = &mut self.session.workforce.workers[0];
+        worker.position = position;
+        worker.assignment = JobKind::Dig;
+        worker.status = WorkerStatus::Working;
+        worker.target_plot = Some(0);
+        self.session.world.selected = Some(Selection::Worker(0));
+    }
+
+    fn prepare_capture_necromancer_walking(&mut self) {
+        self.session.world.necromancer_destination = Some(TilePos::new(2, 0));
+        self.session.world.selected = Some(Selection::Necromancer);
+    }
+
+    fn prepare_capture_necromancer_ritual(&mut self) {
+        self.session.world.selected = Some(Selection::Necromancer);
+    }
+
+    fn prepare_capture_building(&mut self) {
+        self.session.economy.bones = 80;
+        self.session.economy.wood = 80;
+        self.session.world.buildings = vec![crate::state::Building {
+            kind: BuildingKind::WorkShed,
+            progress: 2.5,
+            complete: false,
+            position: TilePos::new(6, 2),
+            width: 2,
+            height: 2,
+        }];
+        let worker = &mut self.session.workforce.workers[0];
+        worker.position = TilePos::new(5, 2);
+        worker.assignment = JobKind::Build;
+        worker.status = WorkerStatus::Working;
+        self.session.world.selected = Some(Selection::Building(0));
+    }
+
+    fn prepare_capture_kiln(&mut self) {
+        self.session.economy.bones = 120;
+        self.session.economy.wood = 90;
+        self.session.research.completed = vec![
+            Technology::BindingRoutines,
+            Technology::Gravecraft,
+            Technology::OssuaryLogistics,
+        ];
+        self.session.world.buildings = vec![crate::state::Building {
+            kind: BuildingKind::OssuaryKiln,
+            progress: 14.0,
+            complete: true,
+            position: TilePos::new(6, 4),
+            width: 2,
+            height: 1,
+        }];
+        self.session.progress.production = Some(ProductionOrder {
+            building: BuildingKind::OssuaryKiln,
+            progress: 3.0,
+        });
+        let worker = &mut self.session.workforce.workers[0];
+        worker.position = TilePos::new(5, 4);
+        worker.assignment = JobKind::Refine;
+        worker.status = WorkerStatus::Working;
+        self.session.world.selected = Some(Selection::Building(0));
+    }
+
     pub fn update(&mut self, dt: f32) {
         let frame_dt = dt.min(0.1);
         let input = InputState::capture();
@@ -315,6 +420,10 @@ impl Game {
                 }
             }
         }
+        let frozen =
+            self.session.phase == GamePhase::Paused || self.session.pressure.active_event.is_some();
+        self.motions.update(&self.session, frame_dt, frozen);
+        self.animation.update(frame_dt, frozen);
         self.notifications.update(frame_dt);
     }
 
@@ -359,6 +468,8 @@ impl Game {
             ui: &virtual_ui,
             sprites: self.assets.get_texture("cemetery_sprites"),
             title_background: self.assets.get_texture("title_background"),
+            motions: &self.motions,
+            animation_time: self.animation.elapsed(),
             panel: self.panel,
             placement: self.placement,
             zone_mode: self.zone_mode,
@@ -381,6 +492,8 @@ impl Game {
                 self.session = GameSession::new(&self.data.config);
                 self.session.begin();
                 self.tick_accumulator = 0.0;
+                self.motions.reset(&self.session);
+                self.animation.reset();
                 self.panel = Panel::None;
                 self.placement = None;
                 self.zone_mode = None;
@@ -414,17 +527,22 @@ impl Game {
                 }
             }
             UiAction::SelectTile(tile) => {
-                if let Some((index, _)) = self
-                    .session
-                    .workforce
-                    .workers
-                    .iter()
-                    .enumerate()
-                    .find(|(_, worker)| worker.position == tile)
+                if let Some((index, _)) =
+                    self.session
+                        .workforce
+                        .workers
+                        .iter()
+                        .enumerate()
+                        .find(|(_, worker)| {
+                            worker.position == tile
+                                || self.motions.worker_occupies_tile(worker.id, tile)
+                        })
                 {
                     self.session.workforce.selected_worker = index;
                     self.session.world.selected = Some(Selection::Worker(index));
-                } else if self.session.world.necromancer_position == tile {
+                } else if self.session.world.necromancer_position == tile
+                    || self.motions.necromancer_occupies_tile(tile)
+                {
                     self.session.world.selected = Some(Selection::Necromancer);
                 } else if let Some((index, _)) = self
                     .session
@@ -453,18 +571,25 @@ impl Game {
                 self.session.world.selected = Some(Selection::Necromancer);
             }
             UiAction::MoveNecromancer(tile) => {
-                if tile.x >= 0
-                    && tile.y >= 0
-                    && tile.x < self.session.world.width as i32
-                    && tile.y < self.session.world.height as i32
-                {
-                    self.session.world.necromancer_position = tile;
-                    self.session.world.selected = Some(Selection::Necromancer);
-                    self.session.add_feed(format!(
-                        "The necromancer moves to {}, {}.",
-                        tile.x + 1,
-                        tile.y + 1
-                    ));
+                let current = self.session.world.necromancer_position;
+                match movement::request_necromancer_destination(&mut self.session, tile) {
+                    Ok(()) => {
+                        self.session.world.selected = Some(Selection::Necromancer);
+                        if tile == current {
+                            self.session
+                                .add_feed("The necromancer holds position; movement cancelled.");
+                            self.notifications.info("Necromancer movement cancelled.");
+                        } else {
+                            self.session.add_feed(format!(
+                                "The necromancer walks toward {}, {}.",
+                                tile.x + 1,
+                                tile.y + 1
+                            ));
+                            self.notifications
+                                .info("Destination marked; the necromancer is walking.");
+                        }
+                    }
+                    Err(error) => self.notifications.warning(error),
                 }
             }
             UiAction::AssignJob(job) => {
@@ -623,6 +748,9 @@ impl Game {
         match loaded {
             Ok(save) => {
                 self.session = GameSession::from_save(save);
+                self.motions.reset(&self.session);
+                self.animation.reset();
+                self.tick_accumulator = 0.0;
                 self.notifications.success("Loaded the cemetery.");
                 self.refresh_save_state();
             }

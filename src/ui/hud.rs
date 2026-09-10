@@ -243,6 +243,32 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
                 4.0,
                 dark::TEXT_DIM,
             );
+            draw_text_block(
+                &ctx.session.world.necromancer_destination.map_or_else(
+                    || "Destination · holding ritual focus".to_owned(),
+                    |tile| format!("Destination · tile {}, {}", tile.x + 1, tile.y + 1),
+                ),
+                panel.x + 18.0,
+                panel.y + 202.0,
+                panel.w - 36.0,
+                20.0,
+                13.0,
+                0.0,
+                dark::ACCENT,
+            );
+            if ctx.session.world.necromancer_destination.is_some()
+                && virtual_button(
+                    Rect::new(panel.x + 18.0, panel.y + 236.0, panel.w - 36.0, 44.0),
+                    "Cancel movement",
+                    ctx.session.phase == GamePhase::Playing,
+                    ButtonTone::Secondary,
+                    pointer,
+                )
+            {
+                actions.push(UiAction::MoveNecromancer(
+                    ctx.session.world.necromancer_position,
+                ));
+            }
         }
     }
 }
@@ -398,14 +424,13 @@ fn draw_worker_inspector(
         0.0,
         dark::TEXT,
     );
+    let activity = if worker.status == WorkerStatus::Idle {
+        super::world_feedback::worker_idle_reason(ctx, worker).to_owned()
+    } else {
+        super::world_feedback::worker_activity_detail(worker)
+    };
     draw_text_block(
-        if worker.status == WorkerStatus::Idle {
-            "Idle · waiting for a useful order"
-        } else if worker.status == WorkerStatus::Walking {
-            "Walking · routing around the cemetery"
-        } else {
-            "Work is visible in the clearing"
-        },
+        &activity,
         panel.x + 18.0,
         panel.y + 164.0,
         panel.w - 36.0,

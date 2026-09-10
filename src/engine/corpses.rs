@@ -115,6 +115,7 @@ pub fn raise(session: &mut GameSession, data: &GameData, kind: UndeadKind) -> Re
         progress: 0.0,
         target_plot: None,
         carrying: 0,
+        carrying_resource: None,
         priority_mode: false,
     });
     session.workforce.selected_worker = session.workforce.workers.len() - 1;

@@ -219,6 +219,12 @@ pub enum WorkerStatus {
     Hiding,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ResourceKind {
+    Bones,
+    Wood,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Plot {
     pub id: usize,
@@ -282,6 +288,8 @@ pub struct WorldState {
     pub forest_tiles: Vec<TilePos>,
     #[serde(default = "default_necromancer_position")]
     pub necromancer_position: TilePos,
+    #[serde(default)]
+    pub necromancer_destination: Option<TilePos>,
     #[serde(default)]
     pub selected: Option<Selection>,
     #[serde(default)]
@@ -376,6 +384,8 @@ pub struct Worker {
     pub target_plot: Option<usize>,
     pub carrying: i32,
     #[serde(default)]
+    pub carrying_resource: Option<ResourceKind>,
+    #[serde(default)]
     pub priority_mode: bool,
 }
 
@@ -437,6 +447,10 @@ pub struct EconomyState {
     pub loose_wood: i32,
     #[serde(default)]
     pub ward_charges: i32,
+    #[serde(default)]
+    pub loose_bones_source: Option<TilePos>,
+    #[serde(default)]
+    pub loose_wood_source: Option<TilePos>,
     pub corpses: Vec<Corpse>,
 }
 
@@ -539,6 +553,7 @@ impl GameSession {
                 mana_source: TilePos::new(7, 6),
                 forest_tiles: (0..8).map(|y| TilePos::new(0, y)).collect(),
                 necromancer_position: default_necromancer_position(),
+                necromancer_destination: None,
                 selected: Some(Selection::Grave(0)),
                 zones: Vec::new(),
             },
@@ -553,6 +568,7 @@ impl GameSession {
                     progress: 0.0,
                     target_plot: None,
                     carrying: 0,
+                    carrying_resource: None,
                     priority_mode: false,
                 }],
                 selected_worker: 0,
@@ -568,6 +584,8 @@ impl GameSession {
                 loose_bones: 0,
                 loose_wood: 0,
                 ward_charges: 0,
+                loose_bones_source: None,
+                loose_wood_source: None,
                 corpses: Vec::new(),
             },
             pressure: PressureState {
@@ -623,6 +641,11 @@ impl GameSession {
             let (width, height) = building.kind.dimensions();
             building.width = width;
             building.height = height;
+        }
+        for worker in &mut save.workforce.workers {
+            if worker.carrying > 0 && worker.carrying_resource.is_none() {
+                worker.carrying_resource = Some(ResourceKind::Bones);
+            }
         }
         Self {
             phase: save.phase,

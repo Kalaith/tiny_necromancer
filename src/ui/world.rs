@@ -1,7 +1,7 @@
 //! World and sprite rendering.
 
 use super::components::{selected_tile_at, GridView};
-use super::{world_grid_rect, UiContext, LOGICAL_HEIGHT, LOGICAL_WIDTH};
+use super::{animation, world_grid_rect, UiContext, LOGICAL_HEIGHT, LOGICAL_WIDTH};
 use crate::state::{
     Building, BuildingKind, GamePhase, PlotStatus, Selection, Technology, WorkerStatus, ZoneKind,
 };
@@ -70,8 +70,10 @@ pub(super) fn draw_world_scene(ctx: &UiContext<'_>) {
         }
     }
     draw_path_and_props(ctx, &view);
+    super::world_feedback::draw_loose_resource_feedback(ctx, &view);
     draw_zones(ctx, &view);
     draw_zone_preview(ctx, &view);
+    super::world_feedback::draw_actor_destinations(ctx, &view);
     draw_graves(ctx, &view);
     draw_buildings(ctx, &view);
     draw_workers(ctx, &view);
@@ -384,6 +386,7 @@ fn draw_buildings(ctx: &UiContext<'_>, view: &GridView) {
                 quadrant,
                 footprint.center() + vec2(0.0, -footprint.h * 0.06),
                 vec2(footprint.w * 1.10, footprint.h * 1.16),
+                0.0,
             );
         }
         if selected {
@@ -396,22 +399,31 @@ fn draw_workers(ctx: &UiContext<'_>, view: &GridView) {
     for (index, worker) in ctx.session.workforce.workers.iter().enumerate() {
         let tile = view.tile_rect(worker.position);
         let selected = ctx.session.world.selected == Some(Selection::Worker(index));
+        let motion = ctx.motions.worker(worker.id);
+        let position = ctx
+            .motions
+            .worker_position(worker.id)
+            .unwrap_or_else(|| vec2(worker.position.x as f32, worker.position.y as f32));
+        let visual = animation::worker_visual(worker, motion, ctx.animation_time, tile.w);
+        let center = view.actor_center(position) + visual.offset;
+        let size = vec2(tile.w * 0.82, tile.h * 0.92) * visual.scale;
         if let Some(texture) = ctx.sprites {
             draw_sheet_sprite(
                 texture,
                 1,
-                tile.center() + vec2(0.0, -tile.h * 0.10),
-                vec2(tile.w * 0.82, tile.h * 0.92),
+                center + vec2(0.0, -tile.h * 0.10),
+                size,
+                visual.rotation,
             );
         } else {
             draw_circle(
-                tile.center().x,
-                tile.center().y,
+                center.x,
+                center.y,
                 tile.w * 0.24,
                 Color::new(0.75, 0.78, 0.72, 1.0),
             );
         }
-        let marker = tile.center() + vec2(tile.w * 0.30, -tile.h * 0.26);
+        let marker = center + vec2(tile.w * 0.30, -tile.h * 0.26);
         draw_circle(
             marker.x,
             marker.y,
@@ -423,44 +435,54 @@ fn draw_workers(ctx: &UiContext<'_>, view: &GridView) {
                 _ => dark::ACCENT,
             },
         );
-        if worker.carrying > 0 || worker.status == WorkerStatus::Carrying {
-            draw_rectangle(
-                tile.center().x - 7.0,
-                tile.center().y - tile.h * 0.05,
-                14.0,
-                10.0,
-                Color::new(0.52, 0.34, 0.16, 1.0),
-            );
-        }
+        animation::draw_worker_feedback(worker, center, tile.w, ctx.animation_time);
         if selected {
-            draw_selection_circle(tile.center(), tile.w * 0.35, dark::ACCENT);
+            draw_selection_circle(center, tile.w * 0.35, dark::ACCENT);
         }
     }
 }
 
 fn draw_necromancer(ctx: &UiContext<'_>, view: &GridView) {
-    let tile = view.tile_rect(ctx.session.world.necromancer_position);
+    let logical = ctx.session.world.necromancer_position;
+    let tile = view.tile_rect(logical);
+    let motion = ctx.motions.necromancer();
+    let visual = animation::necromancer_visual(motion, ctx.animation_time, tile.w);
+    let center = view.actor_center(motion.visual_position()) + visual.offset;
     if let Some(texture) = ctx.sprites {
         draw_sheet_sprite(
             texture,
             0,
-            tile.center() + vec2(0.0, -tile.h * 0.12),
-            vec2(tile.w * 0.92, tile.h * 1.02),
+            center + vec2(0.0, -tile.h * 0.12),
+            vec2(tile.w * 0.92, tile.h * 1.02) * visual.scale,
+            visual.rotation,
         );
     } else {
         draw_circle(
-            tile.center().x,
-            tile.center().y,
+            center.x,
+            center.y,
             tile.w * 0.25,
             Color::new(0.12, 0.10, 0.15, 1.0),
         );
     }
+    animation::draw_necromancer_feedback(
+        center,
+        tile.w,
+        motion,
+        ctx.animation_time,
+        ctx.session.world.necromancer_destination.is_some(),
+    );
     if ctx.session.world.selected == Some(Selection::Necromancer) {
-        draw_selection_circle(tile.center(), tile.w * 0.38, dark::ACCENT);
+        draw_selection_circle(center, tile.w * 0.38, dark::ACCENT);
     }
 }
 
-fn draw_sheet_sprite(texture: &Texture2D, quadrant: usize, center: Vec2, size: Vec2) {
+fn draw_sheet_sprite(
+    texture: &Texture2D,
+    quadrant: usize,
+    center: Vec2,
+    size: Vec2,
+    rotation: f32,
+) {
     let half_w = texture.width() * 0.5;
     let half_h = texture.height() * 0.5;
     let source = Rect::new(
@@ -477,6 +499,7 @@ fn draw_sheet_sprite(texture: &Texture2D, quadrant: usize, center: Vec2, size: V
         DrawTextureParams {
             dest_size: Some(size),
             source: Some(source),
+            rotation,
             ..Default::default()
         },
     );

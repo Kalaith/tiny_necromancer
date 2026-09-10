@@ -1,6 +1,7 @@
 //! World-first cemetery composition. The map is always visible; panels explain the selected thing.
 
 use crate::data::GameData;
+use crate::engine::movement::MotionState;
 use crate::state::{
     BuildingKind, GamePhase, GameSession, JobKind, Selection, Technology, UndeadKind, ZoneKind,
 };
@@ -10,11 +11,13 @@ use macroquad_toolkit::grid::TilePos;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::{Pointer, VirtualUi};
 
+pub mod animation;
 mod components;
 mod hud;
 mod panels;
 mod research;
 mod world;
+mod world_feedback;
 
 pub use components::world_grid_rect;
 use components::{
@@ -72,6 +75,8 @@ pub struct UiContext<'a> {
     pub ui: &'a VirtualUi,
     pub sprites: Option<&'a Texture2D>,
     pub title_background: Option<&'a Texture2D>,
+    pub motions: &'a MotionState,
+    pub animation_time: f32,
     pub panel: Panel,
     pub placement: Option<BuildingKind>,
     pub zone_mode: Option<ZoneKind>,

@@ -378,6 +378,20 @@ impl GridView {
         let tile = (world + self.world_center) / self.tile_size;
         TilePos::new(tile.x.floor() as i32, tile.y.floor() as i32)
     }
+
+    pub(super) fn tile_size(self) -> f32 {
+        self.tile_size * self.camera.zoom()
+    }
+
+    pub(super) fn actor_center(self, position: Vec2) -> Vec2 {
+        let world = position * self.tile_size - self.world_center;
+        let origin = self
+            .camera
+            .world_to_screen(self.viewport, world)
+            .expect("valid map viewport");
+        let size = self.tile_size();
+        origin + vec2(size * 0.5, size * 0.5)
+    }
 }
 
 pub(super) fn selected_tile_at(ctx: &UiContext<'_>, point: Vec2) -> Option<TilePos> {

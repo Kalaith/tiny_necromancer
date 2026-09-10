@@ -51,6 +51,7 @@ fn victory_needs_every_vertical_slice_milestone() {
             progress: 0.0,
             target_plot: None,
             carrying: 0,
+            carrying_resource: None,
             priority_mode: false,
         });
     }

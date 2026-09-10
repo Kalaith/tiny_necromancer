@@ -31,6 +31,10 @@ pub fn next_step(session: &GameSession, from: TilePos, target: TilePos) -> Optio
     None
 }
 
+pub fn is_valid_destination(session: &GameSession, tile: TilePos) -> bool {
+    inside(session, tile) && !blocked(session, tile)
+}
+
 fn first_step(
     previous: &HashMap<TilePos, Option<TilePos>>,
     start: TilePos,

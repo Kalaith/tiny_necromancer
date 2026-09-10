@@ -1,6 +1,7 @@
 # Visual direction and UI transition plan
 
-Status: proposed design, grounded in the current prototype. This document does not implement runtime changes.
+Status: implementation record for the playable vertical slice. Deferred art and
+large-colony systems remain design direction rather than shipped scope.
 
 ## Core direction
 
@@ -36,7 +37,7 @@ Aim for detailed pixel art with restrained texture. Prototype at a consistent 32
 
 The tone is secluded, strange, and quietly industrious. Avoid uniform black terrain, giant decorative borders, and constant purple glow. Darkness must never hide selectable objects or work states.
 
-Construction should visibly progress through a marked footprint, delivered materials, scaffold, and finished structure. Graves change from undisturbed stone to disturbed earth to an open excavation. Workers carry visible bundles and perform short digging, hauling, building, and guarding animations. Tool motion and carried goods should make activity readable without permanent overhead text.
+Construction visibly progresses through a marked footprint, scaffold, and finished structure. Graves change from undisturbed stone to disturbed earth to an open excavation. Workers carry source-backed bundles and perform short digging, hauling, woodcutting, building, guarding, and refining animations. Tool motion and carried goods make activity readable without permanent overhead text. Runtime motion interpolates between authoritative tile positions at roughly 2–3 tiles per second; pause freezes both motion and the animation clock.
 
 Draw ground first, then low details, then actors and structures sorted by their ground contact point, then effects and selection feedback. Fade obstructing roofs or foliage when a selected actor is behind them. Decorative trees must not create misleading walkable gaps.
 
@@ -56,7 +57,7 @@ Introduce research through a contextual “Study bindings” action at the shed.
 
 Each unlock teaches one practical change: “Set digging to repeat,” then “Place a stockpile,” then “Paint a work area.” Keep earlier commands available. Open the new control with a small highlight and a dismissible explanation; do not rearrange the entire HUD or force a zoom change.
 
-Keep the necromancer present throughout. Recommended first implementation: a selectable ritual actor with click-to-move and contextual casting. This requires new gameplay support. Decide on direct keyboard movement only after testing that slice; the current S/L save shortcuts would conflict with conventional movement controls. Later, the camera can roam while a “Find necromancer” control returns to the character. Strategic commands should not require walking to every worker.
+Keep the necromancer present throughout. The slice now provides a selectable ritual actor with touch-to-move, the same four-way navigation as workers, a persistent destination, visible retargeting, route cancellation, robe sway, staff pulse, and violet ritual effects. Direct keyboard movement remains unnecessary; strategic commands do not require walking to every worker.
 
 ## Gameplay screen layout
 
@@ -109,11 +110,11 @@ The current game has a 10 × 8 world, six authored grave positions, one starting
 | Implemented foundation | Remaining direction |
 | --- | --- |
 | `src/ui.rs`: world-first HUD and panels | Responsive bottom-sheet variants for smaller viewports |
-| `src/ui/world.rs`: full-world grid and actors | Visual route overlays and richer obstruction handling |
+| `src/ui/world.rs`, `src/ui/world_feedback.rs`, and `src/ui/animation.rs`: full-world grid, actor interpolation, animation, route markers, and source feedback | Richer obstruction handling and large-scale route views |
 | `src/ui/components.rs`: title page, phase overlays, and grid picking | Continue accessibility and large-text verification |
 | `src/main.rs`: neutral native window caption | Keep the game name on the title page only |
 | `src/game.rs`: camera, input, captures, and action dispatch | Add touch camera gestures if the world outgrows one viewport |
-| `src/state.rs`: positioned buildings, research, zones, and save migration | Expand the persistent colony model without resetting existing saves |
+| `src/state.rs`: positioned buildings, research, zones, movement destinations, carried resources, and save migration | Expand the persistent colony model without resetting existing saves |
 | `src/engine/progression.rs`: research-driven capabilities and milestone | Extend production alerts and stewardship systems |
 | `assets/data/texture_manifest.json` and asset registry | Add later terrain, props, effects, and HUD assets as they become playable |
 
@@ -124,22 +125,23 @@ Existing saves already receive deterministic defaults for positioned buildings, 
 ## Delivery sequence
 
 1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, and victory scenes.
-2. **One convincing cemetery scene (implemented for the slice).** Terrain and sprites cover the necromancer, skeleton, graves, trees, stockpile, shed, and lantern. Digging, hauling, construction progress, selection, and camera transforms are readable.
+2. **One convincing cemetery scene (implemented for the slice).** Terrain and sprites cover the necromancer, skeleton, graves, trees, stockpile, shed, and lantern. Digging, hauling, construction progress, selection, camera transforms, route intent, and source feedback are readable.
 3. **First research transition (implemented for the slice).** Binding Routines and the research chain gate repeat priorities, placement, work areas, logistics, and domain controls. Versioned saves preserve the new state with deterministic defaults.
-4. **First colony slice (implemented for the current slice).** The Ossuary Kiln completes a material → construction → production chain after Ossuary Logistics, workers route around basic obstructions before working, and painted Work, Storage, and Patrol areas select nearby destinations. The minimap and worker/grave cues provide first-pass domain feedback while keeping the original cemetery recognizable as part of the expanded settlement.
-5. **Scale and domain controls (later).** Extend the current settlement overview with useful zoom levels, richer route overlays, production alerts, and stewardship systems. Validate worker selection and simulation performance before growing the content set.
+4. **Movement and animation readability (implemented).** Workers visibly walk tile by tile, hauling has a real carried-resource phase, jobs expose procedural tool motion, and the necromancer walks, retargets, cancels, and pulses while ritualizing.
+5. **First colony slice (implemented for the current slice).** The Ossuary Kiln completes a material → construction → production chain after Ossuary Logistics, workers route around basic obstructions before working, and painted Work, Storage, and Patrol areas select nearby destinations. The minimap and worker/grave cues provide first-pass domain feedback while keeping the original cemetery recognizable as part of the expanded settlement.
+6. **Scale and domain controls (later).** Extend the current settlement overview with useful zoom levels, richer route overlays, production alerts, and stewardship systems. Validate worker selection and simulation performance before growing the content set.
 
 Defer trade, farms, housing, multiple biomes, and large defence systems until the first colony slice works. Art for later systems follows approved gameplay rather than committing production effort based solely on the reference.
 
 ## Review checklist
 
 - Capture title, initial gameplay, selection, placement, research unlock, colony overview, pause, event, and victory/milestone screens. The name appears only on the title capture; check the native caption too.
-- The initial screenshot reads as a small top-down cemetery; the later screenshot reads as a colony in the same world.
+- The initial screenshot reads as a small top-down cemetery; the later screenshot reads as a colony in the same world. Motion-focused scenes cover a worker walking, carrying, working, the necromancer walking and ritualizing, construction, and an active kiln.
 - Early players see only relevant controls, and can select a grave, issue work, and raise a skeleton without opening a management dashboard.
 - Later players can identify idle workers, missing materials, and suspicion sources without opening every building.
 - World work remains readable with labels disabled; important statuses remain understandable without colour alone.
 - Test UI click blocking, zoomed picking, drag-versus-click, placement cancellation, resize, and large text.
-- Test research prerequisites in the simulation, save/load of unlocks and placements, and migration from an existing cemetery save.
+- Verify research prerequisites in the simulation, save/load of unlocks, placements, destinations, and carried-resource defaults, and migration from an existing cemetery save.
 - Keep existing job, corpse, suspicion, and progression checks passing while each related system changes.
 
 The first implementation target is a complete playable cemetery screen with the current mechanics and the new visual hierarchy. It establishes the identity before expanding the simulation into a colony builder.
