@@ -245,7 +245,11 @@ fn draw_stewardship_readout(
         ),
         rect.x + 24.0,
         rect.y + 344.0,
-        dark::TEXT,
+        if patrol_coverage.covered_posts == patrol_coverage.total_posts {
+            dark::TEXT
+        } else {
+            dark::WARNING
+        },
     );
     if virtual_button(
         Rect::new(rect.x + 24.0, rect.y + 366.0, 192.0, 44.0),

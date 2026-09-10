@@ -382,7 +382,9 @@ fn draw_compact_domain_panel(
         16.0,
         11.0,
         0.0,
-        if clear_routes == total_routes {
+        if clear_routes == total_routes
+            && patrol_coverage.covered_posts == patrol_coverage.total_posts
+        {
             dark::POSITIVE
         } else {
             dark::WARNING
