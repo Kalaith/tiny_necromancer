@@ -128,7 +128,7 @@ pub(super) fn draw_status_strip(
     );
     draw_text_block(
         &format!(
-            "DAY 1  {:02}:{:02}",
+            "TIME  {:02}:{:02}",
             (ctx.session.progress.elapsed_seconds as u32) / 60,
             ctx.session.progress.elapsed_seconds as u32 % 60
         ),
