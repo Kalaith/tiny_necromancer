@@ -17,7 +17,10 @@ fn authored_data_loads_and_has_required_content() {
         .is_some());
     assert_eq!(data.config.district_rules.work_speed_multiplier, 1.15);
     assert_eq!(data.config.district_rules.storage_capacity_bonus, 4);
-    assert_eq!(data.config.district_rules.patrol_mitigation_multiplier, 1.25);
+    assert_eq!(
+        data.config.district_rules.patrol_mitigation_multiplier,
+        1.25
+    );
 }
 
 #[test]

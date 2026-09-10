@@ -407,16 +407,19 @@ fn draw_worker_inspector(
         0.0,
         dark::ACCENT,
     );
+    let district_hint = super::world_feedback::worker_district_hint(ctx, worker);
+    let job_detail = format!(
+        "Current job: {}{}{}",
+        worker.assignment.label(),
+        if worker.priority_mode {
+            " · priority mode"
+        } else {
+            ""
+        },
+        district_hint.map_or_else(String::new, |hint| format!(" · {hint}"))
+    );
     draw_text_block(
-        &format!(
-            "Current job: {}{}",
-            worker.assignment.label(),
-            if worker.priority_mode {
-                " · priority mode"
-            } else {
-                ""
-            }
-        ),
+        &job_detail,
         panel.x + 18.0,
         panel.y + 132.0,
         panel.w - 36.0,

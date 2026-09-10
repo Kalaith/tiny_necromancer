@@ -243,6 +243,11 @@ fn district_rule_hint(
     }
 }
 
+pub(super) fn worker_district_hint(ctx: &UiContext<'_>, worker: &Worker) -> Option<&'static str> {
+    worker_destination(ctx, worker)
+        .and_then(|destination| district_rule_hint(ctx, worker, destination))
+}
+
 fn worker_destination(ctx: &UiContext<'_>, worker: &Worker) -> Option<TilePos> {
     match worker.assignment {
         JobKind::Dig => worker
