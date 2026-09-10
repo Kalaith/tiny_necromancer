@@ -2,6 +2,7 @@
 
 use super::components::{selected_tile_at, GridView};
 use super::{animation, UiContext};
+use crate::engine::districts;
 use crate::state::{
     Building, BuildingKind, GamePhase, PlotStatus, Selection, Technology, WorkerStatus, ZoneKind,
 };
@@ -229,6 +230,43 @@ fn draw_zones(ctx: &UiContext<'_>, view: &GridView) {
                 13.0,
                 color.with_alpha(0.95),
             );
+            if let Some(rule_label) = district_rule_label(ctx, zone.kind, *tile_pos) {
+                draw_text_centered_in_box(
+                    &rule_label,
+                    tile.x,
+                    tile.y + tile.h * 0.58,
+                    tile.w,
+                    tile.h * 0.28,
+                    8.0,
+                    color.with_alpha(0.95),
+                );
+            }
+        }
+    }
+}
+
+fn district_rule_label(ctx: &UiContext<'_>, kind: ZoneKind, tile: TilePos) -> Option<String> {
+    match kind {
+        ZoneKind::Work => {
+            let multiplier = districts::work_speed_multiplier(
+                ctx.session,
+                &ctx.data.config.district_rules,
+                tile,
+            );
+            (multiplier > 1.0).then(|| format!("+{:.0}%", (multiplier - 1.0) * 100.0))
+        }
+        ZoneKind::Storage => {
+            let bonus =
+                districts::haul_capacity_bonus(ctx.session, &ctx.data.config.district_rules, tile);
+            (bonus > 0).then(|| format!("+{bonus}"))
+        }
+        ZoneKind::Patrol => {
+            let multiplier = districts::guard_mitigation_multiplier(
+                ctx.session,
+                &ctx.data.config.district_rules,
+                tile,
+            );
+            (multiplier > 1.0).then(|| format!("+{:.0}%", (multiplier - 1.0) * 100.0))
         }
     }
 }
