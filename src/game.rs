@@ -774,6 +774,10 @@ impl Game {
                 self.motions.reset(&self.session);
                 self.animation.reset();
                 self.tick_accumulator = 0.0;
+                self.panel = Panel::None;
+                self.placement = None;
+                self.zone_mode = None;
+                self.camera_drag = None;
                 self.notifications.success("Loaded the cemetery.");
                 self.refresh_save_state();
             }
