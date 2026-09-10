@@ -27,11 +27,15 @@ fn district_rules_wait_for_domain_stewardship() {
         1.0
     );
     assert_eq!(
-        haul_capacity_bonus(&session, &data.config.district_rules),
+        haul_capacity_bonus(
+            &session,
+            &data.config.district_rules,
+            WorldState::stockpile_position(),
+        ),
         0
     );
     assert_eq!(
-        guard_mitigation_multiplier(&session, &data.config.district_rules),
+        guard_mitigation_multiplier(&session, &data.config.district_rules, patrol_tile),
         1.0
     );
 
@@ -42,12 +46,25 @@ fn district_rules_wait_for_domain_stewardship() {
         data.config.district_rules.work_speed_multiplier
     );
     assert_eq!(
-        haul_capacity_bonus(&session, &data.config.district_rules),
+        haul_capacity_bonus(
+            &session,
+            &data.config.district_rules,
+            WorldState::stockpile_position(),
+        ),
         data.config.district_rules.storage_capacity_bonus
     );
     assert_eq!(
-        guard_mitigation_multiplier(&session, &data.config.district_rules),
+        guard_mitigation_multiplier(&session, &data.config.district_rules, patrol_tile),
         data.config.district_rules.patrol_mitigation_multiplier
+    );
+    let unmarked_tile = TilePos::new(4, 4);
+    assert_eq!(
+        haul_capacity_bonus(&session, &data.config.district_rules, unmarked_tile),
+        0
+    );
+    assert_eq!(
+        guard_mitigation_multiplier(&session, &data.config.district_rules, unmarked_tile),
+        1.0
     );
 }
 
@@ -79,11 +96,11 @@ fn empty_districts_keep_original_job_values() {
         1.0
     );
     assert_eq!(
-        haul_capacity_bonus(&session, &data.config.district_rules),
+        haul_capacity_bonus(&session, &data.config.district_rules, tile),
         0
     );
     assert_eq!(
-        guard_mitigation_multiplier(&session, &data.config.district_rules),
+        guard_mitigation_multiplier(&session, &data.config.district_rules, tile),
         1.0
     );
     assert!(rule_summary(&session, &data.config.district_rules).starts_with("No district rules"));

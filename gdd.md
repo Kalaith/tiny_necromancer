@@ -116,10 +116,12 @@ Wood forward when those orders are available. The policy affects only automated
 workers; direct orders remain authoritative.
 
 After Domain Stewardship, marked districts also carry small operational rules:
-Work tiles speed Dig and Wood work, Storage tiles increase a hauler's bundle,
-and Patrol tiles strengthen guard mitigation. Empty districts and pre-domain
-saves keep the original behavior, so the system remains additive rather than
-making zone painting mandatory.
+Work tiles speed Dig and Wood work, Storage tiles increase a hauler's bundle
+when it reaches marked storage, and Patrol tiles strengthen guards while they
+hold a marked post. The rule follows the worker's actual operating tile rather
+than blessing every worker of that job. Empty districts and pre-domain saves
+keep the original behavior, so the system remains additive rather than making
+zone painting mandatory.
 
 ### 5.4 Determinism and saves
 

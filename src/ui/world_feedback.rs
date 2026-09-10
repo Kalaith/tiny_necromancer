@@ -277,8 +277,11 @@ fn district_rule_hint(
         }
         JobKind::Haul
             if worker.carrying > 0
-                && districts::haul_capacity_bonus(ctx.session, &ctx.data.config.district_rules)
-                    > 0 =>
+                && districts::haul_capacity_bonus(
+                    ctx.session,
+                    &ctx.data.config.district_rules,
+                    destination,
+                ) > 0 =>
         {
             Some("Storage rule")
         }
@@ -286,6 +289,7 @@ fn district_rule_hint(
             if districts::guard_mitigation_multiplier(
                 ctx.session,
                 &ctx.data.config.district_rules,
+                worker.position,
             ) > 1.0 =>
         {
             Some("Patrol rule")

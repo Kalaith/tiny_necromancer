@@ -12,16 +12,23 @@ pub fn work_speed_multiplier(session: &GameSession, rules: &DistrictRules, tile:
     }
 }
 
-pub fn haul_capacity_bonus(session: &GameSession, rules: &DistrictRules) -> i32 {
-    if rule_active(session, ZoneKind::Storage) {
+pub fn haul_capacity_bonus(session: &GameSession, rules: &DistrictRules, tile: TilePos) -> i32 {
+    if rule_active(session, ZoneKind::Storage)
+        && session.world.zone_contains(ZoneKind::Storage, tile)
+    {
         rules.storage_capacity_bonus
     } else {
         0
     }
 }
 
-pub fn guard_mitigation_multiplier(session: &GameSession, rules: &DistrictRules) -> f32 {
-    if rule_active(session, ZoneKind::Patrol) {
+pub fn guard_mitigation_multiplier(
+    session: &GameSession,
+    rules: &DistrictRules,
+    tile: TilePos,
+) -> f32 {
+    if rule_active(session, ZoneKind::Patrol) && session.world.zone_contains(ZoneKind::Patrol, tile)
+    {
         rules.patrol_mitigation_multiplier
     } else {
         1.0
