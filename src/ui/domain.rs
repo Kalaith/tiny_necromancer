@@ -340,6 +340,11 @@ fn draw_stewardship_readout(
                 .is_some_and(|alert| alert.title == "Route blocked")
             {
                 "Inspect route"
+            } else if operational
+                .first()
+                .is_some_and(|alert| alert.title == "Patrol coverage")
+            {
+                "Staff patrol"
             } else {
                 "Locate blocker"
             },
