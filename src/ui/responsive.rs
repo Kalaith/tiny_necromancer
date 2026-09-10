@@ -67,10 +67,25 @@ fn draw_compact_camera_controls(
         return;
     }
     let [zoom_in, zoom_out, recenter] = ctx.layout.compact_camera_controls();
-    if compact_virtual_button(zoom_in, "+", true, ButtonTone::Secondary, 16.0, pointer) {
+    let zoom = ctx.camera.zoom();
+    if compact_virtual_button(
+        zoom_in,
+        "+",
+        compact_zoom_in_enabled(zoom),
+        ButtonTone::Secondary,
+        16.0,
+        pointer,
+    ) {
         actions.push(UiAction::ZoomCamera(CameraZoom::In));
     }
-    if compact_virtual_button(zoom_out, "-", true, ButtonTone::Secondary, 16.0, pointer) {
+    if compact_virtual_button(
+        zoom_out,
+        "-",
+        compact_zoom_out_enabled(zoom),
+        ButtonTone::Secondary,
+        16.0,
+        pointer,
+    ) {
         actions.push(UiAction::ZoomCamera(CameraZoom::Out));
     }
     if compact_virtual_button(
@@ -107,6 +122,14 @@ fn draw_compact_camera_controls(
         0.0,
         dark::TEXT_DIM,
     );
+}
+
+fn compact_zoom_in_enabled(zoom: f32) -> bool {
+    zoom < 1.5 - f32::EPSILON
+}
+
+fn compact_zoom_out_enabled(zoom: f32) -> bool {
+    zoom > 0.75 + f32::EPSILON
 }
 
 fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {

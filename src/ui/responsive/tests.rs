@@ -20,3 +20,11 @@ fn wider_compact_navigation_keeps_full_labels() {
     assert!(button_width >= 56.0);
     assert_eq!(compact_nav_text_size(button_width), 12.0);
 }
+
+#[test]
+fn zoom_buttons_stop_at_camera_limits() {
+    assert!(!compact_zoom_out_enabled(0.75));
+    assert!(compact_zoom_in_enabled(1.0));
+    assert!(compact_zoom_out_enabled(1.0));
+    assert!(!compact_zoom_in_enabled(1.5));
+}
