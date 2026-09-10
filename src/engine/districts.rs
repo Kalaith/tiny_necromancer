@@ -59,6 +59,65 @@ pub fn rule_summary(session: &GameSession, config: &DistrictRules) -> String {
     }
 }
 
+pub fn ledger_summary(session: &GameSession) -> String {
+    let ledger = &session.progress.district_ledger;
+    if ledger.work_cycles == 0
+        && ledger.storage_bonus_items == 0
+        && ledger.patrol_quieting <= f32::EPSILON
+    {
+        return "Ledger: no marked district effect recorded yet.".to_owned();
+    }
+    format!(
+        "Ledger: Work {} cycle{} · Storage +{} haul · Patrol {:.1} quieted",
+        ledger.work_cycles,
+        if ledger.work_cycles == 1 { "" } else { "s" },
+        ledger.storage_bonus_items,
+        ledger.patrol_quieting
+    )
+}
+
+pub fn record_work_cycle(session: &mut GameSession) {
+    let first = {
+        let ledger = &mut session.progress.district_ledger;
+        let first = ledger.work_cycles == 0;
+        ledger.work_cycles = ledger.work_cycles.saturating_add(1);
+        first
+    };
+    if first {
+        session.add_feed("A marked Work tile completes its first accelerated cycle.");
+    }
+}
+
+pub fn record_storage_bonus(session: &mut GameSession, amount: i32) {
+    if amount <= 0 {
+        return;
+    }
+    let first = {
+        let ledger = &mut session.progress.district_ledger;
+        let first = ledger.storage_bonus_items == 0;
+        ledger.storage_bonus_items = ledger.storage_bonus_items.saturating_add(amount);
+        first
+    };
+    if first {
+        session.add_feed("Marked Storage gives a hauler extra room on its first drop.");
+    }
+}
+
+pub fn record_patrol_quieting(session: &mut GameSession, amount: f32) {
+    if amount <= 0.0 {
+        return;
+    }
+    let first = {
+        let ledger = &mut session.progress.district_ledger;
+        let first = ledger.patrol_quieting <= f32::EPSILON;
+        ledger.patrol_quieting += amount;
+        first
+    };
+    if first {
+        session.add_feed("A marked Patrol post quiets the road more effectively.");
+    }
+}
+
 fn rule_active(session: &GameSession, kind: ZoneKind) -> bool {
     session.research.is_unlocked(Technology::DomainStewardship)
         && session

@@ -193,6 +193,16 @@ fn draw_overlay_controls(
             dark::TEXT_DIM,
         );
     }
+    draw_text_block(
+        &districts::ledger_summary(ctx.session),
+        rect.x + 24.0,
+        rect.y + 272.0,
+        rect.w - 48.0,
+        16.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
+    );
 }
 
 fn draw_stewardship_readout(

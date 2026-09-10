@@ -17,12 +17,35 @@ fn save_round_trip_preserves_rng_and_operation() {
     session.begin();
     session.economy.wood = 47;
     session.stewardship_policy = StewardshipPolicy::Secure;
+    session.progress.district_ledger.work_cycles = 3;
+    session.progress.district_ledger.storage_bonus_items = 5;
+    session.progress.district_ledger.patrol_quieting = 1.25;
     let save = session.to_save(&data.config.version);
     let restored = GameSession::from_save(save.clone());
     assert_eq!(restored.phase, GamePhase::Playing);
     assert_eq!(restored.economy.wood, 47);
     assert_eq!(restored.stewardship_policy, StewardshipPolicy::Secure);
+    assert_eq!(restored.progress.district_ledger.work_cycles, 3);
+    assert_eq!(restored.progress.district_ledger.storage_bonus_items, 5);
+    assert!((restored.progress.district_ledger.patrol_quieting - 1.25).abs() < 0.001);
     assert_eq!(restored.rng.state(), save.rng_state);
+}
+
+#[test]
+fn older_saves_default_the_district_ledger() {
+    let data = crate::data::GameData::load().unwrap();
+    let save = GameSession::new(&data.config).to_save(&data.config.version);
+    let mut value = serde_json::to_value(save).unwrap();
+    value
+        .get_mut("progress")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("progress object")
+        .remove("district_ledger");
+
+    let restored = GameSession::from_save(serde_json::from_value(value).unwrap());
+    assert_eq!(restored.progress.district_ledger.work_cycles, 0);
+    assert_eq!(restored.progress.district_ledger.storage_bonus_items, 0);
+    assert_eq!(restored.progress.district_ledger.patrol_quieting, 0.0);
 }
 
 #[test]

@@ -360,8 +360,17 @@ fn draw_compact_domain_panel(
             actions.push(UiAction::ToggleDomainOverlay(overlay));
         }
     }
+    let rule_summary = districts::rule_summary(ctx.session, &ctx.data.config.district_rules);
+    let rule_summary = if sheet.w >= 520.0 {
+        format!(
+            "{rule_summary} · {}",
+            districts::ledger_summary(ctx.session)
+        )
+    } else {
+        rule_summary
+    };
     draw_text_block(
-        &districts::rule_summary(ctx.session, &ctx.data.config.district_rules),
+        &rule_summary,
         sheet.x + 16.0,
         sheet.y + 172.0,
         sheet.w - 32.0,

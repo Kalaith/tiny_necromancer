@@ -71,6 +71,9 @@ pub(super) fn simulate(
     if session.economy.loose_bones_source.is_none() {
         session.economy.loose_bones_source = Some(plot_position);
     }
+    if district_speed > 1.0 {
+        districts::record_work_cycle(session);
+    }
     suspicion::adjust(
         session,
         job.suspicion_per_cycle * lantern_bonus * conspicuousness,

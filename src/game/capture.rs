@@ -210,6 +210,9 @@ impl Game {
                 tiles: vec![TilePos::new(7, 1), TilePos::new(8, 3), TilePos::new(8, 5)],
             },
         ];
+        self.session.progress.district_ledger.work_cycles = 4;
+        self.session.progress.district_ledger.storage_bonus_items = 6;
+        self.session.progress.district_ledger.patrol_quieting = 1.75;
         self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
         self.panel = Panel::Zones;
         self.zone_mode = Some(ZoneKind::Work);

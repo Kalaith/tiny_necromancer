@@ -252,11 +252,13 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
             .get("guard")
             .expect("validated guard job")
             .guard_mitigation_per_second;
+        let district_bonus = (guard_quieting - guards as f32).max(0.0);
         suspicion::adjust_quiet(
             session,
             -(mitigation * guard_quieting * dt),
             "guards keep the road quiet",
         );
+        districts::record_patrol_quieting(session, mitigation * district_bonus * dt);
     }
     messages
 }
@@ -324,16 +326,17 @@ fn simulate_haul(
     messages: &mut Vec<String>,
 ) {
     let job = data.jobs.get("haul").expect("validated haul job");
-    let capacity = data
+    let base_capacity = data
         .undead
         .get(session.workforce.workers[index].kind.id())
         .expect("validated undead type")
-        .haul_capacity
-        + districts::haul_capacity_bonus(
-            session,
-            &data.config.district_rules,
-            targets::storage_destination_for(session, session.workforce.workers[index].position),
-        );
+        .haul_capacity;
+    let storage_bonus = districts::haul_capacity_bonus(
+        session,
+        &data.config.district_rules,
+        targets::storage_destination_for(session, session.workforce.workers[index].position),
+    );
+    let capacity = base_capacity + storage_bonus;
     if session.workforce.workers[index].carrying <= 0 {
         let (resource, source) = if session.economy.loose_bones > 0 {
             (
@@ -365,6 +368,7 @@ fn simulate_haul(
         if amount <= 0 {
             return;
         }
+        districts::record_storage_bonus(session, (amount - base_capacity).max(0));
         match resource {
             ResourceKind::Bones => {
                 session.economy.loose_bones -= amount;
@@ -435,13 +439,23 @@ fn simulate_wood(
     }
     let district_speed =
         districts::work_speed_multiplier(session, &data.config.district_rules, work_position);
-    let worker = &mut session.workforce.workers[index];
-    worker.status = WorkerStatus::Working;
-    worker.progress += dt * speed * job.base_speed * district_speed;
-    if worker.progress >= job.work_seconds {
-        worker.progress = 0.0;
+    let completed = {
+        let worker = &mut session.workforce.workers[index];
+        worker.status = WorkerStatus::Working;
+        worker.progress += dt * speed * job.base_speed * district_speed;
+        if worker.progress >= job.work_seconds {
+            worker.progress = 0.0;
+            true
+        } else {
+            false
+        }
+    };
+    if completed {
         session.economy.loose_wood += job.output_amount;
         session.economy.loose_wood_source = Some(work_position);
+        if district_speed > 1.0 {
+            districts::record_work_cycle(session);
+        }
         suspicion::adjust(
             session,
             job.suspicion_per_cycle,

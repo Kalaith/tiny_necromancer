@@ -430,6 +430,18 @@ pub struct ProgressState {
     pub production: Option<ProductionOrder>,
     #[serde(default)]
     pub production_queue: usize,
+    #[serde(default)]
+    pub district_ledger: DistrictLedger,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct DistrictLedger {
+    #[serde(default)]
+    pub work_cycles: u32,
+    #[serde(default)]
+    pub storage_bonus_items: i32,
+    #[serde(default)]
+    pub patrol_quieting: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -559,6 +571,7 @@ impl GameSession {
                 first_building_started: false,
                 production: None,
                 production_queue: 0,
+                district_ledger: DistrictLedger::default(),
             },
             research: ResearchState::default(),
             stewardship_policy: StewardshipPolicy::default(),

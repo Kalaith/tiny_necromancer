@@ -123,6 +123,12 @@ than blessing every worker of that job. Empty districts and pre-domain saves
 keep the original behavior, so the system remains additive rather than making
 zone painting mandatory.
 
+The Domain readout keeps a save-persistent ledger of accelerated Work cycles,
+extra Storage capacity actually used, and additional Patrol quieting. The first
+successful use of each active rule also becomes a Field Notes entry, giving the
+player a short operational history without flooding the feed every simulation
+step.
+
 ### 5.4 Determinism and saves
 
 `SeededRng` is stored with the session and serialized into the versioned save.
