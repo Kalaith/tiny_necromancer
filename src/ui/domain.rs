@@ -152,7 +152,7 @@ fn draw_overlay_controls(
         (
             DomainOverlay::Routes,
             "Routes",
-            "worker destinations",
+            "full paths + blockers",
             ctx.domain_overlays.routes,
         ),
         (
@@ -201,6 +201,12 @@ fn draw_stewardship_readout(
     pointer: Pointer,
     actions: &mut Vec<UiAction>,
 ) {
+    let (clear_routes, total_routes) = super::world_feedback::route_counts(ctx);
+    let route_summary = if total_routes == 0 {
+        "no destinations plotted".to_owned()
+    } else {
+        format!("{clear_routes}/{total_routes} routes clear")
+    };
     draw_text_block(
         "STEWARDSHIP READOUT",
         rect.x + 24.0,
@@ -225,7 +231,7 @@ fn draw_stewardship_readout(
     draw_readout_line(
         "WORKFORCE",
         &format!(
-            "{}/{} active · {} guarding",
+            "{}/{} active · {} guarding · {route_summary}",
             active_workers(ctx),
             ctx.session.workforce.workers.len(),
             assigned_count(ctx, JobKind::Guard)

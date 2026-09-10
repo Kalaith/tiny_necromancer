@@ -115,8 +115,8 @@ The current game has a 10 × 8 world, six authored grave positions, one starting
 
 | Implemented foundation | Remaining direction |
 | --- | --- |
-| `src/ui.rs`, `src/ui/panels.rs`, `src/ui/responsive.rs`: world-first HUD, desktop panels, compact bottom sheet, and field-notes archive | Richer obstruction handling and large-scale route views |
-| `src/ui/world.rs`, `src/ui/world_feedback.rs`, and `src/ui/animation.rs`: full-world grid, actor interpolation, animation, route markers, and source feedback | Continue accessibility and large-text verification |
+| `src/ui.rs`, `src/ui/panels.rs`, `src/ui/responsive.rs`: world-first HUD, desktop panels, compact bottom sheet, and field-notes archive | Continue accessibility and large-text verification |
+| `src/ui/world.rs`, `src/ui/world_feedback.rs`, and `src/ui/animation.rs`: full-world grid, actor interpolation, animation, complete route previews, and source feedback | Larger district simulation and route-aware worker recovery |
 | `src/ui/components.rs`: title page, phase overlays, and grid picking | Keep the game name on the title page only |
 | `src/main.rs`: neutral native window caption | Add touch camera gestures if the world outgrows one viewport |
 | `src/game.rs`: camera, touch gestures, input, captures, and action dispatch | Expand the persistent colony model without resetting existing saves |

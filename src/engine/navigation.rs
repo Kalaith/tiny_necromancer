@@ -4,12 +4,50 @@ use crate::state::GameSession;
 use macroquad_toolkit::grid::TilePos;
 use std::collections::{HashMap, VecDeque};
 
-pub fn next_step(session: &GameSession, from: TilePos, target: TilePos) -> Option<TilePos> {
-    if from == target {
-        return Some(from);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RoutePlan {
+    steps: Vec<TilePos>,
+}
+
+impl RoutePlan {
+    pub fn steps(&self) -> &[TilePos] {
+        &self.steps
     }
-    if !inside(session, target) {
-        return None;
+
+    pub fn step_count(&self) -> usize {
+        self.steps.len().saturating_sub(1)
+    }
+
+    pub fn next_step(&self) -> Option<TilePos> {
+        self.steps.get(1).copied()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RouteFailure {
+    OutsideCemetery,
+    NoPath,
+}
+
+impl RouteFailure {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::OutsideCemetery => "outside the cemetery",
+            Self::NoPath => "obstructions seal the way",
+        }
+    }
+}
+
+pub fn plan_route(
+    session: &GameSession,
+    from: TilePos,
+    target: TilePos,
+) -> Result<RoutePlan, RouteFailure> {
+    if from == target {
+        return Ok(RoutePlan { steps: vec![from] });
+    }
+    if !inside(session, from) || !inside(session, target) {
+        return Err(RouteFailure::OutsideCemetery);
     }
     let mut frontier = VecDeque::from([from]);
     let mut previous = HashMap::from([(from, None)]);
@@ -23,31 +61,41 @@ pub fn next_step(session: &GameSession, from: TilePos, target: TilePos) -> Optio
             }
             previous.insert(neighbor, Some(current));
             if neighbor == target {
-                return first_step(&previous, from, target);
+                return Ok(RoutePlan {
+                    steps: reconstruct_path(&previous, from, target),
+                });
             }
             frontier.push_back(neighbor);
         }
     }
-    None
+    Err(RouteFailure::NoPath)
+}
+
+pub fn next_step(session: &GameSession, from: TilePos, target: TilePos) -> Option<TilePos> {
+    if from == target {
+        return Some(from);
+    }
+    plan_route(session, from, target).ok()?.next_step()
 }
 
 pub fn is_valid_destination(session: &GameSession, tile: TilePos) -> bool {
     inside(session, tile) && !blocked(session, tile)
 }
 
-fn first_step(
+fn reconstruct_path(
     previous: &HashMap<TilePos, Option<TilePos>>,
     start: TilePos,
     target: TilePos,
-) -> Option<TilePos> {
+) -> Vec<TilePos> {
+    let mut path = vec![target];
     let mut current = target;
     while let Some(parent) = previous.get(&current).copied().flatten() {
-        if parent == start {
-            return Some(current);
-        }
         current = parent;
+        path.push(current);
     }
-    None
+    debug_assert_eq!(current, start);
+    path.reverse();
+    path
 }
 
 fn neighbors(tile: TilePos) -> [TilePos; 4] {

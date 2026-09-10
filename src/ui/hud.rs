@@ -461,8 +461,12 @@ fn draw_worker_inspector(
         JobKind::Build => "unfinished structure".to_owned(),
         JobKind::Refine => "Ossuary Kiln".to_owned(),
     };
+    let route_summary = super::world_feedback::worker_route_summary(ctx, worker);
+    let destination_detail = route_summary.map_or(destination.clone(), |summary| {
+        format!("{destination} · {summary}")
+    });
     draw_text_block(
-        &format!("Destination · {destination}"),
+        &format!("Destination · {destination_detail}"),
         panel.x + 18.0,
         panel.y + 208.0,
         panel.w - 36.0,

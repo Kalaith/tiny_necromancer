@@ -216,6 +216,7 @@ impl Game {
         self.prepare_capture_colony();
         self.panel = Panel::Domain;
         self.zone_mode = None;
+        self.domain_overlays.routes = true;
         self.session.pressure.suspicion = 58.0;
         self.session.pressure.stage = SuspicionStage::Questioning;
         self.session.pressure.last_reason =

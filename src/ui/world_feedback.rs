@@ -115,50 +115,78 @@ pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
 fn draw_route_hint(ctx: &UiContext<'_>, view: &GridView, worker: &Worker, destination: TilePos) {
     let worker_id = worker.id;
     let start = worker.position;
-    let mut cursor = start;
     let actor = ctx.motions.worker(worker_id).map_or_else(
         || view.tile_rect(start).center(),
         |motion| view.actor_center(motion.visual_position()),
     );
     let target_center = view.tile_rect(destination).center();
-    draw_line(
-        actor.x,
-        actor.y,
-        target_center.x,
-        target_center.y,
-        2.0,
-        dark::ACCENT.with_alpha(0.28),
-    );
-    for _ in 0..4 {
-        if cursor == destination {
-            break;
+    let route = navigation::plan_route(ctx.session, start, destination);
+    if let Ok(route) = &route {
+        let mut previous = actor;
+        for (index, tile) in route.steps().iter().enumerate().skip(1) {
+            let point = view.tile_rect(*tile).center();
+            draw_line(
+                previous.x,
+                previous.y,
+                point.x,
+                point.y,
+                2.0,
+                dark::ACCENT.with_alpha(if index == 1 { 0.58 } else { 0.42 }),
+            );
+            draw_circle(point.x, point.y, 3.0, dark::ACCENT.with_alpha(0.72));
+            previous = point;
         }
-        let Some(next) = navigation::next_step(ctx.session, cursor, destination) else {
-            break;
-        };
-        cursor = next;
-        let marker = view.tile_rect(cursor).center();
-        draw_circle(marker.x, marker.y, 3.0, dark::ACCENT.with_alpha(0.62));
+    } else {
+        draw_line(
+            actor.x,
+            actor.y,
+            target_center.x,
+            target_center.y,
+            2.0,
+            dark::WARNING.with_alpha(0.48),
+        );
     }
+
+    let route_color = if route.is_ok() {
+        dark::ACCENT
+    } else {
+        dark::WARNING
+    };
     let target = view.tile_rect(destination).inset(view.tile_size() * 0.25);
-    draw_rectangle_lines(target.x, target.y, target.w, target.h, 2.0, dark::ACCENT);
+    draw_rectangle_lines(target.x, target.y, target.w, target.h, 2.0, route_color);
+    let route_summary = match &route {
+        Ok(route) => format!("ROUTE · {} steps", route.step_count()),
+        Err(failure) => format!("NO ROUTE · {}", failure.label()),
+    };
     let route_label = if ctx.domain_overlays.routes {
         district_rule_hint(ctx, worker, destination).map_or_else(
-            || format!("{} · {}", worker.name, worker.assignment.label()),
-            |hint| format!("{} · {} · {hint}", worker.name, worker.assignment.label()),
+            || {
+                format!(
+                    "{} · {} · {route_summary}",
+                    worker.name,
+                    worker.assignment.label()
+                )
+            },
+            |hint| {
+                format!(
+                    "{} · {} · {hint} · {route_summary}",
+                    worker.name,
+                    worker.assignment.label()
+                )
+            },
         )
     } else {
-        "DESTINATION".to_owned()
+        route_summary
     };
     draw_text_block(
         &route_label,
         target.x - 44.0,
         target.y - view.tile_size() * 0.38,
-        150.0,
-        15.0,
+        220.0,
+        30.0,
         10.0,
-        0.0,
-        dark::ACCENT,
+        2.0,
+        route_color,
     );
     if let Some(worker) = ctx
         .session
@@ -248,6 +276,32 @@ pub(super) fn worker_district_hint(ctx: &UiContext<'_>, worker: &Worker) -> Opti
         .and_then(|destination| district_rule_hint(ctx, worker, destination))
 }
 
+pub(super) fn worker_route_summary(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
+    let destination = worker_destination(ctx, worker)?;
+    Some(
+        match navigation::plan_route(ctx.session, worker.position, destination) {
+            Ok(route) if route.step_count() == 0 => "AT DESTINATION".to_owned(),
+            Ok(route) => format!("ROUTE · {} steps", route.step_count()),
+            Err(failure) => format!("NO ROUTE · {}", failure.label()),
+        },
+    )
+}
+
+pub(super) fn route_counts(ctx: &UiContext<'_>) -> (usize, usize) {
+    let mut clear = 0;
+    let mut total = 0;
+    for worker in &ctx.session.workforce.workers {
+        let Some(destination) = worker_destination(ctx, worker) else {
+            continue;
+        };
+        total += 1;
+        if navigation::plan_route(ctx.session, worker.position, destination).is_ok() {
+            clear += 1;
+        }
+    }
+    (clear, total)
+}
+
 fn worker_destination(ctx: &UiContext<'_>, worker: &Worker) -> Option<TilePos> {
     match worker.assignment {
         JobKind::Dig => worker
@@ -308,9 +362,14 @@ fn worker_destination(ctx: &UiContext<'_>, worker: &Worker) -> Option<TilePos> {
     }
 }
 
-pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> &'static str {
+pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> String {
     if worker.status != WorkerStatus::Idle {
-        return "Active in the clearing";
+        return "Active in the clearing".to_owned();
+    }
+    if let Some(destination) = worker_destination(ctx, worker) {
+        if let Err(failure) = navigation::plan_route(ctx.session, worker.position, destination) {
+            return format!("No route · {}", failure.label());
+        }
     }
     match worker.assignment {
         JobKind::Dig => {
@@ -321,26 +380,26 @@ pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> &'stat
                 .iter()
                 .any(|plot| plot.status == PlotStatus::Ready)
             {
-                "Waiting for a route to the next grave"
+                "Waiting for a route to the next grave".to_owned()
             } else {
-                "No grave available"
+                "No grave available".to_owned()
             }
         }
         JobKind::Haul => {
             if worker.carrying > 0 {
-                "Carrying a bundle to storage"
+                "Carrying a bundle to storage".to_owned()
             } else if ctx.session.economy.loose_bones > 0 || ctx.session.economy.loose_wood > 0 {
-                "Waiting for a route to loose material"
+                "Waiting for a route to loose material".to_owned()
             } else {
-                "No loose material"
+                "No loose material".to_owned()
             }
         }
-        JobKind::Guard => "Waiting for a patrol route",
+        JobKind::Guard => "Waiting for a patrol route".to_owned(),
         JobKind::Wood => {
             if ctx.session.world.forest_tiles.is_empty() {
-                "No forest edge available"
+                "No forest edge available".to_owned()
             } else {
-                "Waiting for a route to the forest"
+                "Waiting for a route to the forest".to_owned()
             }
         }
         JobKind::Build => {
@@ -351,16 +410,16 @@ pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> &'stat
                 .iter()
                 .any(|building| !building.complete)
             {
-                "Waiting for a route to construction"
+                "Waiting for a route to construction".to_owned()
             } else {
-                "No structure under construction"
+                "No structure under construction".to_owned()
             }
         }
         JobKind::Refine => {
             if ctx.session.progress.production.is_some() {
-                "Waiting for a route to the kiln"
+                "Waiting for a route to the kiln".to_owned()
             } else {
-                "No kiln cycle loaded"
+                "No kiln cycle loaded".to_owned()
             }
         }
     }
