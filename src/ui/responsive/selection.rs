@@ -119,6 +119,11 @@ fn draw_worker(
         dark::TEXT_BRIGHT,
     );
     if let Some(route_summary) = super::super::world_feedback::worker_route_summary(ctx, worker) {
+        let route_failed = route_summary.contains("NO ROUTE");
+        let route_summary = super::super::world_feedback::worker_district_hint(ctx, worker)
+            .map_or(route_summary.clone(), |hint| {
+                format!("{hint} · {route_summary}")
+            });
         draw_text_block(
             &route_summary,
             sheet.x + 16.0,
@@ -127,7 +132,7 @@ fn draw_worker(
             16.0,
             11.0,
             0.0,
-            if route_summary.starts_with("NO ROUTE") {
+            if route_failed {
                 dark::WARNING
             } else {
                 dark::ACCENT
