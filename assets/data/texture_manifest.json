@@ -3,5 +3,10 @@
     "key": "cemetery_sprites",
     "path": "assets/art/cemetery_sprites.png",
     "filter": "nearest"
+  },
+  {
+    "key": "title_background",
+    "path": "assets/art/title_background.png",
+    "filter": "nearest"
   }
 ]

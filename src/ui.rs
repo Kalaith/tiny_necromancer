@@ -69,6 +69,7 @@ pub struct UiContext<'a> {
     pub camera: CameraTransform,
     pub ui: &'a VirtualUi,
     pub sprites: Option<&'a Texture2D>,
+    pub title_background: Option<&'a Texture2D>,
     pub panel: Panel,
     pub placement: Option<BuildingKind>,
     pub zone_mode: Option<ZoneKind>,

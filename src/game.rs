@@ -294,6 +294,7 @@ impl Game {
             camera: self.camera,
             ui: &virtual_ui,
             sprites: self.assets.get_texture("cemetery_sprites"),
+            title_background: self.assets.get_texture("title_background"),
             panel: self.panel,
             placement: self.placement,
             zone_mode: self.zone_mode,

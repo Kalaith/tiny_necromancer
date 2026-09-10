@@ -3,7 +3,7 @@
 use super::components::{selected_tile_at, GridView};
 use super::{world_grid_rect, UiContext, LOGICAL_HEIGHT, LOGICAL_WIDTH};
 use crate::state::{
-    Building, BuildingKind, PlotStatus, Selection, Technology, WorkerStatus, ZoneKind,
+    Building, BuildingKind, GamePhase, PlotStatus, Selection, Technology, WorkerStatus, ZoneKind,
 };
 use macroquad::prelude::*;
 use macroquad_toolkit::grid::TilePos;
@@ -11,6 +11,10 @@ use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::VirtualUi;
 
 pub(super) fn draw_world_scene(ctx: &UiContext<'_>) {
+    if ctx.session.phase == GamePhase::MainMenu {
+        draw_title_background(ctx.title_background);
+        return;
+    }
     let view = GridView::new(ctx, world_grid_rect());
     draw_rectangle(
         0.0,
@@ -73,6 +77,28 @@ pub(super) fn draw_world_scene(ctx: &UiContext<'_>) {
     draw_necromancer(ctx, &view);
     if let Some(kind) = ctx.placement {
         draw_placement_preview(ctx, &view, kind);
+    }
+}
+
+fn draw_title_background(texture: Option<&Texture2D>) {
+    draw_rectangle(
+        0.0,
+        0.0,
+        LOGICAL_WIDTH,
+        LOGICAL_HEIGHT,
+        Color::new(0.025, 0.045, 0.055, 1.0),
+    );
+    if let Some(texture) = texture {
+        draw_texture_ex(
+            texture,
+            0.0,
+            0.0,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(LOGICAL_WIDTH, LOGICAL_HEIGHT)),
+                ..Default::default()
+            },
+        );
     }
 }
 

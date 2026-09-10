@@ -1,6 +1,7 @@
 {
   "version": 1,
   "assets": [
-    "assets/art/cemetery_sprites.png"
+    "assets/art/cemetery_sprites.png",
+    "assets/art/title_background.png"
   ]
 }
