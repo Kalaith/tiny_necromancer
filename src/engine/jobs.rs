@@ -115,18 +115,28 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
         }
         JobKind::Guard => Some(patrol_destination(session, worker.position, worker.id)),
         JobKind::Wood => wood_destination(session, worker.position),
-        JobKind::Build => session
-            .world
-            .buildings
-            .iter()
-            .find(|building| !building.complete)
-            .map(Building::work_position),
-        JobKind::Refine => session
-            .world
-            .buildings
-            .iter()
-            .find(|building| building.kind == BuildingKind::OssuaryKiln && building.complete)
-            .map(Building::work_position),
+        JobKind::Build => structure_destination(
+            session,
+            worker.position,
+            session
+                .world
+                .buildings
+                .iter()
+                .filter(|building| !building.complete)
+                .map(Building::work_position)
+                .collect(),
+        ),
+        JobKind::Refine => structure_destination(
+            session,
+            worker.position,
+            session
+                .world
+                .buildings
+                .iter()
+                .filter(|building| building.kind == BuildingKind::OssuaryKiln && building.complete)
+                .map(Building::work_position)
+                .collect(),
+        ),
     }
 }
 
@@ -220,6 +230,14 @@ fn preferred_source_or_reachable_alternative(
         }
     }
     nearest_reachable_or_nearest(session, origin, alternatives).or(preferred)
+}
+
+fn structure_destination(
+    session: &GameSession,
+    origin: TilePos,
+    candidates: Vec<TilePos>,
+) -> Option<TilePos> {
+    nearest_reachable_or_nearest(session, origin, candidates)
 }
 
 fn storage_destination(session: &GameSession, origin: TilePos) -> TilePos {
