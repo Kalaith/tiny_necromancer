@@ -100,6 +100,7 @@ pub enum UiAction {
     UseWardCharge,
     MovePriority(JobKind, i32),
     ToggleDomainOverlay(DomainOverlay),
+    CycleStewardshipPolicy,
     TogglePanel(Panel),
     ToggleZone(ZoneKind),
     PaintZone(TilePos),

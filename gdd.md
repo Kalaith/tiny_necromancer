@@ -105,13 +105,19 @@ marks, worker destination routes, and a road-pressure watch overlay. The panel
 also offers a source-selection target for the first active blocker and a
 visible ward-charge response.
 
+The current stewardship policy is persistent save data. Balanced respects the
+shared worker priority list, Secure brings Guard duty forward and responds at
+Rumour pressure, and Harvest brings Dig, Haul, and Wood forward when those
+orders are available. The policy affects only automated workers; direct orders
+remain authoritative.
+
 ### 5.4 Determinism and saves
 
 `SeededRng` is stored with the session and serialized into the versioned save.
 Saves use `save_to_slot_with_version` and
 `load_from_slot_with_migration`; legacy payloads receive deterministic defaults
-for positioned buildings, research, zones, production, ward charges, and the
-necromancer. A pending necromancer destination and carried-resource type are
+for positioned buildings, research, zones, production, ward charges,
+stewardship policy, and the necromancer. A pending necromancer destination and carried-resource type are
 persistent; render-only interpolation and animation clocks are reset from the
 authoritative tiles after New Game and Load so actors cannot detach visually.
 
@@ -166,7 +172,8 @@ After Domain Stewardship, the Domain command opens a tall settlement readout.
 Its three overlay buttons keep district marks, worker routes, and road
 pressure independently readable on the same world-first map. A blocker can be
 located from the readout, while **Quiet ward** remains a visible response when
-charges and suspicion make it applicable.
+charges and suspicion make it applicable. A touch-sized policy control cycles
+between Balanced, Secure, and Harvest and states each policy's effect.
 
 ## 8. Toolkit mapping
 
@@ -191,8 +198,8 @@ simulation tiles, and procedural animation makes digging, hauling, gathering,
 construction, guarding, refining, walking, and ritual focus readable. Domain
 Stewardship now surfaces a compact district overview, actionable operational
 alerts, and toggleable zone, route, and pressure overlays. The next milestone
-can add richer stewardship policies while preserving the clear touch-first
-interaction at smaller viewport sizes.
+now extends those policies with deeper district rules while preserving the
+clear touch-first interaction at smaller viewport sizes.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.

@@ -16,10 +16,12 @@ fn save_round_trip_preserves_rng_and_operation() {
     let mut session = GameSession::new(&data.config);
     session.begin();
     session.economy.wood = 47;
+    session.stewardship_policy = StewardshipPolicy::Secure;
     let save = session.to_save(&data.config.version);
     let restored = GameSession::from_save(save.clone());
     assert_eq!(restored.phase, GamePhase::Playing);
     assert_eq!(restored.economy.wood, 47);
+    assert_eq!(restored.stewardship_policy, StewardshipPolicy::Secure);
     assert_eq!(restored.rng.state(), save.rng_state);
 }
 
@@ -90,6 +92,21 @@ fn older_priority_lists_receive_new_jobs_without_losing_order() {
     assert_eq!(restored.workforce.priorities[1], JobKind::Haul);
     assert!(restored.workforce.priorities.contains(&JobKind::Refine));
     assert_eq!(restored.workforce.priorities.len(), 6);
+}
+
+#[test]
+fn older_saves_without_a_policy_default_to_balanced() {
+    let data = crate::data::GameData::load().unwrap();
+    let save = GameSession::new(&data.config).to_save(&data.config.version);
+    let mut value = serde_json::to_value(save).unwrap();
+    value
+        .as_object_mut()
+        .expect("save object")
+        .remove("stewardship_policy");
+
+    let migrated = migrate_save_value(None, value, &data.config).unwrap();
+
+    assert_eq!(migrated.stewardship_policy, StewardshipPolicy::Balanced);
 }
 
 #[test]

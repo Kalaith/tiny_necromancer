@@ -234,12 +234,24 @@ fn draw_stewardship_readout(
         rect.y + 344.0,
         dark::TEXT,
     );
-    draw_readout_line(
-        "LAST CHANGE",
-        &ctx.session.pressure.last_reason,
-        rect.x + 24.0,
-        rect.y + 374.0,
-        dark::TEXT,
+    if virtual_button(
+        Rect::new(rect.x + 24.0, rect.y + 366.0, 192.0, 44.0),
+        &format!("Policy · {}", ctx.session.stewardship_policy.label()),
+        true,
+        ButtonTone::Secondary,
+        pointer,
+    ) {
+        actions.push(UiAction::CycleStewardshipPolicy);
+    }
+    draw_text_block(
+        ctx.session.stewardship_policy.description(),
+        rect.x + 228.0,
+        rect.y + 370.0,
+        390.0,
+        18.0,
+        12.0,
+        0.0,
+        dark::TEXT_DIM,
     );
 
     let operational = alerts::collect(ctx.session, ctx.data);

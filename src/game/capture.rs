@@ -4,8 +4,8 @@ use super::Game;
 use crate::data::SuspicionStage;
 use crate::engine::corpses;
 use crate::state::{
-    BuildingKind, GamePhase, GameSession, JobKind, ProductionOrder, Selection, Technology,
-    UndeadKind, WorkerStatus, Zone, ZoneKind,
+    BuildingKind, GamePhase, GameSession, JobKind, ProductionOrder, Selection, StewardshipPolicy,
+    Technology, UndeadKind, WorkerStatus, Zone, ZoneKind,
 };
 use crate::ui::{self, DomainOverlays, Panel};
 use macroquad::prelude::*;
@@ -219,6 +219,7 @@ impl Game {
         self.session.pressure.stage = SuspicionStage::Questioning;
         self.session.pressure.last_reason =
             "A patrol lantern caught a glimpse of movement.".to_owned();
+        self.session.stewardship_policy = StewardshipPolicy::Secure;
         if let Some(worker) = self.session.workforce.workers.first_mut() {
             worker.assignment = JobKind::Guard;
             worker.status = WorkerStatus::Hiding;

@@ -60,6 +60,35 @@ fn auto_mode_chooses_haul_before_more_digging() {
 }
 
 #[test]
+fn secure_policy_deploys_automated_workers_at_rumour() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.stewardship_policy = crate::state::StewardshipPolicy::Secure;
+    session.pressure.suspicion = data.config.suspicion_thresholds[0] + 0.1;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Dig;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Guard);
+}
+
+#[test]
+fn harvest_policy_prefers_material_work_over_guarding() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.stewardship_policy = crate::state::StewardshipPolicy::Harvest;
+    session.pressure.suspicion = data.config.suspicion_thresholds[1] + 0.1;
+    session.economy.loose_bones = 8;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
+}
+
+#[test]
 fn binding_routines_reorders_shared_priorities() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

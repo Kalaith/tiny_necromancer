@@ -252,9 +252,18 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
 }
 
 fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
+    let mut available_jobs = Vec::new();
     for priority in &session.workforce.priorities {
         let available = match priority {
-            JobKind::Guard => session.pressure.suspicion >= data.config.suspicion_thresholds[1],
+            JobKind::Guard => {
+                let threshold =
+                    if session.stewardship_policy == crate::state::StewardshipPolicy::Secure {
+                        data.config.suspicion_thresholds[0]
+                    } else {
+                        data.config.suspicion_thresholds[1]
+                    };
+                session.pressure.suspicion >= threshold
+            }
             JobKind::Haul => {
                 session.economy.loose_bones > 0
                     || session.economy.loose_wood > 0
@@ -281,10 +290,13 @@ fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
             JobKind::Refine => session.progress.production.is_some(),
         };
         if available {
-            return *priority;
+            available_jobs.push(*priority);
         }
     }
-    JobKind::Guard
+    available_jobs
+        .into_iter()
+        .min_by_key(|job| session.stewardship_policy.bias(*job))
+        .unwrap_or(JobKind::Guard)
 }
 
 fn simulate_dig(

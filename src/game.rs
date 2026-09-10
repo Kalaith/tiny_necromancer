@@ -374,6 +374,19 @@ impl Game {
                     self.domain_overlays.toggle(overlay);
                 }
             }
+            UiAction::CycleStewardshipPolicy => {
+                if self
+                    .session
+                    .research
+                    .is_unlocked(Technology::DomainStewardship)
+                {
+                    self.session.stewardship_policy = self.session.stewardship_policy.next();
+                    self.session.add_feed(format!(
+                        "Stewardship policy: {}.",
+                        self.session.stewardship_policy.label()
+                    ));
+                }
+            }
             UiAction::TogglePanel(panel) => {
                 self.panel = if self.panel == panel {
                     Panel::None

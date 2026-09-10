@@ -6,7 +6,11 @@ use macroquad_toolkit::rng::SeededRng;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+mod research;
+mod stewardship;
 mod workforce;
+pub use research::ResearchState;
+pub use stewardship::StewardshipPolicy;
 pub use workforce::{Worker, WorkforceState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -76,40 +80,6 @@ impl Technology {
             Self::OssuaryLogistics => config.research_durations.ossuary_logistics,
             Self::DomainStewardship => config.research_durations.domain_stewardship,
         }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResearchState {
-    #[serde(default)]
-    pub completed: Vec<Technology>,
-    #[serde(default)]
-    pub current: Option<Technology>,
-    #[serde(default)]
-    pub progress: f32,
-}
-
-impl Default for ResearchState {
-    fn default() -> Self {
-        Self {
-            completed: Vec::new(),
-            current: None,
-            progress: 0.0,
-        }
-    }
-}
-
-impl ResearchState {
-    pub fn is_unlocked(&self, technology: Technology) -> bool {
-        self.completed.contains(&technology)
-    }
-
-    pub fn can_start(&self, technology: Technology) -> bool {
-        !self.is_unlocked(technology)
-            && self.current.is_none()
-            && technology
-                .prerequisite()
-                .is_none_or(|prerequisite| self.is_unlocked(prerequisite))
     }
 }
 
@@ -491,6 +461,8 @@ pub struct SaveData {
     pub progress: ProgressState,
     #[serde(default)]
     pub research: ResearchState,
+    #[serde(default)]
+    pub stewardship_policy: StewardshipPolicy,
     pub rng_state: u64,
 }
 
@@ -503,6 +475,7 @@ pub struct GameSession {
     pub pressure: PressureState,
     pub progress: ProgressState,
     pub research: ResearchState,
+    pub stewardship_policy: StewardshipPolicy,
     pub rng: SeededRng,
     pub error_message: Option<String>,
 }
@@ -600,6 +573,7 @@ impl GameSession {
                 production_queue: 0,
             },
             research: ResearchState::default(),
+            stewardship_policy: StewardshipPolicy::default(),
             rng: SeededRng::new(config.starting_seed),
             error_message: None,
         }
@@ -621,6 +595,7 @@ impl GameSession {
             pressure: self.pressure.clone(),
             progress: self.progress.clone(),
             research: self.research.clone(),
+            stewardship_policy: self.stewardship_policy,
             rng_state: self.rng.state(),
         }
     }
@@ -648,6 +623,7 @@ impl GameSession {
             pressure: save.pressure,
             progress: save.progress,
             research: save.research,
+            stewardship_policy: save.stewardship_policy,
             rng: SeededRng::from_state(save.rng_state),
             error_message: None,
         }
