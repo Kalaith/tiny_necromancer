@@ -742,7 +742,7 @@ pub(super) fn draw_command_dock(
     pointer: Pointer,
     actions: &mut Vec<UiAction>,
 ) {
-    let rect = Rect::new(304.0, 618.0, 672.0, 86.0);
+    let rect = Rect::new(298.0, 618.0, 684.0, 86.0);
     draw_surface(
         rect,
         &SurfaceStyle::new(Color::new(0.045, 0.055, 0.055, 0.96))
@@ -764,18 +764,26 @@ pub(super) fn draw_command_dock(
         (Panel::Undead, "Undead"),
         (Panel::Research, "Research"),
         (Panel::Zones, "Zones"),
+        (Panel::Domain, "Domain"),
     ];
     for (index, (panel, label)) in labels.into_iter().enumerate() {
         let button = Rect::new(
-            rect.x + 106.0 + index as f32 * 108.0,
+            rect.x + 106.0 + index as f32 * 96.0,
             rect.y + 28.0,
-            100.0,
+            92.0,
             44.0,
         );
         if virtual_button(
             button,
             label,
-            panel != Panel::Zones || ctx.session.research.is_unlocked(Technology::Gravecraft),
+            match panel {
+                Panel::Zones => ctx.session.research.is_unlocked(Technology::Gravecraft),
+                Panel::Domain => ctx
+                    .session
+                    .research
+                    .is_unlocked(Technology::DomainStewardship),
+                _ => true,
+            },
             if ctx.panel == panel {
                 ButtonTone::Positive
             } else {

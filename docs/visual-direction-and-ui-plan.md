@@ -105,7 +105,7 @@ Do not add conventional food and housing needs automatically. If later design re
 
 ## Current prototype and remaining direction
 
-The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, editable work areas, deterministic worker routing, nearest-tile Work/Storage/Patrol destinations, an Ossuary Kiln production recipe with a three-cycle queue, a district overview with a stateful minimap, and actionable operational alerts. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; richer route overlays and stewardship policies remain future work.
+The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, editable work areas, deterministic worker routing, nearest-tile Work/Storage/Patrol destinations, an Ossuary Kiln production recipe with a three-cycle queue, a district overview with a stateful minimap, actionable operational alerts, and Domain Stewardship overlays for zones, worker routes, and road pressure. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; richer stewardship policies remain future work.
 
 | Implemented foundation | Remaining direction |
 | --- | --- |
@@ -115,7 +115,7 @@ The current game has a 10 × 8 world, six authored grave positions, one starting
 | `src/main.rs`: neutral native window caption | Keep the game name on the title page only |
 | `src/game.rs`: camera, input, captures, and action dispatch | Add touch camera gestures if the world outgrows one viewport |
 | `src/state.rs`: positioned buildings, research, zones, movement destinations, carried resources, and save migration | Expand the persistent colony model without resetting existing saves |
-| `src/engine/progression.rs`, `src/engine/alerts.rs`: research-driven capabilities, milestone, and operational blockers | Extend stewardship policies |
+| `src/engine/progression.rs`, `src/engine/alerts.rs`: research-driven capabilities, milestone, and operational blockers | Extend stewardship policies beyond the current readout and overlays |
 | `assets/data/texture_manifest.json` and asset registry | Add later terrain, props, effects, and HUD assets as they become playable |
 
 Keep simulation independent of camera zoom and panel visibility. UI should read a shared capability model derived from research; the simulation must validate those same capabilities when accepting orders. Do not implement technology progression only by hiding buttons.
@@ -124,12 +124,12 @@ Existing saves already receive deterministic defaults for positioned buildings, 
 
 ## Delivery sequence
 
-1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, and victory scenes.
+1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, domain, and victory scenes.
 2. **One convincing cemetery scene (implemented for the slice).** Terrain and sprites cover the necromancer, skeleton, graves, trees, stockpile, shed, and lantern. Digging, hauling, construction progress, selection, camera transforms, route intent, and source feedback are readable.
 3. **First research transition (implemented for the slice).** Binding Routines and the research chain gate repeat priorities, placement, work areas, logistics, and domain controls. Versioned saves preserve the new state with deterministic defaults.
 4. **Movement and animation readability (implemented).** Workers visibly walk tile by tile, hauling has a real carried-resource phase, jobs expose procedural tool motion, and the necromancer walks, retargets, cancels, and pulses while ritualizing.
 5. **First colony slice (implemented for the current slice).** The Ossuary Kiln completes a material → construction → production chain after Ossuary Logistics, workers route around basic obstructions before working, and painted Work, Storage, and Patrol areas select nearby destinations. The minimap and worker/grave cues provide first-pass domain feedback while keeping the original cemetery recognizable as part of the expanded settlement.
-6. **Scale and domain controls (in progress).** The current settlement overview includes useful operational alerts with source selection. Extend it with richer route overlays and stewardship policies, validating worker selection and simulation performance before growing the content set.
+6. **Scale and domain controls (implemented for the current slice).** The settlement overview includes useful operational alerts with source selection, plus Domain Stewardship controls for district marks, worker routes, and road-pressure coverage. Future work can add stewardship policies while validating worker selection and simulation performance before growing the content set.
 
 Defer trade, farms, housing, multiple biomes, and large defence systems until the first colony slice works. Art for later systems follows approved gameplay rather than committing production effort based solely on the reference.
 

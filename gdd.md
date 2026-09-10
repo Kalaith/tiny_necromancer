@@ -98,6 +98,13 @@ without a Haul order, open graves without a Dig order, and questioning-level
 road pressure. Each alert is a touch target that selects its source so the
 player can move from diagnosis to an order without searching the map.
 
+Domain Stewardship adds a dedicated readout for the settlement: bound workers,
+marked district tiles, ward charges, workforce activity, pressure stage, and
+the latest pressure cause. Its touch controls independently show or hide zone
+marks, worker destination routes, and a road-pressure watch overlay. The panel
+also offers a source-selection target for the first active blocker and a
+visible ward-charge response.
+
 ### 5.4 Determinism and saves
 
 `SeededRng` is stored with the session and serialized into the versioned save.
@@ -155,6 +162,12 @@ only choice buttons. Pause, save, load, recovery, and replay actions are also
 visible controls. Desktop right-drag and wheel camera controls supplement the
 touch path.
 
+After Domain Stewardship, the Domain command opens a tall settlement readout.
+Its three overlay buttons keep district marks, worker routes, and road
+pressure independently readable on the same world-first map. A blocker can be
+located from the readout, while **Quiet ward** remains a visible response when
+charges and suspicion make it applicable.
+
 ## 8. Toolkit mapping
 
 | Need | Toolkit piece |
@@ -176,9 +189,10 @@ visual-direction milestones: workers route around structure footprints, Work,
 Storage, and Patrol zones choose nearby destinations, actors interpolate between
 simulation tiles, and procedural animation makes digging, hauling, gathering,
 construction, guarding, refining, walking, and ritual focus readable. Domain
-Stewardship now surfaces a compact district overview and actionable operational
-alerts. The next milestone can add richer stewardship policies while preserving
-the clear touch-first interaction at smaller viewport sizes.
+Stewardship now surfaces a compact district overview, actionable operational
+alerts, and toggleable zone, route, and pressure overlays. The next milestone
+can add richer stewardship policies while preserving the clear touch-first
+interaction at smaller viewport sizes.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.

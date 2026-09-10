@@ -1,18 +1,16 @@
 //! Runtime orchestration: input intents, simulation ticks, persistence, and feedback.
 
-use crate::data::{GameData, SuspicionStage};
+use crate::data::GameData;
 use crate::engine::{self, corpses, jobs, movement, progression, suspicion};
 use crate::state::{
-    BuildingKind, GamePhase, GameSession, JobKind, ProductionOrder, SaveData, Selection,
-    Technology, UndeadKind, WorkerStatus, Zone, ZoneKind,
+    BuildingKind, GamePhase, GameSession, SaveData, Selection, Technology, Zone, ZoneKind,
 };
 use crate::ui::animation::AnimationClock;
-use crate::ui::{self, Panel, UiAction, UiContext};
+use crate::ui::{self, DomainOverlays, Panel, UiAction, UiContext};
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::camera::{CameraBounds, CameraBoundsPolicy, CameraTransform};
 use macroquad_toolkit::events::EventBus;
-use macroquad_toolkit::grid::TilePos;
 use macroquad_toolkit::notifications::{
     NotificationAnchor, NotificationManager, NotificationRenderConfig,
 };
@@ -21,6 +19,8 @@ use macroquad_toolkit::persistence::{
 };
 use macroquad_toolkit::prelude::{begin_virtual_ui_frame, dark, end_virtual_ui_frame, InputState};
 use macroquad_toolkit::ui::VirtualUi;
+
+mod capture;
 
 pub struct Game {
     data: GameData,
@@ -37,6 +37,7 @@ pub struct Game {
     panel: Panel,
     placement: Option<BuildingKind>,
     zone_mode: Option<ZoneKind>,
+    domain_overlays: DomainOverlays,
 }
 
 impl Game {
@@ -69,333 +70,10 @@ impl Game {
             panel: Panel::None,
             placement: None,
             zone_mode: None,
+            domain_overlays: DomainOverlays::default(),
         };
         game.refresh_save_state();
         game
-    }
-
-    pub fn begin_capture_scene(&mut self, scene: &str) {
-        self.session = GameSession::new(&self.data.config);
-        if scene != "menu" {
-            self.session.begin();
-        }
-        self.notifications.clear();
-        self.events.drain().for_each(drop);
-        self.tick_accumulator = 0.0;
-        self.motions.reset(&self.session);
-        self.animation.reset();
-        self.camera = CameraTransform::new(Vec2::ZERO, 1.0).expect("valid initial camera");
-        self.camera_drag = None;
-        self.panel = Panel::None;
-        self.placement = None;
-        self.zone_mode = None;
-        match scene {
-            "menu" | "gameplay" | "scrolled" => {}
-            "research" => self.prepare_capture_research(),
-            "orders" => self.prepare_capture_orders(),
-            "colony" => self.prepare_capture_colony(),
-            "production" => self.prepare_capture_production(),
-            "placement" => {
-                self.panel = Panel::Build;
-                self.placement = Some(BuildingKind::WorkShed);
-            }
-            "paused" => self.session.phase = GamePhase::Paused,
-            "event" => {
-                self.session.pressure.suspicion = self.data.config.suspicion_thresholds[0];
-                self.session.pressure.stage = SuspicionStage::Rumour;
-                self.session.pressure.active_event = Some("rumour".to_owned());
-            }
-            "worker-walking" => self.prepare_capture_worker_walking(),
-            "worker-carrying" => self.prepare_capture_worker_carrying(),
-            "worker-working" => self.prepare_capture_worker_working(),
-            "necromancer-walking" => self.prepare_capture_necromancer_walking(),
-            "necromancer-ritual" => self.prepare_capture_necromancer_ritual(),
-            "building" => self.prepare_capture_building(),
-            "kiln" => self.prepare_capture_kiln(),
-            "victory" => self.prepare_capture_victory(),
-            "zoomed" => {
-                self.camera.zoom_at(
-                    ui::world_grid_rect(),
-                    ui::world_grid_rect().center(),
-                    1.25,
-                    (0.75, 1.5),
-                );
-                self.camera.pan_screen(vec2(20.0, -12.0));
-            }
-            other => panic!("Unknown Tiny Necromancer capture scene: {other}"),
-        }
-        self.motions.reset(&self.session);
-    }
-
-    fn prepare_capture_victory(&mut self) {
-        self.session.economy.bones = 160;
-        self.session.economy.mana = 80;
-        self.session.progress.unlocked_plots = 6;
-        for plot in &mut self.session.world.plots {
-            plot.status = crate::state::PlotStatus::Dug;
-        }
-        self.session.world.buildings = vec![
-            crate::state::Building {
-                kind: BuildingKind::WorkShed,
-                progress: 10.0,
-                complete: true,
-                position: crate::state::default_building_position_for_kind(BuildingKind::WorkShed),
-                width: 2,
-                height: 2,
-            },
-            crate::state::Building {
-                kind: BuildingKind::GraveLantern,
-                progress: 12.0,
-                complete: true,
-                position: crate::state::default_building_position_for_kind(
-                    BuildingKind::GraveLantern,
-                ),
-                width: 1,
-                height: 1,
-            },
-        ];
-        self.session.economy.corpses.push(crate::state::Corpse {
-            id: 1,
-            integrity: 0.9,
-            strength: 0.86,
-            skill: 0.9,
-            magical_residue: 0.95,
-            cause_of_death: "old battlefield wound".to_owned(),
-            quality: crate::state::CorpseQuality::Notable,
-        });
-        for _ in 0..3 {
-            let _ = corpses::raise(&mut self.session, &self.data, UndeadKind::Skeleton);
-        }
-        let _ = corpses::raise(&mut self.session, &self.data, UndeadKind::BruteSkeleton);
-        self.session.pressure.suspicion = 44.0;
-        self.session.phase = GamePhase::Victory;
-    }
-
-    fn prepare_capture_research(&mut self) {
-        self.session.economy.bones = 120;
-        self.session.economy.mana = 60;
-        self.session.economy.wood = 70;
-        self.session.world.buildings = vec![crate::state::Building {
-            kind: BuildingKind::WorkShed,
-            progress: 10.0,
-            complete: true,
-            position: crate::state::default_building_position_for_kind(BuildingKind::WorkShed),
-            width: 2,
-            height: 2,
-        }];
-        self.session.research.current = Some(Technology::BindingRoutines);
-        self.session.research.progress = 2.0;
-        self.session.world.selected = Some(Selection::Building(0));
-        self.panel = Panel::Research;
-    }
-
-    fn prepare_capture_orders(&mut self) {
-        self.session.economy.bones = 120;
-        self.session.economy.mana = 60;
-        self.session.economy.wood = 70;
-        self.session.research.completed = vec![Technology::BindingRoutines];
-        self.session.workforce.workers[0].priority_mode = true;
-        self.session.workforce.priorities = vec![
-            JobKind::Dig,
-            JobKind::Haul,
-            JobKind::Guard,
-            JobKind::Build,
-            JobKind::Wood,
-            JobKind::Refine,
-        ];
-        self.session.world.selected = Some(Selection::Worker(0));
-        self.panel = Panel::Orders;
-    }
-
-    fn prepare_capture_colony(&mut self) {
-        self.session.economy.bones = 240;
-        self.session.economy.mana = 120;
-        self.session.economy.wood = 180;
-        self.session.economy.ward_charges = 3;
-        self.session.progress.unlocked_plots = 6;
-        for plot in &mut self.session.world.plots {
-            plot.status = crate::state::PlotStatus::Dug;
-        }
-        self.session.world.buildings = vec![
-            crate::state::Building {
-                kind: BuildingKind::WorkShed,
-                progress: 10.0,
-                complete: true,
-                position: TilePos::new(6, 2),
-                width: 2,
-                height: 2,
-            },
-            crate::state::Building {
-                kind: BuildingKind::GraveLantern,
-                progress: 12.0,
-                complete: true,
-                position: TilePos::new(7, 6),
-                width: 1,
-                height: 1,
-            },
-            crate::state::Building {
-                kind: BuildingKind::OssuaryKiln,
-                progress: 14.0,
-                complete: true,
-                position: TilePos::new(6, 4),
-                width: 2,
-                height: 1,
-            },
-        ];
-        self.session.research.completed = vec![
-            Technology::BindingRoutines,
-            Technology::Gravecraft,
-            Technology::OssuaryLogistics,
-            Technology::DomainStewardship,
-        ];
-        for _ in 0..5 {
-            let _ = corpses::raise(&mut self.session, &self.data, UndeadKind::Skeleton);
-        }
-        self.session.world.zones = vec![
-            Zone {
-                kind: ZoneKind::Work,
-                tiles: vec![TilePos::new(2, 2), TilePos::new(0, 3)],
-            },
-            Zone {
-                kind: ZoneKind::Storage,
-                tiles: vec![TilePos::new(6, 5)],
-            },
-            Zone {
-                kind: ZoneKind::Patrol,
-                tiles: vec![TilePos::new(7, 1)],
-            },
-        ];
-        self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
-        self.panel = Panel::Zones;
-        self.zone_mode = Some(ZoneKind::Work);
-    }
-
-    fn prepare_capture_production(&mut self) {
-        self.session.economy.bones = 120;
-        self.session.economy.mana = 60;
-        self.session.economy.wood = 90;
-        self.session.economy.ward_charges = 2;
-        self.session.research.completed = vec![
-            Technology::BindingRoutines,
-            Technology::Gravecraft,
-            Technology::OssuaryLogistics,
-        ];
-        self.session.world.buildings = vec![
-            crate::state::Building {
-                kind: BuildingKind::WorkShed,
-                progress: 10.0,
-                complete: true,
-                position: TilePos::new(6, 2),
-                width: 2,
-                height: 2,
-            },
-            crate::state::Building {
-                kind: BuildingKind::OssuaryKiln,
-                progress: 14.0,
-                complete: true,
-                position: TilePos::new(6, 4),
-                width: 2,
-                height: 1,
-            },
-        ];
-        self.session.progress.production = Some(ProductionOrder {
-            building: BuildingKind::OssuaryKiln,
-            progress: 4.0,
-        });
-        self.session.progress.production_queue = 1;
-        self.session.workforce.workers[0].assignment = JobKind::Guard;
-        self.session.workforce.workers[0].status = WorkerStatus::Hiding;
-        self.session.workforce.workers[0].position = TilePos::new(5, 4);
-        self.session.world.selected = Some(Selection::Building(1));
-    }
-
-    fn prepare_capture_worker_walking(&mut self) {
-        let worker = &mut self.session.workforce.workers[0];
-        worker.position = TilePos::new(7, 6);
-        worker.assignment = JobKind::Dig;
-        worker.status = WorkerStatus::Walking;
-        self.session.world.selected_plot = Some(0);
-        self.session.world.selected = Some(Selection::Worker(0));
-    }
-
-    fn prepare_capture_worker_carrying(&mut self) {
-        let source = self.session.world.plots[0].position;
-        self.session.economy.loose_bones = 4;
-        self.session.economy.loose_bones_source = Some(source);
-        let worker = &mut self.session.workforce.workers[0];
-        worker.position = source;
-        worker.assignment = JobKind::Haul;
-        worker.status = WorkerStatus::Carrying;
-        worker.carrying = 8;
-        worker.carrying_resource = Some(crate::state::ResourceKind::Bones);
-        self.session.world.selected = Some(Selection::Worker(0));
-    }
-
-    fn prepare_capture_worker_working(&mut self) {
-        let plot = &mut self.session.world.plots[0];
-        plot.status = crate::state::PlotStatus::Digging;
-        plot.progress = 2.5;
-        let position = plot.position;
-        let worker = &mut self.session.workforce.workers[0];
-        worker.position = position;
-        worker.assignment = JobKind::Dig;
-        worker.status = WorkerStatus::Working;
-        worker.target_plot = Some(0);
-        self.session.world.selected = Some(Selection::Worker(0));
-    }
-
-    fn prepare_capture_necromancer_walking(&mut self) {
-        self.session.world.necromancer_destination = Some(TilePos::new(2, 0));
-        self.session.world.selected = Some(Selection::Necromancer);
-    }
-
-    fn prepare_capture_necromancer_ritual(&mut self) {
-        self.session.world.selected = Some(Selection::Necromancer);
-    }
-
-    fn prepare_capture_building(&mut self) {
-        self.session.economy.bones = 80;
-        self.session.economy.wood = 80;
-        self.session.world.buildings = vec![crate::state::Building {
-            kind: BuildingKind::WorkShed,
-            progress: 2.5,
-            complete: false,
-            position: TilePos::new(6, 2),
-            width: 2,
-            height: 2,
-        }];
-        let worker = &mut self.session.workforce.workers[0];
-        worker.position = TilePos::new(5, 2);
-        worker.assignment = JobKind::Build;
-        worker.status = WorkerStatus::Working;
-        self.session.world.selected = Some(Selection::Building(0));
-    }
-
-    fn prepare_capture_kiln(&mut self) {
-        self.session.economy.bones = 120;
-        self.session.economy.wood = 90;
-        self.session.research.completed = vec![
-            Technology::BindingRoutines,
-            Technology::Gravecraft,
-            Technology::OssuaryLogistics,
-        ];
-        self.session.world.buildings = vec![crate::state::Building {
-            kind: BuildingKind::OssuaryKiln,
-            progress: 14.0,
-            complete: true,
-            position: TilePos::new(6, 4),
-            width: 2,
-            height: 1,
-        }];
-        self.session.progress.production = Some(ProductionOrder {
-            building: BuildingKind::OssuaryKiln,
-            progress: 3.0,
-        });
-        let worker = &mut self.session.workforce.workers[0];
-        worker.position = TilePos::new(5, 4);
-        worker.assignment = JobKind::Refine;
-        worker.status = WorkerStatus::Working;
-        self.session.world.selected = Some(Selection::Building(0));
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -492,6 +170,7 @@ impl Game {
             panel: self.panel,
             placement: self.placement,
             zone_mode: self.zone_mode,
+            domain_overlays: self.domain_overlays,
         };
         for action in ui::draw_game_ui(ctx) {
             self.events.push(action);
@@ -516,6 +195,7 @@ impl Game {
                 self.panel = Panel::None;
                 self.placement = None;
                 self.zone_mode = None;
+                self.domain_overlays = DomainOverlays::default();
                 self.notifications
                     .info("A fresh graveyard is ready. Start with Dig Graves.");
             }
@@ -685,6 +365,15 @@ impl Game {
                 let result = jobs::move_priority(&mut self.session, job, direction);
                 self.notify_result(result);
             }
+            UiAction::ToggleDomainOverlay(overlay) => {
+                if self
+                    .session
+                    .research
+                    .is_unlocked(Technology::DomainStewardship)
+                {
+                    self.domain_overlays.toggle(overlay);
+                }
+            }
             UiAction::TogglePanel(panel) => {
                 self.panel = if self.panel == panel {
                     Panel::None
@@ -785,6 +474,7 @@ impl Game {
                 self.placement = None;
                 self.zone_mode = None;
                 self.camera_drag = None;
+                self.domain_overlays = DomainOverlays::default();
                 self.notifications.success("Loaded the cemetery.");
                 self.refresh_save_state();
             }

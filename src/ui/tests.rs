@@ -23,3 +23,19 @@ fn recovery_controls_have_touch_sized_targets() {
     assert!(pause.w >= 44.0 && pause.h >= 44.0);
     assert!(placement_cancel.w >= 44.0 && placement_cancel.h >= 44.0);
 }
+
+#[test]
+fn domain_overlays_keep_zones_visible_and_toggle_independently() {
+    let mut overlays = DomainOverlays::default();
+    assert!(overlays.zones);
+    assert!(!overlays.routes);
+    assert!(!overlays.pressure);
+
+    overlays.toggle(DomainOverlay::Routes);
+    overlays.toggle(DomainOverlay::Pressure);
+    overlays.toggle(DomainOverlay::Zones);
+
+    assert!(!overlays.zones);
+    assert!(overlays.routes);
+    assert!(overlays.pressure);
+}

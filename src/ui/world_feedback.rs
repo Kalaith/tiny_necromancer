@@ -71,8 +71,10 @@ fn draw_resource_pile(center: Vec2, glyph: &str, amount: i32, color: Color) {
 }
 
 pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
-    if let Some(Selection::Worker(index)) = ctx.session.world.selected {
-        if let Some(worker) = ctx.session.workforce.workers.get(index) {
+    for (index, worker) in ctx.session.workforce.workers.iter().enumerate() {
+        if ctx.domain_overlays.routes
+            || ctx.session.world.selected == Some(Selection::Worker(index))
+        {
             if let Some(destination) = worker_destination(ctx, worker) {
                 draw_route_hint(ctx, view, worker.id, worker.position, destination);
             }

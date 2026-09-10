@@ -20,6 +20,7 @@ param(
         "research",
         "orders",
         "colony",
+        "domain",
         "production",
         "worker-walking",
         "worker-carrying",

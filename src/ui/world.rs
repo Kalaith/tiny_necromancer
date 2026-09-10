@@ -72,6 +72,7 @@ pub(super) fn draw_world_scene(ctx: &UiContext<'_>) {
     draw_path_and_props(ctx, &view);
     super::world_feedback::draw_loose_resource_feedback(ctx, &view);
     draw_zones(ctx, &view);
+    draw_pressure_overlay(ctx, &view);
     draw_zone_preview(ctx, &view);
     super::world_feedback::draw_actor_destinations(ctx, &view);
     draw_graves(ctx, &view);
@@ -194,6 +195,9 @@ fn draw_path_and_props(ctx: &UiContext<'_>, view: &GridView) {
 }
 
 fn draw_zones(ctx: &UiContext<'_>, view: &GridView) {
+    if !ctx.domain_overlays.zones {
+        return;
+    }
     for zone in &ctx.session.world.zones {
         let color = match zone.kind {
             ZoneKind::Work => Color::new(0.27, 0.73, 0.62, 0.20),
@@ -219,6 +223,49 @@ fn draw_zones(ctx: &UiContext<'_>, view: &GridView) {
             );
         }
     }
+}
+
+fn draw_pressure_overlay(ctx: &UiContext<'_>, view: &GridView) {
+    if !ctx.domain_overlays.pressure {
+        return;
+    }
+    let color = match ctx.session.pressure.stage {
+        crate::data::SuspicionStage::Calm => dark::POSITIVE,
+        crate::data::SuspicionStage::Rumour => dark::ACCENT,
+        crate::data::SuspicionStage::Questioning => dark::WARNING,
+        crate::data::SuspicionStage::Investigation => dark::NEGATIVE,
+    };
+    for y in 0..ctx.session.world_height() {
+        for x in ctx.session.world.road_x.max(0) as usize..ctx.session.world_width() {
+            let tile = view.tile_rect(TilePos::new(x as i32, y as i32));
+            draw_rectangle(
+                tile.x,
+                tile.y,
+                tile.w + 1.0,
+                tile.h + 1.0,
+                color.with_alpha(0.08),
+            );
+            draw_rectangle_lines(tile.x, tile.y, tile.w, tile.h, 1.0, color.with_alpha(0.34));
+        }
+    }
+    let boundary = view.tile_rect(TilePos::new(ctx.session.world.road_x.max(0), 0));
+    draw_rectangle(
+        boundary.x - 3.0,
+        world_grid_rect().y,
+        3.0,
+        world_grid_rect().h,
+        color.with_alpha(0.74),
+    );
+    draw_text_block(
+        "PRESSURE WATCH",
+        boundary.x + 8.0,
+        world_grid_rect().y + 8.0,
+        150.0,
+        16.0,
+        11.0,
+        0.0,
+        color,
+    );
 }
 
 fn draw_graves(ctx: &UiContext<'_>, view: &GridView) {

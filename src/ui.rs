@@ -13,6 +13,7 @@ use macroquad_toolkit::ui::{Pointer, VirtualUi};
 
 pub mod animation;
 mod components;
+mod domain;
 mod hud;
 mod orders;
 mod panels;
@@ -37,6 +38,41 @@ pub enum Panel {
     Undead,
     Research,
     Zones,
+    Domain,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DomainOverlay {
+    Zones,
+    Routes,
+    Pressure,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DomainOverlays {
+    pub zones: bool,
+    pub routes: bool,
+    pub pressure: bool,
+}
+
+impl Default for DomainOverlays {
+    fn default() -> Self {
+        Self {
+            zones: true,
+            routes: false,
+            pressure: false,
+        }
+    }
+}
+
+impl DomainOverlays {
+    pub fn toggle(&mut self, overlay: DomainOverlay) {
+        match overlay {
+            DomainOverlay::Zones => self.zones = !self.zones,
+            DomainOverlay::Routes => self.routes = !self.routes,
+            DomainOverlay::Pressure => self.pressure = !self.pressure,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -63,6 +99,7 @@ pub enum UiAction {
     StartProduction(BuildingKind),
     UseWardCharge,
     MovePriority(JobKind, i32),
+    ToggleDomainOverlay(DomainOverlay),
     TogglePanel(Panel),
     ToggleZone(ZoneKind),
     PaintZone(TilePos),
@@ -82,6 +119,7 @@ pub struct UiContext<'a> {
     pub panel: Panel,
     pub placement: Option<BuildingKind>,
     pub zone_mode: Option<ZoneKind>,
+    pub domain_overlays: DomainOverlays,
 }
 
 pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
@@ -124,14 +162,14 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
 }
 
 fn ui_occludes(point: Vec2, ctx: &UiContext<'_>) -> bool {
-    let dock = Rect::new(304.0, 618.0, 672.0, 86.0);
+    let dock = Rect::new(298.0, 618.0, 684.0, 86.0);
     let inspector = if ctx.session.world.selected.is_some() {
         Rect::new(952.0, 86.0, 310.0, 454.0)
     } else {
         Rect::new(0.0, 0.0, 0.0, 0.0)
     };
     let panel = match ctx.panel {
-        Panel::Research | Panel::Orders => Rect::new(238.0, 106.0, 680.0, 490.0),
+        Panel::Research | Panel::Orders | Panel::Domain => Rect::new(238.0, 106.0, 680.0, 490.0),
         Panel::Build | Panel::Undead | Panel::Zones => Rect::new(350.0, 460.0, 580.0, 150.0),
         Panel::None => Rect::new(0.0, 0.0, 0.0, 0.0),
     };

@@ -1,6 +1,7 @@
 //! Compact field notes and settlement overview.
 
 use super::components::virtual_button;
+use super::domain::draw_domain_panel;
 use super::orders::draw_orders_panel;
 use super::research::{draw_research_panel, draw_zones_panel};
 use super::{Panel, UiAction, UiContext};
@@ -11,6 +12,9 @@ use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::Pointer;
 
 pub(super) fn draw_feed(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
+    if matches!(ctx.panel, Panel::Research | Panel::Orders | Panel::Domain) {
+        return;
+    }
     let operational = alerts::collect(ctx.session, ctx.data);
     let rect = if operational.is_empty() {
         Rect::new(20.0, 572.0, 310.0, 102.0)
@@ -235,6 +239,7 @@ pub(super) fn draw_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Ve
         Panel::Undead => draw_undead_panel(ctx, pointer, actions),
         Panel::Research => draw_research_panel(ctx, pointer, actions),
         Panel::Zones => draw_zones_panel(ctx, pointer, actions),
+        Panel::Domain => draw_domain_panel(ctx, pointer, actions),
         Panel::None => {}
     }
 }
