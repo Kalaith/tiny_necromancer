@@ -298,6 +298,22 @@ fn draw_graves(ctx: &UiContext<'_>, view: &GridView) {
                 ctx.data.jobs.get("dig").map_or(8.0, |job| job.work_seconds),
                 dark::WARNING,
             );
+            if ctx
+                .session
+                .workforce
+                .workers
+                .iter()
+                .any(|worker| worker.target_plot == Some(plot.id))
+            {
+                draw_rectangle_lines(
+                    ground.x - 3.0,
+                    ground.y - 3.0,
+                    ground.w + 6.0,
+                    ground.h + 6.0,
+                    2.0,
+                    dark::WARNING,
+                );
+            }
         }
         if selected {
             draw_selection_rect(ground, dark::ACCENT);
