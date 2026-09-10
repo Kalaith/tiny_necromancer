@@ -1,33 +1,36 @@
 //! World and sprite rendering.
 
 use super::components::{selected_tile_at, GridView};
-use super::{animation, world_grid_rect, UiContext, LOGICAL_HEIGHT, LOGICAL_WIDTH};
+use super::{animation, UiContext};
 use crate::state::{
     Building, BuildingKind, GamePhase, PlotStatus, Selection, Technology, WorkerStatus, ZoneKind,
 };
 use macroquad::prelude::*;
 use macroquad_toolkit::grid::TilePos;
 use macroquad_toolkit::prelude::*;
-use macroquad_toolkit::ui::VirtualUi;
 
 pub(super) fn draw_world_scene(ctx: &UiContext<'_>) {
     if ctx.session.phase == GamePhase::MainMenu {
-        draw_title_background(ctx.title_background);
+        draw_title_background(
+            ctx.title_background,
+            ctx.ui.logical_width,
+            ctx.ui.logical_height,
+        );
         return;
     }
-    let view = GridView::new(ctx, world_grid_rect());
+    let view = GridView::new(ctx, ctx.layout.world_rect);
     draw_rectangle(
         0.0,
         0.0,
-        LOGICAL_WIDTH,
-        LOGICAL_HEIGHT,
+        ctx.ui.logical_width,
+        ctx.ui.logical_height,
         Color::new(0.055, 0.12, 0.085, 1.0),
     );
     draw_rectangle(
         0.0,
         0.0,
-        LOGICAL_WIDTH,
-        LOGICAL_HEIGHT,
+        ctx.ui.logical_width,
+        ctx.ui.logical_height,
         Color::new(0.02, 0.04, 0.035, 0.20),
     );
     for y in 0..ctx.session.world_height() {
@@ -88,7 +91,7 @@ fn draw_zone_preview(ctx: &UiContext<'_>, view: &GridView) {
     let Some(kind) = ctx.zone_mode else {
         return;
     };
-    let mouse = VirtualUi::new(LOGICAL_WIDTH, LOGICAL_HEIGHT).mouse_position();
+    let mouse = ctx.ui.mouse_position();
     let Some(tile_pos) = selected_tile_at(ctx, mouse) else {
         return;
     };
@@ -119,12 +122,12 @@ fn draw_zone_preview(ctx: &UiContext<'_>, view: &GridView) {
     draw_text_block(label, tile.x, tile.y - 18.0, 110.0, 16.0, 12.0, 0.0, color);
 }
 
-fn draw_title_background(texture: Option<&Texture2D>) {
+fn draw_title_background(texture: Option<&Texture2D>, width: f32, height: f32) {
     draw_rectangle(
         0.0,
         0.0,
-        LOGICAL_WIDTH,
-        LOGICAL_HEIGHT,
+        width,
+        height,
         Color::new(0.025, 0.045, 0.055, 1.0),
     );
     if let Some(texture) = texture {
@@ -134,7 +137,7 @@ fn draw_title_background(texture: Option<&Texture2D>) {
             0.0,
             WHITE,
             DrawTextureParams {
-                dest_size: Some(vec2(LOGICAL_WIDTH, LOGICAL_HEIGHT)),
+                dest_size: Some(vec2(width, height)),
                 ..Default::default()
             },
         );
@@ -259,15 +262,15 @@ fn draw_pressure_overlay(ctx: &UiContext<'_>, view: &GridView) {
     let boundary = view.tile_rect(TilePos::new(ctx.session.world.road_x.max(0), 0));
     draw_rectangle(
         boundary.x - 3.0,
-        world_grid_rect().y,
+        ctx.layout.world_rect.y,
         3.0,
-        world_grid_rect().h,
+        ctx.layout.world_rect.h,
         color.with_alpha(0.74),
     );
     draw_text_block(
         &format!("PRESSURE WATCH · {:.0}%", ctx.session.pressure.suspicion),
         boundary.x + 8.0,
-        world_grid_rect().y + 8.0,
+        ctx.layout.world_rect.y + 8.0,
         180.0,
         16.0,
         11.0,
@@ -590,7 +593,7 @@ fn draw_selection_circle(center: Vec2, radius: f32, color: Color) {
 }
 
 fn draw_placement_preview(ctx: &UiContext<'_>, view: &GridView, kind: BuildingKind) {
-    let mouse = VirtualUi::new(LOGICAL_WIDTH, LOGICAL_HEIGHT).mouse_position();
+    let mouse = ctx.ui.mouse_position();
     let tile =
         selected_tile_at(ctx, mouse).unwrap_or(crate::state::WorldState::stockpile_position());
     let (width, height) = kind.dimensions();

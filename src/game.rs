@@ -125,9 +125,14 @@ impl Game {
     }
 
     fn update_camera(&mut self) {
-        let viewport = VirtualUi::new(ui::LOGICAL_WIDTH, ui::LOGICAL_HEIGHT);
+        let layout = ui::UiLayout::current(self.panel);
+        let viewport = if layout.compact {
+            VirtualUi::responsive()
+        } else {
+            VirtualUi::new(ui::LOGICAL_WIDTH, ui::LOGICAL_HEIGHT)
+        };
         let mouse = viewport.mouse_position();
-        let rect = ui::world_grid_rect();
+        let rect = layout.world_rect;
         if rect.contains(mouse) {
             if is_mouse_button_pressed(MouseButton::Right) {
                 self.camera_drag = Some(mouse);
@@ -156,7 +161,19 @@ impl Game {
 
     pub fn draw(&mut self) {
         clear_background(dark::BACKGROUND);
-        let virtual_ui = begin_virtual_ui_frame(ui::LOGICAL_WIDTH, ui::LOGICAL_HEIGHT);
+        let compact = ui::UiLayout::current(self.panel).compact;
+        let virtual_ui = if compact {
+            let virtual_ui = VirtualUi::responsive();
+            virtual_ui.begin();
+            virtual_ui
+        } else {
+            begin_virtual_ui_frame(ui::LOGICAL_WIDTH, ui::LOGICAL_HEIGHT)
+        };
+        let layout = ui::UiLayout::for_dimensions(
+            virtual_ui.logical_width,
+            virtual_ui.logical_height,
+            self.panel,
+        );
         let ctx = UiContext {
             data: &self.data,
             session: &self.session,
@@ -171,6 +188,7 @@ impl Game {
             placement: self.placement,
             zone_mode: self.zone_mode,
             domain_overlays: self.domain_overlays,
+            layout,
         };
         for action in ui::draw_game_ui(ctx) {
             self.events.push(action);

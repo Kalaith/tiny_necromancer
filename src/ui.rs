@@ -15,10 +15,12 @@ pub mod animation;
 mod components;
 mod domain;
 mod hud;
+mod layout;
 mod orders;
 mod panels;
 mod production;
 mod research;
+mod responsive;
 mod world;
 mod world_feedback;
 
@@ -27,6 +29,7 @@ use components::{
     draw_event_modal, draw_phase_overlay, draw_placement_controls, pause_control_rect,
     placement_cancel_rect, selected_tile_at,
 };
+pub use layout::UiLayout;
 
 pub const LOGICAL_WIDTH: f32 = 1280.0;
 pub const LOGICAL_HEIGHT: f32 = 720.0;
@@ -124,9 +127,13 @@ pub struct UiContext<'a> {
     pub placement: Option<BuildingKind>,
     pub zone_mode: Option<ZoneKind>,
     pub domain_overlays: DomainOverlays,
+    pub layout: UiLayout,
 }
 
 pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
+    if ctx.layout.compact {
+        return responsive::draw_compact_game_ui(ctx);
+    }
     let pointer = Pointer::read(|point| ctx.ui.screen_to_ui(point));
     let mut actions = Vec::new();
     world::draw_world_scene(&ctx);
@@ -166,6 +173,11 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
 }
 
 fn ui_occludes(point: Vec2, ctx: &UiContext<'_>) -> bool {
+    if ctx.layout.compact {
+        return ctx.layout.contains_compact_sheet(point)
+            || Rect::new(0.0, 0.0, ctx.layout.logical_width, 84.0).contains_point(point)
+            || Rect::new(ctx.layout.logical_width - 88.0, 8.0, 80.0, 48.0).contains_point(point);
+    }
     let dock = Rect::new(298.0, 618.0, 684.0, 86.0);
     let inspector = if ctx.session.world.selected.is_some() {
         Rect::new(952.0, 86.0, 310.0, 454.0)

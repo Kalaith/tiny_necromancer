@@ -76,7 +76,13 @@ Use a roughly 280–320 pixel inspector at the baseline resolution. Keep only on
 
 Global controls stay in place across progression. New tools fill reserved dock positions or a consistent overflow menu; do not move existing buttons. Reveal resources only when obtainable or immediately needed by a visible recipe. Do not show empty food, iron, stone, or trade systems merely to resemble the reference.
 
-At smaller resolutions, use a bottom inspector sheet, resource overflow, and a scrollable command dock. Keep essential targets at least 44 logical pixels. Hover can add detail, but every action must also work through selection for touch. Test larger text without clipping costs or dismiss controls.
+At smaller resolutions, use a bottom inspector sheet, resource overflow, and a
+scrollable command dock. Keep essential targets at least 44 logical pixels.
+The shipped compact layout uses a reduced world viewport above the sheet while
+keeping selection actions, management panels, event choices, pause, and
+placement cancellation visible through touch. Hover can add detail, but every
+action must also work through selection for touch. Test larger text without
+clipping costs or dismiss controls.
 
 ## Selection and orders
 
@@ -109,12 +115,12 @@ The current game has a 10 × 8 world, six authored grave positions, one starting
 
 | Implemented foundation | Remaining direction |
 | --- | --- |
-| `src/ui.rs`, `src/ui/panels.rs`: world-first HUD, panels, and field-notes archive | Responsive bottom-sheet variants for smaller viewports |
-| `src/ui/world.rs`, `src/ui/world_feedback.rs`, and `src/ui/animation.rs`: full-world grid, actor interpolation, animation, route markers, and source feedback | Richer obstruction handling and large-scale route views |
-| `src/ui/components.rs`: title page, phase overlays, and grid picking | Continue accessibility and large-text verification |
-| `src/main.rs`: neutral native window caption | Keep the game name on the title page only |
-| `src/game.rs`: camera, input, captures, and action dispatch | Add touch camera gestures if the world outgrows one viewport |
-| `src/state.rs`: positioned buildings, research, zones, movement destinations, carried resources, and save migration | Expand the persistent colony model without resetting existing saves |
+| `src/ui.rs`, `src/ui/panels.rs`, `src/ui/responsive.rs`: world-first HUD, desktop panels, compact bottom sheet, and field-notes archive | Richer obstruction handling and large-scale route views |
+| `src/ui/world.rs`, `src/ui/world_feedback.rs`, and `src/ui/animation.rs`: full-world grid, actor interpolation, animation, route markers, and source feedback | Continue accessibility and large-text verification |
+| `src/ui/components.rs`: title page, phase overlays, and grid picking | Keep the game name on the title page only |
+| `src/main.rs`: neutral native window caption | Add touch camera gestures if the world outgrows one viewport |
+| `src/game.rs`: camera, input, captures, and action dispatch | Expand the persistent colony model without resetting existing saves |
+| `src/state.rs`: positioned buildings, research, zones, movement destinations, carried resources, and save migration | Extend stewardship policies beyond the current worker biases |
 | `src/engine/progression.rs`, `src/engine/alerts.rs`, `src/engine/districts.rs`: research-driven capabilities, milestone, blockers, and district rules | Extend stewardship policies beyond the current worker biases |
 | `assets/data/texture_manifest.json` and asset registry | Add later terrain, props, effects, and HUD assets as they become playable |
 
@@ -124,12 +130,13 @@ Existing saves already receive deterministic defaults for positioned buildings, 
 
 ## Delivery sequence
 
-1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; field-notes archive; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, domain, notes, and victory scenes.
+1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; field-notes archive; collapsible feed and command dock. Verification covers 1280 × 720 title and desktop states plus 800 × 600 compact gameplay, pause, event, placement, research, colony, domain, notes, and victory scenes.
 2. **One convincing cemetery scene (implemented for the slice).** Terrain and sprites cover the necromancer, skeleton, graves, trees, stockpile, shed, and lantern. Digging, hauling, construction progress, selection, camera transforms, route intent, and source feedback are readable.
 3. **First research transition (implemented for the slice).** Binding Routines and the research chain gate repeat priorities, placement, work areas, logistics, and domain controls. Versioned saves preserve the new state with deterministic defaults.
 4. **Movement and animation readability (implemented).** Workers visibly walk tile by tile, hauling has a real carried-resource phase, jobs expose procedural tool motion, and the necromancer walks, retargets, cancels, and pulses while ritualizing.
 5. **First colony slice (implemented for the current slice).** The Ossuary Kiln completes a material → construction → production chain after Ossuary Logistics, workers route around basic obstructions before working, and painted Work, Storage, and Patrol areas select nearby destinations. The minimap and worker/grave cues provide first-pass domain feedback while keeping the original cemetery recognizable as part of the expanded settlement.
 6. **Scale and domain controls (implemented for the current slice).** The settlement overview includes useful operational alerts with source selection, Domain Stewardship controls for district marks, worker routes, and road-pressure coverage, persistent Balanced, Secure, and Harvest policies that affect automated worker choices, and additive Work, Storage, and Patrol rules that make marked districts operationally meaningful. Future work can add deeper district simulation while validating worker selection and performance before growing the content set.
+7. **Responsive command surface (implemented for the current slice).** Compact viewports use a full-window logical canvas, preserve the world above a bottom sheet, and expose the same touch-first actions for selection, management, events, pause, placement recovery, and field notes. Verification captures include the 800 × 600 composition.
 
 Defer trade, farms, housing, multiple biomes, and large defence systems until the first colony slice works. Art for later systems follows approved gameplay rather than committing production effort based solely on the reference.
 
@@ -140,7 +147,7 @@ Defer trade, farms, housing, multiple biomes, and large defence systems until th
 - Early players see only relevant controls, and can select a grave, issue work, and raise a skeleton without opening a management dashboard.
 - Later players can identify idle workers, missing materials, and suspicion sources without opening every building.
 - World work remains readable with labels disabled; important statuses remain understandable without colour alone.
-- Test UI click blocking, zoomed picking, drag-versus-click, placement cancellation, resize, and large text.
+- Test UI click blocking, zoomed picking, drag-versus-click, placement cancellation, resize, compact bottom-sheet states, and large text.
 - Verify research prerequisites in the simulation, save/load of unlocks, placements, destinations, and carried-resource defaults, and migration from an existing cemetery save.
 - Keep existing job, corpse, suspicion, and progression checks passing while each related system changes.
 

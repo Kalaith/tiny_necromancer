@@ -36,6 +36,8 @@ param(
         "zoomed"
     ),
     [int]$Frames = 150,
+    [int]$WindowWidth = 0,
+    [int]$WindowHeight = 0,
     [string]$OutputDir = "docs\verification",
     [switch]$SkipBuild
 )
@@ -48,4 +50,4 @@ if (-not (Test-Path (Join-Path $workspace "macroquad-toolkit"))) {
 }
 $shared = Join-Path $workspace "macroquad-toolkit\scripts\capture_ui.ps1"
 
-& $shared -GameDir $gameDir -Prefix "TINY_NECROMANCER" -Scenes $Scenes -Frames $Frames -OutputDir $OutputDir -SkipBuild:$SkipBuild
+& $shared -GameDir $gameDir -Prefix "TINY_NECROMANCER" -Scenes $Scenes -Frames $Frames -WindowWidth $WindowWidth -WindowHeight $WindowHeight -OutputDir $OutputDir -SkipBuild:$SkipBuild

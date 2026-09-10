@@ -7,9 +7,11 @@ road. Bones become undead labour, labour makes the cemetery grow, and every
 visible sign of activity raises suspicion. The current release is a playable
 vertical slice ending when a small settlement is established.
 
-The presentation is a fixed-resolution, orthographic top-down Macroquad scene
-with a full-world viewport, contextual inspector, compact status strip, and
-stable command dock. The tone is secluded, strange, and quietly industrious.
+The presentation is an orthographic top-down Macroquad scene with a full-world
+desktop viewport, contextual inspector, compact status strip, and stable command
+dock. Smaller touch viewports keep the world visible above a bottom command
+sheet with the same actions. The tone is secluded, strange, and quietly
+industrious.
 
 ## 2. Design pillars
 
@@ -211,8 +213,8 @@ simulation tiles, and procedural animation makes digging, hauling, gathering,
 construction, guarding, refining, walking, and ritual focus readable. Domain
 Stewardship now surfaces a compact district overview, actionable operational
 alerts, toggleable zone, route, and pressure overlays, and small bonuses for
-marked district rules. The next milestone preserves those rules while improving
-the touch-first interaction at smaller viewport sizes.
+marked district rules. Responsive layouts now preserve those interactions at
+smaller viewport sizes with a reduced world area and touch-sized bottom sheet.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.

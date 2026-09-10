@@ -395,10 +395,10 @@ impl GridView {
 }
 
 pub(super) fn selected_tile_at(ctx: &UiContext<'_>, point: Vec2) -> Option<TilePos> {
-    if !world_grid_rect().contains_point(point) {
+    if !ctx.layout.world_rect.contains_point(point) {
         return None;
     }
-    let view = GridView::new(ctx, world_grid_rect());
+    let view = GridView::new(ctx, ctx.layout.world_rect);
     let tile = view.tile_at(point);
     (tile.x >= 0
         && tile.y >= 0
