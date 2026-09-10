@@ -2,7 +2,7 @@
 
 use super::components::GridView;
 use super::UiContext;
-use crate::engine::navigation;
+use crate::engine::{districts, navigation};
 use crate::state::{
     Building, BuildingKind, JobKind, PlotStatus, ResourceKind, Selection, Worker, WorkerStatus,
     WorldState, ZoneKind,
@@ -143,7 +143,10 @@ fn draw_route_hint(ctx: &UiContext<'_>, view: &GridView, worker: &Worker, destin
     let target = view.tile_rect(destination).inset(view.tile_size() * 0.25);
     draw_rectangle_lines(target.x, target.y, target.w, target.h, 2.0, dark::ACCENT);
     let route_label = if ctx.domain_overlays.routes {
-        format!("{} · {}", worker.name, worker.assignment.label())
+        district_rule_hint(ctx, worker, destination).map_or_else(
+            || format!("{} · {}", worker.name, worker.assignment.label()),
+            |hint| format!("{} · {} · {hint}", worker.name, worker.assignment.label()),
+        )
     } else {
         "DESTINATION".to_owned()
     };
@@ -203,6 +206,40 @@ fn draw_route_hint(ctx: &UiContext<'_>, view: &GridView, worker: &Worker, destin
                 },
             );
         }
+    }
+}
+
+fn district_rule_hint(
+    ctx: &UiContext<'_>,
+    worker: &Worker,
+    destination: TilePos,
+) -> Option<&'static str> {
+    match worker.assignment {
+        JobKind::Dig | JobKind::Wood
+            if districts::work_speed_multiplier(
+                ctx.session,
+                &ctx.data.config.district_rules,
+                destination,
+            ) > 1.0 =>
+        {
+            Some("Work rule")
+        }
+        JobKind::Haul
+            if worker.carrying > 0
+                && districts::haul_capacity_bonus(ctx.session, &ctx.data.config.district_rules)
+                    > 0 =>
+        {
+            Some("Storage rule")
+        }
+        JobKind::Guard
+            if districts::guard_mitigation_multiplier(
+                ctx.session,
+                &ctx.data.config.district_rules,
+            ) > 1.0 =>
+        {
+            Some("Patrol rule")
+        }
+        _ => None,
     }
 }
 
