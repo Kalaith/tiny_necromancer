@@ -18,6 +18,7 @@ fn hauling_respects_worker_capacity() {
     session.begin();
     session.economy.loose_bones = 20;
     session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = crate::state::WorldState::stockpile_position();
     simulate(&mut session, &data, 4.0);
     assert_eq!(session.economy.loose_bones, 12);
     assert_eq!(session.economy.bones, data.config.starting_bones + 8);
@@ -43,6 +44,7 @@ fn auto_mode_chooses_haul_before_more_digging() {
     let mut session = GameSession::new(&data.config);
     session.begin();
     session.economy.loose_bones = 8;
+    session.workforce.workers[0].position = crate::state::WorldState::stockpile_position();
     toggle_automation(&mut session).unwrap();
     simulate(&mut session, &data, 4.0);
     assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
@@ -86,6 +88,7 @@ fn refine_worker_completes_a_loaded_kiln_cycle() {
     )
     .unwrap();
     session.workforce.workers[0].assignment = JobKind::Refine;
+    session.workforce.workers[0].position = macroquad_toolkit::grid::TilePos::new(5, 4);
     simulate(&mut session, &data, 8.0);
     assert_eq!(session.economy.ward_charges, 1);
     assert!(session.progress.production.is_none());
@@ -123,6 +126,24 @@ fn patrol_zone_moves_guards_to_its_anchor() {
         tiles: vec![patrol],
     });
     session.workforce.workers[0].assignment = JobKind::Guard;
-    simulate(&mut session, &data, 1.0);
+    for _ in 0..8 {
+        simulate(&mut session, &data, data.config.tick_seconds);
+    }
     assert_eq!(session.workforce.workers[0].position, patrol);
+    assert_eq!(session.workforce.workers[0].status, WorkerStatus::Hiding);
+}
+
+#[test]
+fn hauler_walks_to_storage_before_transfer() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.loose_bones = 8;
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    simulate(&mut session, &data, data.config.tick_seconds);
+    assert_eq!(session.workforce.workers[0].status, WorkerStatus::Walking);
+    assert_eq!(session.economy.loose_bones, 8);
+    for _ in 0..20 {
+        simulate(&mut session, &data, data.config.tick_seconds);
+    }
+    assert_eq!(session.economy.loose_bones, 0);
 }

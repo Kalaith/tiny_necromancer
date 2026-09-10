@@ -1,7 +1,7 @@
 //! Worker assignment and fixed-timestep job progression.
 
 use crate::data::GameData;
-use crate::engine::{corpses, progression, suspicion};
+use crate::engine::{corpses, navigation, progression, suspicion};
 use crate::state::{BuildingKind, GameSession, JobKind, PlotStatus, WorkerStatus, ZoneKind};
 use macroquad_toolkit::grid::TilePos;
 
@@ -123,10 +123,12 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
         match job {
             JobKind::Guard => {
                 guards += 1;
-                let worker = &mut session.workforce.workers[index];
-                worker.status = WorkerStatus::Hiding;
-                worker.position = session.world.patrol_position();
-                worker.progress = 0.0;
+                let patrol = session.world.patrol_position();
+                if move_worker_to(session, index, patrol) {
+                    let worker = &mut session.workforce.workers[index];
+                    worker.status = WorkerStatus::Hiding;
+                    worker.progress = 0.0;
+                }
             }
             JobKind::Dig => simulate_dig(
                 session,
@@ -154,12 +156,24 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
                 &mut messages,
             ),
             JobKind::Build => {
-                session.workforce.workers[index].status = WorkerStatus::Working;
-                session.workforce.workers[index].position = session.world.mana_source;
-                if let Some(message) =
-                    progression::advance_construction(session, data, dt * worker_speed)
-                {
-                    messages.push(message);
+                let construction_target = session
+                    .world
+                    .buildings
+                    .iter()
+                    .find(|building| !building.complete)
+                    .map(|building| building.work_position());
+                if let Some(target) = construction_target {
+                    if move_worker_to(session, index, target) {
+                        session.workforce.workers[index].status = WorkerStatus::Working;
+                        if let Some(message) =
+                            progression::advance_construction(session, data, dt * worker_speed)
+                        {
+                            messages.push(message);
+                            session.workforce.workers[index].progress = 0.0;
+                        }
+                    }
+                } else {
+                    session.workforce.workers[index].status = WorkerStatus::Idle;
                     session.workforce.workers[index].progress = 0.0;
                 }
             }
@@ -274,9 +288,11 @@ fn simulate_dig(
     let Some(plot_position) = session.world.plots.get(plot_id).map(|plot| plot.position) else {
         return;
     };
+    if !move_worker_to(session, index, plot_position) {
+        return;
+    }
     let worker = &mut session.workforce.workers[index];
     worker.status = WorkerStatus::Working;
-    worker.position = plot_position;
     worker.progress += dt * speed * job.base_speed;
     if worker.progress < job.work_seconds {
         return;
@@ -318,9 +334,12 @@ fn simulate_haul(
         session.workforce.workers[index].status = WorkerStatus::Idle;
         return;
     }
+    let storage_position = session.world.storage_position();
+    if !move_worker_to(session, index, storage_position) {
+        return;
+    }
     let worker = &mut session.workforce.workers[index];
     worker.status = WorkerStatus::Carrying;
-    worker.position = session.world.storage_position();
     worker.progress += dt * speed * job.base_speed;
     if worker.progress < job.work_seconds {
         return;
@@ -353,15 +372,18 @@ fn simulate_wood(
     messages: &mut Vec<String>,
 ) {
     let job = data.jobs.get("wood").expect("validated wood job");
-    let worker = &mut session.workforce.workers[index];
-    worker.status = WorkerStatus::Working;
-    worker.position = session
+    let work_position = session
         .world
         .forest_tiles
         .iter()
         .find(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
         .copied()
         .unwrap_or(session.world.forest_tiles[0]);
+    if !move_worker_to(session, index, work_position) {
+        return;
+    }
+    let worker = &mut session.workforce.workers[index];
+    worker.status = WorkerStatus::Working;
     worker.progress += dt * speed * job.base_speed;
     if worker.progress >= job.work_seconds {
         worker.progress = 0.0;
@@ -397,13 +419,11 @@ fn simulate_refine(
         session.workforce.workers[index].progress = 0.0;
         return;
     }
-    let building_position = if building.position.x > 0 {
-        TilePos::new(building.position.x - 1, building.position.y)
-    } else {
-        TilePos::new(building.position.x + building.width, building.position.y)
-    };
+    let building_position = building.work_position();
+    if !move_worker_to(session, index, building_position) {
+        return;
+    }
     session.workforce.workers[index].status = WorkerStatus::Working;
-    session.workforce.workers[index].position = building_position;
     if let Some(message) = progression::advance_production(session, data, dt) {
         messages.push(message);
         session.workforce.workers[index].progress = 0.0;
@@ -414,6 +434,24 @@ fn simulate_refine(
             .as_ref()
             .map_or(0.0, |order| order.progress);
     }
+}
+
+fn move_worker_to(session: &mut GameSession, index: usize, target: TilePos) -> bool {
+    let current = session.workforce.workers[index].position;
+    if current == target {
+        return true;
+    }
+    if let Some(next) = navigation::next_step(session, current, target) {
+        let worker = &mut session.workforce.workers[index];
+        worker.position = next;
+        worker.status = WorkerStatus::Walking;
+        worker.progress = 0.0;
+    } else {
+        let worker = &mut session.workforce.workers[index];
+        worker.status = WorkerStatus::Idle;
+        worker.progress = 0.0;
+    }
+    false
 }
 
 #[cfg(test)]

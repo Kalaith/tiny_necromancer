@@ -327,6 +327,7 @@ pub(super) fn stage_label(stage: SuspicionStage) -> &'static str {
 pub(super) fn status_label(status: WorkerStatus) -> &'static str {
     match status {
         WorkerStatus::Idle => "Idle",
+        WorkerStatus::Walking => "Walking",
         WorkerStatus::Working => "Working",
         WorkerStatus::Carrying => "Carrying",
         WorkerStatus::Hiding => "Hiding",

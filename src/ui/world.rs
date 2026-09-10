@@ -355,6 +355,7 @@ fn draw_workers(ctx: &UiContext<'_>, view: &GridView) {
             match worker.status {
                 WorkerStatus::Idle => dark::WARNING,
                 WorkerStatus::Carrying => dark::POSITIVE,
+                WorkerStatus::Walking => dark::TEXT_BRIGHT,
                 _ => dark::ACCENT,
             },
         );

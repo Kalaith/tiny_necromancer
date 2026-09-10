@@ -2,6 +2,7 @@
 
 pub mod corpses;
 pub mod jobs;
+pub mod navigation;
 pub mod progression;
 pub mod suspicion;
 

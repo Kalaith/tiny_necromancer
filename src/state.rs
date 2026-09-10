@@ -201,6 +201,7 @@ impl JobKind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum WorkerStatus {
     Idle,
+    Walking,
     Working,
     Carrying,
     Hiding,
@@ -225,6 +226,16 @@ pub struct Building {
     pub width: i32,
     #[serde(default = "default_building_height")]
     pub height: i32,
+}
+
+impl Building {
+    pub fn work_position(&self) -> TilePos {
+        if self.position.x > 0 {
+            TilePos::new(self.position.x - 1, self.position.y)
+        } else {
+            TilePos::new(self.position.x + self.width, self.position.y)
+        }
+    }
 }
 
 fn default_building_position() -> TilePos {

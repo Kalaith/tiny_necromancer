@@ -104,12 +104,12 @@ Do not add conventional food and housing needs automatically. If later design re
 
 ## Current prototype and remaining direction
 
-The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, work areas, an Ossuary Kiln production recipe, and a settlement overview. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; walkability, richer linked-storage routing, and district simulation remain future work.
+The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, work areas, basic deterministic worker routing, an Ossuary Kiln production recipe, and a settlement overview. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; richer linked-storage routing and district simulation remain future work.
 
 | Implemented foundation | Remaining direction |
 | --- | --- |
 | `src/ui.rs`: world-first HUD and panels | Responsive bottom-sheet variants for smaller viewports |
-| `src/ui/world.rs`: full-world grid and actors | Walkability, pathfinding, and richer obstruction handling |
+| `src/ui/world.rs`: full-world grid and actors | Visual route overlays and richer obstruction handling |
 | `src/ui/components.rs`: title page, phase overlays, and grid picking | Continue accessibility and large-text verification |
 | `src/main.rs`: neutral native window caption | Keep the game name on the title page only |
 | `src/game.rs`: camera, input, captures, and action dispatch | Add touch camera gestures if the world outgrows one viewport |
@@ -126,7 +126,7 @@ Existing saves already receive deterministic defaults for positioned buildings, 
 1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, and victory scenes.
 2. **One convincing cemetery scene (implemented for the slice).** Terrain and sprites cover the necromancer, skeleton, graves, trees, stockpile, shed, and lantern. Digging, hauling, construction progress, selection, and camera transforms are readable.
 3. **First research transition (implemented for the slice).** Binding Routines and the research chain gate repeat priorities, placement, work areas, logistics, and domain controls. Versioned saves preserve the new state with deterministic defaults.
-4. **First colony slice (in progress).** The Ossuary Kiln now completes a material → construction → production chain after Ossuary Logistics. Add walkability/pathfinding appropriate to footprints and richer linked-storage routes while keeping the original cemetery recognizable as part of the expanded settlement.
+4. **First colony slice (in progress).** The Ossuary Kiln now completes a material → construction → production chain after Ossuary Logistics, and workers route around basic obstructions before working. Add richer linked-storage routes and visual route feedback while keeping the original cemetery recognizable as part of the expanded settlement.
 5. **Scale and domain controls (later).** Extend the current settlement overview with useful zoom levels, district summaries, production alerts, and stewardship systems. Validate worker selection and simulation performance before growing the content set.
 
 Defer trade, farms, housing, multiple biomes, and large defence systems until the first colony slice works. Art for later systems follows approved gameplay rather than committing production effort based solely on the reference.

@@ -401,6 +401,8 @@ fn draw_worker_inspector(
     draw_text_block(
         if worker.status == WorkerStatus::Idle {
             "Idle · waiting for a useful order"
+        } else if worker.status == WorkerStatus::Walking {
+            "Walking · routing around the cemetery"
         } else {
             "Work is visible in the clearing"
         },
