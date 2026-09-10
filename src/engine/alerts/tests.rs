@@ -108,3 +108,30 @@ fn blocked_worker_route_points_to_the_worker() {
     assert_eq!(alert.target, Some(Selection::Worker(0)));
     assert!(alert.detail.contains("obstructions seal the way"));
 }
+
+#[test]
+fn route_alert_counts_additional_blocked_workers() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.workforce.workers[0].assignment = JobKind::Guard;
+    session.workforce.workers[0].position = TilePos::new(2, 2);
+    let mut second = session.workforce.workers[0].clone();
+    second.id = 2;
+    session.workforce.workers.push(second);
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: TilePos::new(3, y),
+            width: 1,
+            height: 1,
+        });
+    }
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Route blocked")
+        .expect("blocked workers should share one route alert");
+    assert!(alert.detail.contains("(+1 more blocked)"));
+}

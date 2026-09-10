@@ -50,7 +50,7 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
 }
 
 fn collect_route_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
-    let Some((index, (worker, failure))) = session
+    let blocked = session
         .workforce
         .workers
         .iter()
@@ -60,9 +60,15 @@ fn collect_route_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>
             let failure = navigation::plan_route(session, worker.position, destination).err()?;
             Some((index, (worker, failure)))
         })
-        .next()
-    else {
+        .collect::<Vec<_>>();
+    let Some((index, (worker, failure))) = blocked.first() else {
         return;
+    };
+    let additional = blocked.len().saturating_sub(1);
+    let suffix = if additional == 0 {
+        String::new()
+    } else {
+        format!(" (+{additional} more blocked)")
     };
     alerts.push(OperationalAlert::new(
         AlertSeverity::Warning,
@@ -73,8 +79,11 @@ fn collect_route_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>
             worker.assignment.label(),
             failure.label()
         ),
-        Some(Selection::Worker(index)),
+        Some(Selection::Worker(*index)),
     ));
+    if let Some(alert) = alerts.last_mut() {
+        alert.detail.push_str(&suffix);
+    }
 }
 
 fn collect_pressure_alert(
