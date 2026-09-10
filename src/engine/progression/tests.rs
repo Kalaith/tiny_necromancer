@@ -170,6 +170,27 @@ fn cancelling_a_reserved_cycle_refunds_materials_but_keeps_working_cycle() {
 }
 
 #[test]
+fn cancelling_without_a_reserved_cycle_keeps_storage_untouched() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 42;
+    session.economy.wood = 60;
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    queue_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_construction(&mut session, &data, 14.0);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    let storage_before = (session.economy.bones, session.economy.wood);
+
+    let error = cancel_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap_err();
+
+    assert_eq!(error, "There is no reserved ward cycle to cancel.");
+    assert_eq!(
+        (session.economy.bones, session.economy.wood),
+        storage_before
+    );
+}
+
+#[test]
 fn full_kiln_queue_does_not_spend_more_materials() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
