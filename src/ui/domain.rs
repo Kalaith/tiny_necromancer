@@ -328,7 +328,14 @@ fn draw_stewardship_readout(
     if let Some(alert) = operational.first().and_then(|alert| alert.target) {
         if virtual_button(
             Rect::new(rect.x + 492.0, rect.y + 458.0, 142.0, 32.0),
-            "Locate blocker",
+            if operational
+                .first()
+                .is_some_and(|alert| alert.title == "Route blocked")
+            {
+                "Inspect route"
+            } else {
+                "Locate blocker"
+            },
             true,
             ButtonTone::Warning,
             pointer,
