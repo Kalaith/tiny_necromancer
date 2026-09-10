@@ -237,7 +237,7 @@ fn draw_stewardship_readout(
     if virtual_button(
         Rect::new(rect.x + 24.0, rect.y + 366.0, 192.0, 44.0),
         &format!("Policy · {}", ctx.session.stewardship_policy.label()),
-        true,
+        ctx.session.phase == GamePhase::Playing,
         ButtonTone::Secondary,
         pointer,
     ) {

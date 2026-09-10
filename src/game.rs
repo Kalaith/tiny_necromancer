@@ -375,10 +375,11 @@ impl Game {
                 }
             }
             UiAction::CycleStewardshipPolicy => {
-                if self
-                    .session
-                    .research
-                    .is_unlocked(Technology::DomainStewardship)
+                if self.session.phase == GamePhase::Playing
+                    && self
+                        .session
+                        .research
+                        .is_unlocked(Technology::DomainStewardship)
                 {
                     self.session.stewardship_policy = self.session.stewardship_policy.next();
                     self.session.add_feed(format!(
