@@ -197,9 +197,12 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
         .is_unlocked(Technology::DomainStewardship)
     {
         format!(
-            "District 01 · {} undead · {} structures · ward overlay active.",
+            "District 01 · {} undead · {} structures · zones W{} S{} P{}.",
             ctx.session.active_undead(),
-            ctx.session.world.buildings.len()
+            ctx.session.world.buildings.len(),
+            zone_count(ctx, ZoneKind::Work),
+            zone_count(ctx, ZoneKind::Storage),
+            zone_count(ctx, ZoneKind::Patrol),
         )
     } else if ctx
         .session
@@ -222,6 +225,17 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
         dark::TEXT_DIM,
     );
 }
+
+fn zone_count(ctx: &UiContext<'_>, kind: ZoneKind) -> usize {
+    ctx.session
+        .world
+        .zones
+        .iter()
+        .filter(|zone| zone.kind == kind)
+        .map(|zone| zone.tiles.len())
+        .sum()
+}
+
 pub(super) fn draw_small_info_panel(title: &str, message: &str) {
     draw_surface(
         Rect::new(350.0, 500.0, 580.0, 100.0),
