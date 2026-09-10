@@ -331,12 +331,6 @@ fn simulate_haul(
         .get(session.workforce.workers[index].kind.id())
         .expect("validated undead type")
         .haul_capacity;
-    let storage_bonus = districts::haul_capacity_bonus(
-        session,
-        &data.config.district_rules,
-        targets::storage_destination_for(session, session.workforce.workers[index].position),
-    );
-    let capacity = base_capacity + storage_bonus;
     if session.workforce.workers[index].carrying <= 0 {
         let (resource, source) = if session.economy.loose_bones > 0 {
             (
@@ -361,6 +355,12 @@ fn simulate_haul(
         if move_worker_to(session, index, source) != WorkerMoveResult::Arrived {
             return;
         }
+        let storage_bonus = districts::haul_capacity_bonus(
+            session,
+            &data.config.district_rules,
+            targets::storage_destination_for(session, source),
+        );
+        let capacity = base_capacity + storage_bonus;
         let amount = match resource {
             ResourceKind::Bones => session.economy.loose_bones.min(capacity),
             ResourceKind::Wood => session.economy.loose_wood.min(capacity),

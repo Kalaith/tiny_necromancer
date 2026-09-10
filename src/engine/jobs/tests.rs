@@ -574,6 +574,7 @@ fn domain_storage_rule_increases_haul_bundle() {
 
     assert_eq!(session.workforce.workers[0].carrying, 12);
     assert_eq!(session.economy.loose_bones, 8);
+    assert_eq!(session.progress.district_ledger.storage_bonus_items, 4);
 }
 
 #[test]
@@ -593,6 +594,7 @@ fn domain_patrol_rule_strengthens_guard_mitigation() {
     simulate(&mut session, &data, 1.0);
 
     assert!((session.pressure.suspicion - 18.5).abs() < 0.001);
+    assert!((session.progress.district_ledger.patrol_quieting - 0.3).abs() < 0.001);
 }
 
 #[test]
