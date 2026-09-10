@@ -359,7 +359,12 @@ impl Game {
             }
             UiAction::CancelProduction(kind) => {
                 let result = progression::cancel_production(&mut self.session, &self.data, kind);
-                self.notify_result(result);
+                match result {
+                    Ok(()) => self
+                        .notifications
+                        .success("Reserved cycle cancelled; materials returned."),
+                    Err(error) => self.notifications.warning(error),
+                }
             }
             UiAction::UseWardCharge => {
                 let result = progression::use_ward_charge(&mut self.session);
