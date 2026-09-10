@@ -98,23 +98,24 @@ fn draw_zone_preview(ctx: &UiContext<'_>, view: &GridView) {
         .zones
         .iter()
         .any(|zone| zone.kind == kind && zone.tiles.contains(&tile_pos));
-    let color = if marked { dark::WARNING } else { dark::ACCENT };
+    let allowed = marked || ctx.session.world.is_zone_tile_allowed(tile_pos);
+    let color = if marked {
+        dark::WARNING
+    } else if allowed {
+        dark::ACCENT
+    } else {
+        dark::NEGATIVE
+    };
+    let label = if marked {
+        "Tap to clear"
+    } else if allowed {
+        "Tap to mark"
+    } else {
+        "Blocked tile"
+    };
     draw_rectangle(tile.x, tile.y, tile.w, tile.h, color.with_alpha(0.16));
     draw_rectangle_lines(tile.x, tile.y, tile.w, tile.h, 2.0, color);
-    draw_text_block(
-        if marked {
-            "Tap to clear"
-        } else {
-            "Tap to mark"
-        },
-        tile.x,
-        tile.y - 18.0,
-        110.0,
-        16.0,
-        12.0,
-        0.0,
-        color,
-    );
+    draw_text_block(label, tile.x, tile.y - 18.0, 110.0, 16.0, 12.0, 0.0, color);
 }
 
 fn draw_title_background(texture: Option<&Texture2D>) {

@@ -705,6 +705,13 @@ impl Game {
                 let Some(kind) = self.zone_mode else {
                     return;
                 };
+                if !self.session.world.zone_contains(kind, tile)
+                    && !self.session.world.is_zone_tile_allowed(tile)
+                {
+                    self.notifications
+                        .warning("Mark a clearing, grave, or forest tile inside the cemetery.");
+                    return;
+                }
                 let mut cleared = false;
                 let mut remove_zone = false;
                 if let Some(zone) = self

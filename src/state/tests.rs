@@ -91,3 +91,27 @@ fn older_priority_lists_receive_new_jobs_without_losing_order() {
     assert!(restored.workforce.priorities.contains(&JobKind::Refine));
     assert_eq!(restored.workforce.priorities.len(), 6);
 }
+
+#[test]
+fn zone_tools_allow_work_tiles_but_reject_roads_and_structures() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    assert!(session
+        .world
+        .is_zone_tile_allowed(session.world.plots[0].position));
+    assert!(session
+        .world
+        .is_zone_tile_allowed(session.world.forest_tiles[0]));
+    assert!(!session
+        .world
+        .is_zone_tile_allowed(TilePos::new(session.world.road_x, 0)));
+    session.world.buildings.push(Building {
+        kind: BuildingKind::GraveLantern,
+        progress: 1.0,
+        complete: true,
+        position: TilePos::new(4, 4),
+        width: 1,
+        height: 1,
+    });
+    assert!(!session.world.is_zone_tile_allowed(TilePos::new(4, 4)));
+}

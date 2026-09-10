@@ -375,6 +375,20 @@ impl WorldState {
             .any(|zone| zone.kind == kind && zone.tiles.contains(&tile))
     }
 
+    pub fn is_zone_tile_allowed(&self, tile: TilePos) -> bool {
+        tile.x >= 0
+            && tile.y >= 0
+            && tile.x < self.width as i32
+            && tile.y < self.height as i32
+            && tile.x < self.road_x
+            && !self.buildings.iter().any(|building| {
+                tile.x >= building.position.x
+                    && tile.x < building.position.x + building.width
+                    && tile.y >= building.position.y
+                    && tile.y < building.position.y + building.height
+            })
+    }
+
     pub fn is_building_obstacle(&self, tile: TilePos) -> bool {
         tile.x >= self.road_x
             || self.forest_tiles.contains(&tile)
