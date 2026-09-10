@@ -216,6 +216,20 @@ impl Game {
         for _ in 0..5 {
             let _ = corpses::raise(&mut self.session, &self.data, UndeadKind::Skeleton);
         }
+        self.session.world.zones = vec![
+            Zone {
+                kind: ZoneKind::Work,
+                tiles: vec![TilePos::new(2, 2), TilePos::new(0, 3)],
+            },
+            Zone {
+                kind: ZoneKind::Storage,
+                tiles: vec![TilePos::new(6, 5)],
+            },
+            Zone {
+                kind: ZoneKind::Patrol,
+                tiles: vec![TilePos::new(7, 1)],
+            },
+        ];
         self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
         self.panel = Panel::Zones;
     }

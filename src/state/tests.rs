@@ -45,3 +45,24 @@ fn starter_save_shape_migrates_without_losing_player_values() {
     assert_eq!(migrated.economy.bones, 17);
     assert_eq!(migrated.progress.elapsed_seconds, 1.5);
 }
+
+#[test]
+fn zone_helpers_expose_storage_and_patrol_anchors() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let storage = TilePos::new(4, 5);
+    let patrol = TilePos::new(5, 1);
+    session.world.zones = vec![
+        Zone {
+            kind: ZoneKind::Storage,
+            tiles: vec![storage],
+        },
+        Zone {
+            kind: ZoneKind::Patrol,
+            tiles: vec![patrol],
+        },
+    ];
+    assert_eq!(session.world.storage_position(), storage);
+    assert_eq!(session.world.patrol_position(), patrol);
+    assert!(session.world.zone_contains(ZoneKind::Storage, storage));
+}

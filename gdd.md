@@ -65,6 +65,11 @@ time, output, speed, suspicion, and guard mitigation from `jobs.json`. Corpse qu
 bands and Brute eligibility live in `corpses.json`; resurrection recipes live
 in `undead.json`.
 
+Painted Work areas guide digging and wood gathering, Storage areas choose the
+hauler's drop point, and Patrol areas choose the guard's post. An empty area
+keeps the original fallback target so marking a zone is never required to
+continue a job.
+
 ### 5.3 Suspicion and events
 
 Suspicion is clamped to 0–100 and advances through Calm, Rumour, Questioning,
@@ -127,10 +132,10 @@ right-drag and wheel camera controls supplement the touch path.
 
 The current implementation covers the first three visual-direction milestones:
 world-first UI, a convincing cemetery scene, and the first research transition.
-The next milestone is a deeper colony slice with walkability, linked storage,
-and one complete material-to-construction chain. Later work can add district
-summaries and domain controls only after the current interaction remains clear
-at smaller viewport sizes.
+The next milestone is a deeper colony slice with walkability and linked-storage
+routes around structure footprints. Later work can add district summaries and
+domain controls only after the current interaction remains clear at smaller
+viewport sizes.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.

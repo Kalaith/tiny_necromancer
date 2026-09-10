@@ -206,9 +206,11 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
         .research
         .is_unlocked(Technology::OssuaryLogistics)
     {
-        "Storage zones now inform the hauler's next destination; population and alerts stay in the top strip.".to_owned()
+        "Storage zones choose haul destinations; Work focuses gathering, and Patrol places guards."
+            .to_owned()
     } else {
-        "Work and patrol markings are visible; Logistics will connect storage to routes.".to_owned()
+        "Work and patrol markings are visible; Logistics will connect storage and production."
+            .to_owned()
     };
     draw_text_block(
         &message,

@@ -279,11 +279,25 @@ impl WorldState {
     }
 
     pub fn storage_position(&self) -> TilePos {
+        self.zone_anchor(ZoneKind::Storage, Self::stockpile_position())
+    }
+
+    pub fn patrol_position(&self) -> TilePos {
+        self.zone_anchor(ZoneKind::Patrol, Self::guard_position(self.road_x))
+    }
+
+    pub fn zone_anchor(&self, kind: ZoneKind, fallback: TilePos) -> TilePos {
         self.zones
             .iter()
-            .find(|zone| zone.kind == ZoneKind::Storage)
+            .find(|zone| zone.kind == kind)
             .and_then(|zone| zone.tiles.first().copied())
-            .unwrap_or_else(Self::stockpile_position)
+            .unwrap_or(fallback)
+    }
+
+    pub fn zone_contains(&self, kind: ZoneKind, tile: TilePos) -> bool {
+        self.zones
+            .iter()
+            .any(|zone| zone.kind == kind && zone.tiles.contains(&tile))
     }
 }
 

@@ -2,7 +2,7 @@
 
 use crate::data::GameData;
 use crate::engine::{corpses, progression, suspicion};
-use crate::state::{BuildingKind, GameSession, JobKind, PlotStatus, WorkerStatus};
+use crate::state::{BuildingKind, GameSession, JobKind, PlotStatus, WorkerStatus, ZoneKind};
 use macroquad_toolkit::grid::TilePos;
 
 pub fn assign_job(session: &mut GameSession, job: JobKind) -> Result<(), String> {
@@ -125,7 +125,7 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
                 guards += 1;
                 let worker = &mut session.workforce.workers[index];
                 worker.status = WorkerStatus::Hiding;
-                worker.position = crate::state::WorldState::guard_position(session.world.road_x);
+                worker.position = session.world.patrol_position();
                 worker.progress = 0.0;
             }
             JobKind::Dig => simulate_dig(
@@ -242,7 +242,17 @@ fn simulate_dig(
                     && selected == Some(plot.id)
             })
             .map(|plot| plot.id);
-        let target_id = selected_target.or_else(|| {
+        let designated_target = session
+            .world
+            .plots
+            .iter()
+            .find(|plot| {
+                plot.status == PlotStatus::Ready
+                    && !claimed.contains(&plot.id)
+                    && session.world.zone_contains(ZoneKind::Work, plot.position)
+            })
+            .map(|plot| plot.id);
+        let target_id = selected_target.or(designated_target).or_else(|| {
             session
                 .world
                 .plots
@@ -345,7 +355,13 @@ fn simulate_wood(
     let job = data.jobs.get("wood").expect("validated wood job");
     let worker = &mut session.workforce.workers[index];
     worker.status = WorkerStatus::Working;
-    worker.position = session.world.forest_tiles[0];
+    worker.position = session
+        .world
+        .forest_tiles
+        .iter()
+        .find(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
+        .copied()
+        .unwrap_or(session.world.forest_tiles[0]);
     worker.progress += dt * speed * job.base_speed;
     if worker.progress >= job.work_seconds {
         worker.progress = 0.0;

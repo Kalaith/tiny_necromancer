@@ -97,3 +97,32 @@ fn refine_order_requires_a_completed_kiln() {
     let mut session = GameSession::new(&data.config);
     assert!(assign_job(&mut session, JobKind::Refine).is_err());
 }
+
+#[test]
+fn work_zone_guides_an_automatic_dig_target() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.unlocked_plots = 2;
+    session.world.plots[1].status = PlotStatus::Ready;
+    session.world.selected_plot = None;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.plots[1].position],
+    });
+    simulate(&mut session, &data, 0.0);
+    assert_eq!(session.workforce.workers[0].target_plot, Some(1));
+}
+
+#[test]
+fn patrol_zone_moves_guards_to_its_anchor() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let patrol = macroquad_toolkit::grid::TilePos::new(5, 1);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Patrol,
+        tiles: vec![patrol],
+    });
+    session.workforce.workers[0].assignment = JobKind::Guard;
+    simulate(&mut session, &data, 1.0);
+    assert_eq!(session.workforce.workers[0].position, patrol);
+}
