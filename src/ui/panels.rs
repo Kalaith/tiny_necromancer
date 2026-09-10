@@ -12,6 +12,9 @@ use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::Pointer;
 
 pub(super) fn draw_feed(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
+    if ctx.session.pressure.active_event.is_some() {
+        return;
+    }
     if matches!(
         ctx.panel,
         Panel::Research | Panel::Orders | Panel::Domain | Panel::Feed
