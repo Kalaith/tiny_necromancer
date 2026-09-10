@@ -12,14 +12,17 @@ use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::Pointer;
 
 pub(super) fn draw_feed(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
-    if matches!(ctx.panel, Panel::Research | Panel::Orders | Panel::Domain) {
+    if matches!(
+        ctx.panel,
+        Panel::Research | Panel::Orders | Panel::Domain | Panel::Feed
+    ) {
         return;
     }
     let operational = alerts::collect(ctx.session, ctx.data);
     let rect = if operational.is_empty() {
-        Rect::new(20.0, 572.0, 310.0, 102.0)
+        Rect::new(20.0, 554.0, 310.0, 120.0)
     } else {
-        Rect::new(20.0, 508.0, 310.0, 166.0)
+        Rect::new(20.0, 490.0, 310.0, 184.0)
     };
     draw_surface(
         rect,
@@ -30,23 +33,32 @@ pub(super) fn draw_feed(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec
         if operational.is_empty() {
             "FIELD NOTES"
         } else {
-            "OPERATIONAL ALERTS · TAP TO LOCATE"
+            "OPERATIONAL ALERTS"
         },
         rect.x + 14.0,
         rect.y + 10.0,
-        rect.w - 28.0,
+        rect.w - 112.0,
         16.0,
         11.0,
         0.0,
         dark::TEXT_DIM,
     );
+    if virtual_button(
+        Rect::new(rect.right() - 88.0, rect.y + 4.0, 74.0, 44.0),
+        "History",
+        true,
+        ButtonTone::Secondary,
+        pointer,
+    ) {
+        actions.push(UiAction::TogglePanel(Panel::Feed));
+    }
     if operational.is_empty() {
         draw_feed_history(ctx, rect);
     } else {
         for (index, alert) in operational.iter().take(3).enumerate() {
             let button = Rect::new(
                 rect.x + 14.0,
-                rect.y + 32.0 + index as f32 * 46.0,
+                rect.y + 50.0 + index as f32 * 45.0,
                 rect.w - 28.0,
                 44.0,
             );
@@ -76,7 +88,7 @@ fn draw_feed_history(ctx: &UiContext<'_>, rect: Rect) {
         draw_text_block(
             &entry.message,
             rect.x + 14.0,
-            rect.y + 32.0 + index as f32 * 21.0,
+            rect.y + 56.0 + index as f32 * 21.0,
             rect.w - 28.0,
             18.0,
             if index == 0 { 13.0 } else { 12.0 },
@@ -242,7 +254,99 @@ pub(super) fn draw_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Ve
         Panel::Research => draw_research_panel(ctx, pointer, actions),
         Panel::Zones => draw_zones_panel(ctx, pointer, actions),
         Panel::Domain => draw_domain_panel(ctx, pointer, actions),
+        Panel::Feed => draw_feed_history_panel(ctx, pointer, actions),
         Panel::None => {}
+    }
+}
+
+fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
+    let rect = Rect::new(238.0, 106.0, 680.0, 490.0);
+    draw_surface(
+        rect,
+        &SurfaceStyle::new(Color::new(0.045, 0.055, 0.055, 0.98))
+            .with_border(1.0, Color::new(0.58, 0.70, 0.62, 0.75)),
+    );
+    draw_text_block(
+        "FIELD NOTES ARCHIVE",
+        rect.x + 24.0,
+        rect.y + 20.0,
+        300.0,
+        22.0,
+        18.0,
+        0.0,
+        dark::TEXT_BRIGHT,
+    );
+    draw_text_block(
+        "Recent changes, discoveries, and orders remain close at hand.",
+        rect.x + 24.0,
+        rect.y + 50.0,
+        500.0,
+        20.0,
+        14.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
+    if virtual_button(
+        Rect::new(rect.right() - 96.0, rect.y + 14.0, 72.0, 44.0),
+        "Close",
+        true,
+        ButtonTone::Secondary,
+        pointer,
+    ) {
+        actions.push(UiAction::TogglePanel(Panel::None));
+    }
+    for (index, entry) in ctx.session.pressure.feed.iter().take(7).enumerate() {
+        let row = Rect::new(
+            rect.x + 24.0,
+            rect.y + 92.0 + index as f32 * 52.0,
+            632.0,
+            44.0,
+        );
+        draw_surface(
+            row,
+            &SurfaceStyle::new(if index == 0 {
+                Color::new(0.10, 0.14, 0.12, 1.0)
+            } else {
+                Color::new(0.075, 0.085, 0.085, 1.0)
+            })
+            .with_border(1.0, Color::new(0.40, 0.47, 0.43, 0.45)),
+        );
+        draw_text_block(
+            &entry.message,
+            row.x + 14.0,
+            row.y + 7.0,
+            492.0,
+            32.0,
+            13.0,
+            3.0,
+            if index == 0 {
+                dark::TEXT_BRIGHT
+            } else {
+                dark::TEXT
+            },
+        );
+        draw_text_block(
+            &format!("{:.0}s ago", entry.age_seconds),
+            row.x + 520.0,
+            row.y + 14.0,
+            96.0,
+            18.0,
+            11.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
+    }
+    if ctx.session.pressure.feed.is_empty() {
+        draw_text_block(
+            "No field notes recorded yet.",
+            rect.x + 24.0,
+            rect.y + 108.0,
+            rect.w - 48.0,
+            22.0,
+            16.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
     }
 }
 

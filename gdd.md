@@ -168,6 +168,11 @@ only choice buttons. Pause, save, load, recovery, and replay actions are also
 visible controls. Desktop right-drag and wheel camera controls supplement the
 touch path.
 
+The History target opens a tall Field Notes Archive with the seven most recent
+entries, newest-first age labels, and a visible Close target. It is available
+from both the healthy field-notes surface and the operational-alert surface,
+so important feedback is never hidden behind the current short list.
+
 After Domain Stewardship, the Domain command opens a tall settlement readout.
 Its three overlay buttons keep district marks, worker routes, and road
 pressure independently readable on the same world-first map. A blocker can be

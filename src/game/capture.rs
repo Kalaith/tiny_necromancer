@@ -35,6 +35,7 @@ impl Game {
             "orders" => self.prepare_capture_orders(),
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
+            "notes" => self.prepare_capture_notes(),
             "production" => self.prepare_capture_production(),
             "placement" => {
                 self.panel = Panel::Build;
@@ -224,6 +225,18 @@ impl Game {
             worker.assignment = JobKind::Guard;
             worker.status = WorkerStatus::Hiding;
             worker.position = TilePos::new(5, 5);
+        }
+    }
+
+    fn prepare_capture_notes(&mut self) {
+        self.prepare_capture_domain();
+        self.panel = Panel::Feed;
+        for message in [
+            "The western patrol reached its marked post.",
+            "Harvest posture now favours loose material.",
+            "A ward charge was refined in the ossuary kiln.",
+        ] {
+            self.session.add_feed(message);
         }
     }
 

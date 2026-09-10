@@ -39,6 +39,7 @@ pub enum Panel {
     Research,
     Zones,
     Domain,
+    Feed,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -170,7 +171,9 @@ fn ui_occludes(point: Vec2, ctx: &UiContext<'_>) -> bool {
         Rect::new(0.0, 0.0, 0.0, 0.0)
     };
     let panel = match ctx.panel {
-        Panel::Research | Panel::Orders | Panel::Domain => Rect::new(238.0, 106.0, 680.0, 490.0),
+        Panel::Research | Panel::Orders | Panel::Domain | Panel::Feed => {
+            Rect::new(238.0, 106.0, 680.0, 490.0)
+        }
         Panel::Build | Panel::Undead | Panel::Zones => Rect::new(350.0, 460.0, 580.0, 150.0),
         Panel::None => Rect::new(0.0, 0.0, 0.0, 0.0),
     };

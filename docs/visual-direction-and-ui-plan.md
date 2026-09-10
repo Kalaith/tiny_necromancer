@@ -69,7 +69,7 @@ Use the full screen as the world viewport with compact overlays. At 1280 × 720,
 | Top right | Suspicion, pause/menu, elapsed time | Same positions; day/time and speed controls only once supported |
 | Bottom centre | Raise and available build actions | Stable command dock: Build, Orders, Undead, Research, Zones; tools appear as unlocked |
 | Right edge | Collapsible selected-object inspector | Same inspector; production, storage, district detail according to selection |
-| Bottom left | Up to three short, fading events | Actionable alerts with a history drawer; select an alert to find its source |
+| Bottom left | Up to three short, fading events | Actionable alerts with a History drawer; select an alert to find its source |
 | Lower right | No minimap for the initial clearing | Toggleable minimap once the settlement exceeds the useful camera view |
 
 Use a roughly 280–320 pixel inspector at the baseline resolution. Keep only one large management panel open at a time. A minimap shares the right edge when space permits and hides while a tall inspector is open. Avoid stacking panels until the map is a narrow leftover strip.
@@ -105,11 +105,11 @@ Do not add conventional food and housing needs automatically. If later design re
 
 ## Current prototype and remaining direction
 
-The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, editable work areas, deterministic worker routing, nearest-tile Work/Storage/Patrol destinations, an Ossuary Kiln production recipe with a three-cycle queue, a district overview with a stateful minimap, actionable operational alerts, Domain Stewardship overlays for zones, worker routes, and road pressure, and persistent Balanced, Secure, and Harvest policies for automated workers. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; deeper district rules remain future work.
+The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, three building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, editable work areas, deterministic worker routing, nearest-tile Work/Storage/Patrol destinations, an Ossuary Kiln production recipe with a three-cycle queue, a district overview with a stateful minimap, actionable operational alerts with a seven-entry History drawer, Domain Stewardship overlays for zones, worker routes, and road pressure, and persistent Balanced, Secure, and Harvest policies for automated workers. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; deeper district rules remain future work.
 
 | Implemented foundation | Remaining direction |
 | --- | --- |
-| `src/ui.rs`: world-first HUD and panels | Responsive bottom-sheet variants for smaller viewports |
+| `src/ui.rs`, `src/ui/panels.rs`: world-first HUD, panels, and field-notes archive | Responsive bottom-sheet variants for smaller viewports |
 | `src/ui/world.rs`, `src/ui/world_feedback.rs`, and `src/ui/animation.rs`: full-world grid, actor interpolation, animation, route markers, and source feedback | Richer obstruction handling and large-scale route views |
 | `src/ui/components.rs`: title page, phase overlays, and grid picking | Continue accessibility and large-text verification |
 | `src/main.rs`: neutral native window caption | Keep the game name on the title page only |
@@ -124,7 +124,7 @@ Existing saves already receive deterministic defaults for positioned buildings, 
 
 ## Delivery sequence
 
-1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, domain, and victory scenes.
+1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; field-notes archive; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, domain, notes, and victory scenes.
 2. **One convincing cemetery scene (implemented for the slice).** Terrain and sprites cover the necromancer, skeleton, graves, trees, stockpile, shed, and lantern. Digging, hauling, construction progress, selection, camera transforms, route intent, and source feedback are readable.
 3. **First research transition (implemented for the slice).** Binding Routines and the research chain gate repeat priorities, placement, work areas, logistics, and domain controls. Versioned saves preserve the new state with deterministic defaults.
 4. **Movement and animation readability (implemented).** Workers visibly walk tile by tile, hauling has a real carried-resource phase, jobs expose procedural tool motion, and the necromancer walks, retargets, cancels, and pulses while ritualizing.

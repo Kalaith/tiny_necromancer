@@ -21,6 +21,7 @@ param(
         "orders",
         "colony",
         "domain",
+        "notes",
         "production",
         "worker-walking",
         "worker-carrying",
