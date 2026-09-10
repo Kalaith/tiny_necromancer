@@ -1,6 +1,7 @@
 //! Derived operational alerts that point the player toward real blockers.
 
 use crate::data::{GameData, SuspicionStage};
+use crate::engine::{jobs, navigation};
 use crate::state::{GameSession, JobKind, PlotStatus, Selection};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,11 +41,40 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
     }
     let mut alerts = Vec::new();
     collect_pressure_alert(session, data, &mut alerts);
+    collect_route_alert(session, &mut alerts);
     collect_construction_alert(session, &mut alerts);
     collect_production_alert(session, &mut alerts);
     collect_material_alert(session, &mut alerts);
     collect_grave_alert(session, &mut alerts);
     alerts
+}
+
+fn collect_route_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
+    let Some((index, (worker, failure))) = session
+        .workforce
+        .workers
+        .iter()
+        .enumerate()
+        .filter_map(|(index, worker)| {
+            let destination = jobs::destination_for_worker(session, worker)?;
+            let failure = navigation::plan_route(session, worker.position, destination).err()?;
+            Some((index, (worker, failure)))
+        })
+        .next()
+    else {
+        return;
+    };
+    alerts.push(OperationalAlert::new(
+        AlertSeverity::Warning,
+        "Route blocked",
+        format!(
+            "{} · {} destination · {}.",
+            worker.name,
+            worker.assignment.label(),
+            failure.label()
+        ),
+        Some(Selection::Worker(index)),
+    ));
 }
 
 fn collect_pressure_alert(

@@ -83,3 +83,28 @@ fn road_pressure_alert_waits_until_the_questioning_threshold() {
         .iter()
         .any(|alert| alert.severity == AlertSeverity::Critical));
 }
+
+#[test]
+fn blocked_worker_route_points_to_the_worker() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.workforce.workers[0].assignment = JobKind::Guard;
+    session.workforce.workers[0].position = TilePos::new(2, 2);
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: TilePos::new(3, y),
+            width: 1,
+            height: 1,
+        });
+    }
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Route blocked")
+        .expect("sealed worker route should be reported");
+    assert_eq!(alert.target, Some(Selection::Worker(0)));
+    assert!(alert.detail.contains("obstructions seal the way"));
+}

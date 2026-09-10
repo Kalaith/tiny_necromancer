@@ -2,11 +2,8 @@
 
 use super::components::GridView;
 use super::UiContext;
-use crate::engine::{districts, navigation};
-use crate::state::{
-    Building, BuildingKind, JobKind, PlotStatus, ResourceKind, Selection, Worker, WorkerStatus,
-    WorldState, ZoneKind,
-};
+use crate::engine::{districts, jobs, navigation};
+use crate::state::{JobKind, PlotStatus, ResourceKind, Selection, Worker, WorkerStatus};
 use macroquad::prelude::*;
 use macroquad_toolkit::grid::TilePos;
 use macroquad_toolkit::prelude::*;
@@ -75,7 +72,7 @@ pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
         if ctx.domain_overlays.routes
             || ctx.session.world.selected == Some(Selection::Worker(index))
         {
-            if let Some(destination) = worker_destination(ctx, worker) {
+            if let Some(destination) = jobs::destination_for_worker(ctx.session, worker) {
                 draw_route_hint(ctx, view, worker, destination);
             }
         }
@@ -272,12 +269,12 @@ fn district_rule_hint(
 }
 
 pub(super) fn worker_district_hint(ctx: &UiContext<'_>, worker: &Worker) -> Option<&'static str> {
-    worker_destination(ctx, worker)
+    jobs::destination_for_worker(ctx.session, worker)
         .and_then(|destination| district_rule_hint(ctx, worker, destination))
 }
 
 pub(super) fn worker_route_summary(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
-    let destination = worker_destination(ctx, worker)?;
+    let destination = jobs::destination_for_worker(ctx.session, worker)?;
     Some(
         match navigation::plan_route(ctx.session, worker.position, destination) {
             Ok(route) if route.step_count() == 0 => "AT DESTINATION".to_owned(),
@@ -291,7 +288,7 @@ pub(super) fn route_counts(ctx: &UiContext<'_>) -> (usize, usize) {
     let mut clear = 0;
     let mut total = 0;
     for worker in &ctx.session.workforce.workers {
-        let Some(destination) = worker_destination(ctx, worker) else {
+        let Some(destination) = jobs::destination_for_worker(ctx.session, worker) else {
             continue;
         };
         total += 1;
@@ -302,71 +299,11 @@ pub(super) fn route_counts(ctx: &UiContext<'_>) -> (usize, usize) {
     (clear, total)
 }
 
-fn worker_destination(ctx: &UiContext<'_>, worker: &Worker) -> Option<TilePos> {
-    match worker.assignment {
-        JobKind::Dig => worker
-            .target_plot
-            .and_then(|plot_id| ctx.session.world.plots.get(plot_id))
-            .map(|plot| plot.position),
-        JobKind::Haul => {
-            if worker.carrying > 0 {
-                Some(ctx.session.world.storage_position_for(worker.position))
-            } else if ctx.session.economy.loose_bones > 0 {
-                ctx.session
-                    .economy
-                    .loose_bones_source
-                    .or_else(|| {
-                        ctx.session
-                            .world
-                            .plots
-                            .iter()
-                            .find(|plot| plot.status == PlotStatus::Dug)
-                            .map(|plot| plot.position)
-                    })
-                    .or(Some(WorldState::stockpile_position()))
-            } else if ctx.session.economy.loose_wood > 0 {
-                ctx.session
-                    .economy
-                    .loose_wood_source
-                    .or_else(|| ctx.session.world.forest_tiles.first().copied())
-            } else {
-                None
-            }
-        }
-        JobKind::Guard => Some(ctx.session.world.patrol_position_for(worker.position)),
-        JobKind::Wood => ctx
-            .session
-            .world
-            .forest_tiles
-            .iter()
-            .filter(|tile| ctx.session.world.zone_contains(ZoneKind::Work, **tile))
-            .min_by_key(|tile| {
-                (worker.position.x - tile.x).abs() + (worker.position.y - tile.y).abs()
-            })
-            .copied()
-            .or_else(|| ctx.session.world.forest_tiles.first().copied()),
-        JobKind::Build => ctx
-            .session
-            .world
-            .buildings
-            .iter()
-            .find(|building| !building.complete)
-            .map(Building::work_position),
-        JobKind::Refine => ctx
-            .session
-            .world
-            .buildings
-            .iter()
-            .find(|building| building.kind == BuildingKind::OssuaryKiln && building.complete)
-            .map(Building::work_position),
-    }
-}
-
 pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> String {
     if worker.status != WorkerStatus::Idle {
         return "Active in the clearing".to_owned();
     }
-    if let Some(destination) = worker_destination(ctx, worker) {
+    if let Some(destination) = jobs::destination_for_worker(ctx.session, worker) {
         if let Err(failure) = navigation::plan_route(ctx.session, worker.position, destination) {
             return format!("No route · {}", failure.label());
         }

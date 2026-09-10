@@ -3,8 +3,8 @@
 use crate::data::GameData;
 use crate::engine::{corpses, districts, movement, navigation, progression, suspicion};
 use crate::state::{
-    BuildingKind, GameSession, JobKind, PlotStatus, ResourceKind, WorkerStatus, WorldState,
-    ZoneKind,
+    Building, BuildingKind, GameSession, JobKind, PlotStatus, ResourceKind, Worker, WorkerStatus,
+    WorldState, ZoneKind,
 };
 use macroquad_toolkit::grid::TilePos;
 
@@ -77,6 +77,63 @@ pub fn toggle_automation(session: &mut GameSession) -> Result<(), String> {
         }
     ));
     Ok(())
+}
+
+pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<TilePos> {
+    match worker.assignment {
+        JobKind::Dig => worker
+            .target_plot
+            .and_then(|plot_id| session.world.plots.get(plot_id))
+            .map(|plot| plot.position),
+        JobKind::Haul => {
+            if worker.carrying > 0 {
+                Some(session.world.storage_position_for(worker.position))
+            } else if session.economy.loose_bones > 0 {
+                session
+                    .economy
+                    .loose_bones_source
+                    .or_else(|| {
+                        session
+                            .world
+                            .plots
+                            .iter()
+                            .find(|plot| plot.status == PlotStatus::Dug)
+                            .map(|plot| plot.position)
+                    })
+                    .or(Some(WorldState::stockpile_position()))
+            } else if session.economy.loose_wood > 0 {
+                session
+                    .economy
+                    .loose_wood_source
+                    .or_else(|| session.world.forest_tiles.first().copied())
+            } else {
+                None
+            }
+        }
+        JobKind::Guard => Some(session.world.patrol_position_for(worker.position)),
+        JobKind::Wood => session
+            .world
+            .forest_tiles
+            .iter()
+            .filter(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
+            .min_by_key(|tile| {
+                (worker.position.x - tile.x).abs() + (worker.position.y - tile.y).abs()
+            })
+            .copied()
+            .or_else(|| session.world.forest_tiles.first().copied()),
+        JobKind::Build => session
+            .world
+            .buildings
+            .iter()
+            .find(|building| !building.complete)
+            .map(Building::work_position),
+        JobKind::Refine => session
+            .world
+            .buildings
+            .iter()
+            .find(|building| building.kind == BuildingKind::OssuaryKiln && building.complete)
+            .map(Building::work_position),
+    }
 }
 
 pub fn move_priority(
