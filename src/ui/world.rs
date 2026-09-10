@@ -201,6 +201,19 @@ fn draw_zones(ctx: &UiContext<'_>, view: &GridView) {
             let tile = view.tile_rect(*tile_pos).inset(3.0);
             draw_rectangle(tile.x, tile.y, tile.w, tile.h, color);
             draw_rectangle_lines(tile.x, tile.y, tile.w, tile.h, 1.0, color.with_alpha(0.55));
+            draw_text_centered_in_box(
+                match zone.kind {
+                    ZoneKind::Work => "W",
+                    ZoneKind::Storage => "S",
+                    ZoneKind::Patrol => "P",
+                },
+                tile.x,
+                tile.y + tile.h * 0.18,
+                tile.w,
+                tile.h * 0.54,
+                13.0,
+                color.with_alpha(0.95),
+            );
         }
     }
 }
