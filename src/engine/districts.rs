@@ -39,23 +39,23 @@ pub fn rule_summary(session: &GameSession, config: &DistrictRules) -> String {
     let mut rules = Vec::new();
     if rule_active(session, ZoneKind::Work) {
         rules.push(format!(
-            "Work +{:.0}% speed",
+            "Work +{:.0}%",
             (config.work_speed_multiplier - 1.0) * 100.0
         ));
     }
     if rule_active(session, ZoneKind::Storage) {
-        rules.push(format!("Storage +{} haul", config.storage_capacity_bonus));
+        rules.push(format!("Storage +{}", config.storage_capacity_bonus));
     }
     if rule_active(session, ZoneKind::Patrol) {
         rules.push(format!(
-            "Patrol +{:.0}% quieting",
+            "Patrol +{:.0}%",
             (config.patrol_mitigation_multiplier - 1.0) * 100.0
         ));
     }
     if rules.is_empty() {
         "No district rules active · mark a Work, Storage, or Patrol tile.".to_owned()
     } else {
-        format!("Rules: {}", rules.join(" · "))
+        format!("Rules: marked tiles · {}", rules.join(" · "))
     }
 }
 

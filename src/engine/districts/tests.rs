@@ -80,7 +80,7 @@ fn rule_summary_names_only_marked_districts() {
 
     assert_eq!(
         rule_summary(&session, &data.config.district_rules),
-        "Rules: Storage +4 haul"
+        "Rules: marked tiles · Storage +4"
     );
 }
 
