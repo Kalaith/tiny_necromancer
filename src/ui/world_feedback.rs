@@ -76,7 +76,7 @@ pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
             || ctx.session.world.selected == Some(Selection::Worker(index))
         {
             if let Some(destination) = worker_destination(ctx, worker) {
-                draw_route_hint(ctx, view, worker.id, worker.position, destination);
+                draw_route_hint(ctx, view, worker, destination);
             }
         }
     }
@@ -112,13 +112,9 @@ pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
     }
 }
 
-fn draw_route_hint(
-    ctx: &UiContext<'_>,
-    view: &GridView,
-    worker_id: u32,
-    start: TilePos,
-    destination: TilePos,
-) {
+fn draw_route_hint(ctx: &UiContext<'_>, view: &GridView, worker: &Worker, destination: TilePos) {
+    let worker_id = worker.id;
+    let start = worker.position;
     let mut cursor = start;
     let actor = ctx.motions.worker(worker_id).map_or_else(
         || view.tile_rect(start).center(),
@@ -146,6 +142,21 @@ fn draw_route_hint(
     }
     let target = view.tile_rect(destination).inset(view.tile_size() * 0.25);
     draw_rectangle_lines(target.x, target.y, target.w, target.h, 2.0, dark::ACCENT);
+    let route_label = if ctx.domain_overlays.routes {
+        format!("{} · {}", worker.name, worker.assignment.label())
+    } else {
+        "DESTINATION".to_owned()
+    };
+    draw_text_block(
+        &route_label,
+        target.x - 44.0,
+        target.y - view.tile_size() * 0.38,
+        150.0,
+        15.0,
+        10.0,
+        0.0,
+        dark::ACCENT,
+    );
     if let Some(worker) = ctx
         .session
         .workforce
