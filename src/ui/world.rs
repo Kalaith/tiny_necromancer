@@ -235,6 +235,7 @@ fn draw_pressure_overlay(ctx: &UiContext<'_>, view: &GridView) {
         crate::data::SuspicionStage::Questioning => dark::WARNING,
         crate::data::SuspicionStage::Investigation => dark::NEGATIVE,
     };
+    let urgency = (ctx.session.pressure.suspicion / 100.0).clamp(0.0, 1.0);
     for y in 0..ctx.session.world_height() {
         for x in ctx.session.world.road_x.max(0) as usize..ctx.session.world_width() {
             let tile = view.tile_rect(TilePos::new(x as i32, y as i32));
@@ -243,9 +244,16 @@ fn draw_pressure_overlay(ctx: &UiContext<'_>, view: &GridView) {
                 tile.y,
                 tile.w + 1.0,
                 tile.h + 1.0,
-                color.with_alpha(0.08),
+                color.with_alpha(0.04 + urgency * 0.08),
             );
-            draw_rectangle_lines(tile.x, tile.y, tile.w, tile.h, 1.0, color.with_alpha(0.34));
+            draw_rectangle_lines(
+                tile.x,
+                tile.y,
+                tile.w,
+                tile.h,
+                1.0,
+                color.with_alpha(0.18 + urgency * 0.24),
+            );
         }
     }
     let boundary = view.tile_rect(TilePos::new(ctx.session.world.road_x.max(0), 0));
@@ -257,10 +265,10 @@ fn draw_pressure_overlay(ctx: &UiContext<'_>, view: &GridView) {
         color.with_alpha(0.74),
     );
     draw_text_block(
-        "PRESSURE WATCH",
+        &format!("PRESSURE WATCH · {:.0}%", ctx.session.pressure.suspicion),
         boundary.x + 8.0,
         world_grid_rect().y + 8.0,
-        150.0,
+        180.0,
         16.0,
         11.0,
         0.0,
