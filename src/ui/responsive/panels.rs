@@ -59,7 +59,16 @@ fn draw_compact_build_panel(
         let Some(def) = ctx.data.buildings.get(kind.id()) else {
             continue;
         };
-        let label = format!("{} · B{} W{}", def.name, def.bones_cost, def.wood_cost);
+        let label = if sheet.w < 500.0 {
+            let short_name = match kind {
+                BuildingKind::WorkShed => "Shed",
+                BuildingKind::GraveLantern => "Lantern",
+                BuildingKind::OssuaryKiln => "Kiln",
+            };
+            format!("{} · B{} W{}", short_name, def.bones_cost, def.wood_cost)
+        } else {
+            format!("{} · B{} W{}", def.name, def.bones_cost, def.wood_cost)
+        };
         let unlocked = kind != BuildingKind::OssuaryKiln
             || ctx
                 .session
