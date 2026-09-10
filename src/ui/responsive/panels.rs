@@ -459,6 +459,25 @@ fn draw_compact_feed_panel(
     sheet: Rect,
 ) {
     compact_panel_title("FIELD NOTES", sheet);
+    let ledger = if sheet.w >= 520.0 {
+        districts::ledger_summary(ctx.session)
+    } else {
+        let ledger = &ctx.session.progress.district_ledger;
+        format!(
+            "Ledger W{} · S+{} · P-{:.1}",
+            ledger.work_cycles, ledger.storage_bonus_items, ledger.patrol_quieting
+        )
+    };
+    draw_text_block(
+        &ledger,
+        sheet.x + 16.0,
+        sheet.y + 104.0,
+        sheet.w - 128.0,
+        16.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
+    );
     if virtual_button(
         Rect::new(sheet.right() - 92.0, sheet.y + 80.0, 76.0, 40.0),
         "Close",
@@ -469,7 +488,7 @@ fn draw_compact_feed_panel(
         actions.push(UiAction::TogglePanel(Panel::None));
     }
     for (index, entry) in ctx.session.pressure.feed.iter().take(4).enumerate() {
-        let y = sheet.y + 112.0 + index as f32 * 52.0;
+        let y = sheet.y + 132.0 + index as f32 * 52.0;
         draw_text_block(
             &entry.message,
             sheet.x + 16.0,
