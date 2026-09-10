@@ -243,8 +243,19 @@ fn draw_stewardship_readout(
     ) {
         actions.push(UiAction::CycleStewardshipPolicy);
     }
+    let policy_hint = if ctx.session.phase == GamePhase::Playing {
+        format!(
+            "Tap to cycle · {}",
+            ctx.session.stewardship_policy.description()
+        )
+    } else {
+        format!(
+            "Resume play to change · {}",
+            ctx.session.stewardship_policy.description()
+        )
+    };
     draw_text_block(
-        ctx.session.stewardship_policy.description(),
+        &policy_hint,
         rect.x + 228.0,
         rect.y + 370.0,
         390.0,
