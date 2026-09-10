@@ -2,9 +2,13 @@
 
 use crate::data::GameData;
 use crate::engine::{corpses, progression, suspicion};
-use crate::state::{GameSession, JobKind, PlotStatus, WorkerStatus};
+use crate::state::{BuildingKind, GameSession, JobKind, PlotStatus, WorkerStatus};
+use macroquad_toolkit::grid::TilePos;
 
 pub fn assign_job(session: &mut GameSession, job: JobKind) -> Result<(), String> {
+    if job == JobKind::Refine && !session.has_building(BuildingKind::OssuaryKiln) {
+        return Err("Complete an Ossuary Kiln before assigning Refine Wards.".to_owned());
+    }
     let index = session.workforce.selected_worker;
     if session.workforce.workers.get(index).is_none() {
         return Err("No worker is selected.".to_owned());
@@ -159,6 +163,7 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
                     session.workforce.workers[index].progress = 0.0;
                 }
             }
+            JobKind::Refine => simulate_refine(session, data, index, dt, &mut messages),
         }
     }
     if guards > 0 {
@@ -195,6 +200,7 @@ fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
                 .buildings
                 .iter()
                 .any(|building| !building.complete),
+            JobKind::Refine => session.progress.production.is_some(),
         };
         if available {
             return *priority;
@@ -350,6 +356,47 @@ fn simulate_wood(
             "axes work the forest edge",
         );
         messages.push(format!("Gathered {} loose wood.", job.output_amount));
+    }
+}
+
+fn simulate_refine(
+    session: &mut GameSession,
+    data: &GameData,
+    index: usize,
+    dt: f32,
+    messages: &mut Vec<String>,
+) {
+    let Some(building) = session
+        .world
+        .buildings
+        .iter()
+        .find(|building| building.kind == BuildingKind::OssuaryKiln && building.complete)
+    else {
+        session.workforce.workers[index].status = WorkerStatus::Idle;
+        session.workforce.workers[index].progress = 0.0;
+        return;
+    };
+    if session.progress.production.is_none() {
+        session.workforce.workers[index].status = WorkerStatus::Idle;
+        session.workforce.workers[index].progress = 0.0;
+        return;
+    }
+    let building_position = if building.position.x > 0 {
+        TilePos::new(building.position.x - 1, building.position.y)
+    } else {
+        TilePos::new(building.position.x + building.width, building.position.y)
+    };
+    session.workforce.workers[index].status = WorkerStatus::Working;
+    session.workforce.workers[index].position = building_position;
+    if let Some(message) = progression::advance_production(session, data, dt) {
+        messages.push(message);
+        session.workforce.workers[index].progress = 0.0;
+    } else {
+        session.workforce.workers[index].progress = session
+            .progress
+            .production
+            .as_ref()
+            .map_or(0.0, |order| order.progress);
     }
 }
 

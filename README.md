@@ -21,7 +21,8 @@ The authored loop is:
 3. Build the Work Shed and Grave Lantern, then expand the usable plots.
 4. Study the research chain to unlock repeat priorities, placement, work areas,
    logistics, and domain controls.
-5. Establish the settlement before suspicion reaches the investigation limit.
+5. Raise an Ossuary Kiln, load it with bones and wood, and refine ward charges.
+6. Establish the settlement before suspicion reaches the investigation limit.
 
 ## Development
 

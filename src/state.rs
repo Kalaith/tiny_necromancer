@@ -27,6 +27,7 @@ pub enum PlotStatus {
 pub enum BuildingKind {
     WorkShed,
     GraveLantern,
+    OssuaryKiln,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -146,6 +147,15 @@ impl BuildingKind {
         match self {
             Self::WorkShed => "work_shed",
             Self::GraveLantern => "grave_lantern",
+            Self::OssuaryKiln => "ossuary_kiln",
+        }
+    }
+
+    pub fn dimensions(self) -> (i32, i32) {
+        match self {
+            Self::WorkShed => (2, 2),
+            Self::GraveLantern => (1, 1),
+            Self::OssuaryKiln => (2, 1),
         }
     }
 }
@@ -172,6 +182,7 @@ pub enum JobKind {
     Guard,
     Wood,
     Build,
+    Refine,
 }
 
 impl JobKind {
@@ -182,6 +193,7 @@ impl JobKind {
             Self::Guard => "Guard",
             Self::Wood => "Wood",
             Self::Build => "Build",
+            Self::Refine => "Refine",
         }
     }
 }
@@ -231,6 +243,7 @@ pub fn default_building_position_for_kind(kind: BuildingKind) -> TilePos {
     match kind {
         BuildingKind::WorkShed => TilePos::new(6, 2),
         BuildingKind::GraveLantern => TilePos::new(7, 6),
+        BuildingKind::OssuaryKiln => TilePos::new(6, 4),
     }
 }
 
@@ -345,6 +358,8 @@ pub struct EconomyState {
     pub shovels: i32,
     pub loose_bones: i32,
     pub loose_wood: i32,
+    #[serde(default)]
+    pub ward_charges: i32,
     pub corpses: Vec<Corpse>,
 }
 
@@ -370,6 +385,14 @@ pub struct ProgressState {
     pub elapsed_seconds: f32,
     pub first_corpse_found: bool,
     pub first_building_started: bool,
+    #[serde(default)]
+    pub production: Option<ProductionOrder>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProductionOrder {
+    pub building: BuildingKind,
+    pub progress: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -465,6 +488,7 @@ impl GameSession {
                 shovels: 1,
                 loose_bones: 0,
                 loose_wood: 0,
+                ward_charges: 0,
                 corpses: Vec::new(),
             },
             pressure: PressureState {
@@ -483,6 +507,7 @@ impl GameSession {
                 elapsed_seconds: 0.0,
                 first_corpse_found: false,
                 first_building_started: false,
+                production: None,
             },
             research: ResearchState::default(),
             rng: SeededRng::new(config.starting_seed),
@@ -515,12 +540,9 @@ impl GameSession {
             if building.position == default_building_position() {
                 building.position = default_building_position_for_kind(building.kind);
             }
-            if building.width <= 0 {
-                building.width = default_building_width();
-            }
-            if building.height <= 0 {
-                building.height = default_building_height();
-            }
+            let (width, height) = building.kind.dimensions();
+            building.width = width;
+            building.height = height;
         }
         Self {
             phase: save.phase,

@@ -56,6 +56,8 @@ pub enum UiAction {
     CancelPlacement,
     UnlockPlot,
     StartResearch(Technology),
+    StartProduction(BuildingKind),
+    UseWardCharge,
     TogglePanel(Panel),
     ToggleZone(ZoneKind),
     PaintZone(TilePos),

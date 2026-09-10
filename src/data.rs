@@ -84,6 +84,17 @@ pub struct BuildingDef {
     pub suspicion_multiplier: f32,
     pub suspicion_delta: f32,
     pub effect_text: String,
+    #[serde(default)]
+    pub production: Option<ProductionDef>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProductionDef {
+    pub bones_cost: i32,
+    pub wood_cost: i32,
+    pub seconds: f32,
+    pub output_amount: i32,
+    pub effect_text: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -233,6 +244,17 @@ impl GameData {
                     "buildings.json: impossible cost or time for '{id}'"
                 ));
             }
+            if let Some(production) = &building.production {
+                if production.bones_cost < 0
+                    || production.wood_cost < 0
+                    || production.seconds <= 0.0
+                    || production.output_amount <= 0
+                {
+                    return Err(format!(
+                        "buildings.json: impossible production recipe for '{id}'"
+                    ));
+                }
+            }
         }
         for (id, event) in self.events.iter() {
             if event.choices.is_empty() || event.choices.iter().any(|choice| choice.id.is_empty()) {
@@ -269,7 +291,7 @@ impl GameData {
                 return Err(format!("events.json: missing event for {stage:?}"));
             }
         }
-        for required in ["dig", "haul", "guard", "wood"] {
+        for required in ["dig", "haul", "guard", "wood", "refine"] {
             if !self.jobs.contains(required) {
                 return Err(format!("jobs.json: missing required job '{required}'"));
             }
@@ -279,7 +301,7 @@ impl GameData {
                 return Err(format!("undead.json: missing required type '{required}'"));
             }
         }
-        for required in ["work_shed", "grave_lantern"] {
+        for required in ["work_shed", "grave_lantern", "ossuary_kiln"] {
             if !self.buildings.contains(required) {
                 return Err(format!(
                     "buildings.json: missing required building '{required}'"

@@ -19,6 +19,7 @@ param(
         "placement",
         "research",
         "colony",
+        "production",
         "paused",
         "event",
         "victory",

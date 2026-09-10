@@ -2,7 +2,9 @@
 
 use crate::data::GameData;
 use crate::engine::suspicion;
-use crate::state::{Building, BuildingKind, GamePhase, GameSession, PlotStatus, Technology};
+use crate::state::{
+    Building, BuildingKind, GamePhase, GameSession, PlotStatus, ProductionOrder, Technology,
+};
 use macroquad_toolkit::grid::TilePos;
 
 pub fn queue_building(
@@ -24,11 +26,15 @@ pub fn queue_building_at(
     kind: BuildingKind,
     position: TilePos,
 ) -> Result<(), String> {
+    if kind == BuildingKind::OssuaryKiln
+        && !session.research.is_unlocked(Technology::OssuaryLogistics)
+    {
+        return Err("Study Ossuary Logistics before raising a kiln.".to_owned());
+    }
     if session.has_building(kind) || session.building_in_progress(kind) {
         return Err("That building is already present or under construction.".to_owned());
     }
-    let width = if kind == BuildingKind::WorkShed { 2 } else { 1 };
-    let height = if kind == BuildingKind::WorkShed { 2 } else { 1 };
+    let (width, height) = kind.dimensions();
     if position.x < 0
         || position.y < 0
         || position.x + width > session.world.width as i32
@@ -147,6 +153,75 @@ pub fn advance_research(session: &mut GameSession, data: &GameData, dt: f32) -> 
     );
     session.add_feed(message.clone());
     Some(message)
+}
+
+pub fn start_production(
+    session: &mut GameSession,
+    data: &GameData,
+    kind: BuildingKind,
+) -> Result<(), String> {
+    if kind == BuildingKind::OssuaryKiln
+        && !session.research.is_unlocked(Technology::OssuaryLogistics)
+    {
+        return Err("Study Ossuary Logistics before loading the kiln.".to_owned());
+    }
+    if !session.has_building(kind) {
+        return Err("The kiln must be complete before it can refine wards.".to_owned());
+    }
+    if session.progress.production.is_some() {
+        return Err("The ossuary kiln is already refining a ward.".to_owned());
+    }
+    let recipe = data
+        .buildings
+        .get(kind.id())
+        .and_then(|building| building.production.as_ref())
+        .ok_or_else(|| "That structure has no production recipe.".to_owned())?;
+    if session.economy.bones < recipe.bones_cost || session.economy.wood < recipe.wood_cost {
+        return Err(format!(
+            "Need {} bones and {} wood to load the kiln.",
+            recipe.bones_cost, recipe.wood_cost
+        ));
+    }
+    session.economy.bones -= recipe.bones_cost;
+    session.economy.wood -= recipe.wood_cost;
+    session.progress.production = Some(ProductionOrder {
+        building: kind,
+        progress: 0.0,
+    });
+    session.add_feed("The Ossuary Kiln is loaded; assign a worker to Refine Wards.");
+    Ok(())
+}
+
+pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -> Option<String> {
+    let mut order = session.progress.production.clone()?;
+    let recipe = data
+        .buildings
+        .get(order.building.id())
+        .and_then(|building| building.production.as_ref())
+        .expect("validated production recipe");
+    order.progress += dt;
+    if order.progress < recipe.seconds {
+        session.progress.production = Some(order);
+        return None;
+    }
+    session.economy.ward_charges += recipe.output_amount;
+    session.progress.production = None;
+    let message = format!(
+        "{} Ward charge ready. {}",
+        recipe.output_amount, recipe.effect_text
+    );
+    session.add_feed(message.clone());
+    Some(message)
+}
+
+pub fn use_ward_charge(session: &mut GameSession) -> Result<(), String> {
+    if session.economy.ward_charges <= 0 {
+        return Err("There is no sealed ward charge to spend.".to_owned());
+    }
+    session.economy.ward_charges -= 1;
+    suspicion::adjust_quiet(session, -8.0, "a sealed ward quiets the cemetery");
+    session.add_feed("A ward charge is spent; the cemetery falls quiet.");
+    Ok(())
 }
 
 pub fn unlock_plot(session: &mut GameSession, data: &GameData) -> Result<(), String> {

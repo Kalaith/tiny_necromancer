@@ -153,16 +153,30 @@ fn draw_build_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiA
     ) {
         actions.push(UiAction::UnlockPlot);
     }
-    draw_text_block(
-        "Placement shows footprint, cost, and collision before the order is accepted.",
-        rect.x + 282.0,
-        rect.y + 106.0,
-        rect.w - 300.0,
-        22.0,
-        12.0,
-        0.0,
-        dark::TEXT_DIM,
-    );
+    if let Some(def) = ctx.data.buildings.get(BuildingKind::OssuaryKiln.id()) {
+        let unlocked = ctx
+            .session
+            .research
+            .is_unlocked(Technology::OssuaryLogistics);
+        let label = if unlocked {
+            format!("Ossuary kiln · B{} W{}", def.bones_cost, def.wood_cost)
+        } else {
+            "Ossuary kiln · Logistics locked".to_owned()
+        };
+        if virtual_button(
+            Rect::new(rect.x + 282.0, rect.y + 102.0, 280.0, 44.0),
+            &label,
+            unlocked
+                && !ctx.session.has_building(BuildingKind::OssuaryKiln)
+                && !ctx.session.building_in_progress(BuildingKind::OssuaryKiln)
+                && e.bones >= def.bones_cost
+                && e.wood >= def.wood_cost,
+            ButtonTone::Secondary,
+            pointer,
+        ) {
+            actions.push(UiAction::BeginPlacement(BuildingKind::OssuaryKiln));
+        }
+    }
 }
 
 fn draw_orders_panel(ctx: &UiContext<'_>) {

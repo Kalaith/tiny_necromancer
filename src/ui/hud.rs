@@ -41,6 +41,12 @@ pub(super) fn draw_status_strip(
             Color::new(0.12, 0.22, 0.18, 0.94),
             Color::new(0.69, 0.91, 0.78, 1.0),
         ),
+        (
+            "WARDS",
+            e.ward_charges,
+            Color::new(0.24, 0.17, 0.31, 0.94),
+            Color::new(0.86, 0.68, 1.0, 1.0),
+        ),
     ];
     for (index, (label, value, fill, accent)) in cards.into_iter().enumerate() {
         let rect = Rect::new(20.0 + index as f32 * 112.0, 18.0, 102.0, 46.0);
@@ -416,6 +422,7 @@ fn draw_worker_inspector(
         JobKind::Guard,
         JobKind::Wood,
         JobKind::Build,
+        JobKind::Refine,
     ]
     .into_iter()
     .enumerate()
@@ -429,7 +436,8 @@ fn draw_worker_inspector(
         if virtual_button(
             button,
             job.label(),
-            ctx.session.phase == GamePhase::Playing,
+            ctx.session.phase == GamePhase::Playing
+                && (job != JobKind::Refine || ctx.session.has_building(BuildingKind::OssuaryKiln)),
             if job == JobKind::Guard {
                 ButtonTone::Secondary
             } else {
@@ -530,6 +538,41 @@ fn draw_building_inspector(
             dark::WARNING,
         );
     }
+    if building.complete && building.kind == BuildingKind::OssuaryKiln {
+        if let Some(order) = ctx
+            .session
+            .progress
+            .production
+            .as_ref()
+            .filter(|order| order.building == building.kind)
+        {
+            let seconds = ctx
+                .data
+                .buildings
+                .get(building.kind.id())
+                .and_then(|def| def.production.as_ref())
+                .map_or(8.0, |recipe| recipe.seconds);
+            draw_text_block(
+                "Refining ward charge",
+                panel.x + 18.0,
+                panel.y + 126.0,
+                panel.w - 36.0,
+                18.0,
+                13.0,
+                0.0,
+                dark::ACCENT,
+            );
+            progress_bar(
+                panel.x + 18.0,
+                panel.y + 148.0,
+                panel.w - 36.0,
+                10.0,
+                order.progress,
+                seconds,
+                dark::ACCENT,
+            );
+        }
+    }
     draw_text_block(
         &format!(
             "Footprint · {}, {}",
@@ -571,6 +614,60 @@ fn draw_building_inspector(
             4.0,
             dark::TEXT_DIM,
         );
+    }
+    if building.kind == BuildingKind::OssuaryKiln && building.complete {
+        let recipe = ctx
+            .data
+            .buildings
+            .get(building.kind.id())
+            .and_then(|def| def.production.as_ref());
+        if let Some(recipe) = recipe {
+            let active = ctx
+                .session
+                .progress
+                .production
+                .as_ref()
+                .is_some_and(|order| order.building == building.kind);
+            let label = if active {
+                "Ward cycle in progress".to_owned()
+            } else {
+                format!("Load kiln · B{} W{}", recipe.bones_cost, recipe.wood_cost)
+            };
+            if virtual_button(
+                Rect::new(panel.x + 18.0, panel.y + 232.0, panel.w - 36.0, 44.0),
+                &label,
+                !active
+                    && ctx.session.phase == GamePhase::Playing
+                    && ctx.session.economy.bones >= recipe.bones_cost
+                    && ctx.session.economy.wood >= recipe.wood_cost,
+                ButtonTone::Positive,
+                pointer,
+            ) {
+                actions.push(UiAction::StartProduction(building.kind));
+            }
+            if virtual_button(
+                Rect::new(panel.x + 18.0, panel.y + 286.0, panel.w - 36.0, 44.0),
+                "Spend ward charge · -8 suspicion",
+                ctx.session.economy.ward_charges > 0 && ctx.session.phase == GamePhase::Playing,
+                ButtonTone::Secondary,
+                pointer,
+            ) {
+                actions.push(UiAction::UseWardCharge);
+            }
+            draw_text_block(
+                &format!(
+                    "Ward charges · {} · stored {}",
+                    recipe.effect_text, ctx.session.economy.ward_charges
+                ),
+                panel.x + 18.0,
+                panel.y + 348.0,
+                panel.w - 36.0,
+                48.0,
+                14.0,
+                4.0,
+                dark::TEXT_DIM,
+            );
+        }
     }
 }
 

@@ -311,10 +311,9 @@ fn draw_buildings(ctx: &UiContext<'_>, view: &GridView) {
                 dark::WARNING,
             );
         } else if let Some(texture) = ctx.sprites {
-            let quadrant = if building.kind == BuildingKind::WorkShed {
-                2
-            } else {
-                3
+            let quadrant = match building.kind {
+                BuildingKind::WorkShed => 2,
+                BuildingKind::GraveLantern | BuildingKind::OssuaryKiln => 3,
             };
             draw_sheet_sprite(
                 texture,
@@ -450,8 +449,7 @@ fn draw_placement_preview(ctx: &UiContext<'_>, view: &GridView, kind: BuildingKi
     let mouse = VirtualUi::new(LOGICAL_WIDTH, LOGICAL_HEIGHT).mouse_position();
     let tile =
         selected_tile_at(ctx, mouse).unwrap_or(crate::state::WorldState::stockpile_position());
-    let width = if kind == BuildingKind::WorkShed { 2 } else { 1 };
-    let height = if kind == BuildingKind::WorkShed { 2 } else { 1 };
+    let (width, height) = kind.dimensions();
     let start = view.tile_rect(tile);
     let end = view.tile_rect(TilePos::new(tile.x + width - 1, tile.y + height - 1));
     let footprint = Rect::new(
@@ -502,8 +500,7 @@ fn placement_valid(
     kind: BuildingKind,
     position: TilePos,
 ) -> (bool, &'static str) {
-    let width = if kind == BuildingKind::WorkShed { 2 } else { 1 };
-    let height = if kind == BuildingKind::WorkShed { 2 } else { 1 };
+    let (width, height) = kind.dimensions();
     if position.x < 0
         || position.y < 0
         || position.x + width > ctx.session.world.width as i32

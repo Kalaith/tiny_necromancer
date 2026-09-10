@@ -70,3 +70,31 @@ fn shed_construction_adds_the_improved_shovel() {
     assert!(session.has_building(BuildingKind::WorkShed));
     assert_eq!(session.economy.shovels, before + 1);
 }
+
+#[test]
+fn kiln_is_gated_by_logistics_and_loads_its_recipe() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    assert!(queue_building(&mut session, &data, BuildingKind::OssuaryKiln).is_err());
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    queue_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_construction(&mut session, &data, 14.0);
+    assert!(session.has_building(BuildingKind::OssuaryKiln));
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    assert_eq!(session.economy.bones, 70);
+    assert_eq!(session.economy.wood, 70);
+    assert!(session.progress.production.is_some());
+}
+
+#[test]
+fn ward_charge_can_be_spent_to_quiet_suspicion() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.ward_charges = 2;
+    session.pressure.suspicion = 20.0;
+    use_ward_charge(&mut session).unwrap();
+    assert_eq!(session.economy.ward_charges, 1);
+    assert_eq!(session.pressure.suspicion, 12.0);
+}

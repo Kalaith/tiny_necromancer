@@ -3,8 +3,8 @@
 use crate::data::{GameData, SuspicionStage};
 use crate::engine::{self, corpses, jobs, progression, suspicion};
 use crate::state::{
-    BuildingKind, GamePhase, GameSession, SaveData, Selection, Technology, UndeadKind, Zone,
-    ZoneKind,
+    BuildingKind, GamePhase, GameSession, JobKind, ProductionOrder, SaveData, Selection,
+    Technology, UndeadKind, WorkerStatus, Zone, ZoneKind,
 };
 use crate::ui::{self, Panel, UiAction, UiContext};
 use macroquad::prelude::*;
@@ -85,6 +85,7 @@ impl Game {
             "menu" | "gameplay" | "scrolled" => {}
             "research" => self.prepare_capture_research(),
             "colony" => self.prepare_capture_colony(),
+            "production" => self.prepare_capture_production(),
             "placement" => {
                 self.panel = Panel::Build;
                 self.placement = Some(BuildingKind::WorkShed);
@@ -175,6 +176,7 @@ impl Game {
         self.session.economy.bones = 240;
         self.session.economy.mana = 120;
         self.session.economy.wood = 180;
+        self.session.economy.ward_charges = 3;
         self.session.progress.unlocked_plots = 6;
         for plot in &mut self.session.world.plots {
             plot.status = crate::state::PlotStatus::Dug;
@@ -196,6 +198,14 @@ impl Game {
                 width: 1,
                 height: 1,
             },
+            crate::state::Building {
+                kind: BuildingKind::OssuaryKiln,
+                progress: 14.0,
+                complete: true,
+                position: TilePos::new(6, 4),
+                width: 2,
+                height: 1,
+            },
         ];
         self.session.research.completed = vec![
             Technology::BindingRoutines,
@@ -208,6 +218,44 @@ impl Game {
         }
         self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
         self.panel = Panel::Zones;
+    }
+
+    fn prepare_capture_production(&mut self) {
+        self.session.economy.bones = 120;
+        self.session.economy.mana = 60;
+        self.session.economy.wood = 90;
+        self.session.economy.ward_charges = 2;
+        self.session.research.completed = vec![
+            Technology::BindingRoutines,
+            Technology::Gravecraft,
+            Technology::OssuaryLogistics,
+        ];
+        self.session.world.buildings = vec![
+            crate::state::Building {
+                kind: BuildingKind::WorkShed,
+                progress: 10.0,
+                complete: true,
+                position: TilePos::new(6, 2),
+                width: 2,
+                height: 2,
+            },
+            crate::state::Building {
+                kind: BuildingKind::OssuaryKiln,
+                progress: 14.0,
+                complete: true,
+                position: TilePos::new(6, 4),
+                width: 2,
+                height: 1,
+            },
+        ];
+        self.session.progress.production = Some(ProductionOrder {
+            building: BuildingKind::OssuaryKiln,
+            progress: 4.0,
+        });
+        self.session.workforce.workers[0].assignment = JobKind::Refine;
+        self.session.workforce.workers[0].status = WorkerStatus::Working;
+        self.session.workforce.workers[0].position = TilePos::new(5, 4);
+        self.session.world.selected = Some(Selection::Building(1));
     }
 
     pub fn update(&mut self, dt: f32) {
@@ -463,6 +511,14 @@ impl Game {
             }
             UiAction::StartResearch(technology) => {
                 let result = progression::start_research(&mut self.session, technology);
+                self.notify_result(result);
+            }
+            UiAction::StartProduction(kind) => {
+                let result = progression::start_production(&mut self.session, &self.data, kind);
+                self.notify_result(result);
+            }
+            UiAction::UseWardCharge => {
+                let result = progression::use_ward_charge(&mut self.session);
                 self.notify_result(result);
             }
             UiAction::TogglePanel(panel) => {

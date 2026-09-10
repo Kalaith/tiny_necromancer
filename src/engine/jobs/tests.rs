@@ -61,3 +61,39 @@ fn guarding_mitigates_suspicion_without_flooding_the_feed() {
     assert!(session.pressure.suspicion < 10.0);
     assert_eq!(session.pressure.feed.len(), feed_len);
 }
+
+#[test]
+fn refine_worker_completes_a_loaded_kiln_cycle() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    session.research.completed = vec![
+        crate::state::Technology::Gravecraft,
+        crate::state::Technology::OssuaryLogistics,
+    ];
+    crate::engine::progression::queue_building(
+        &mut session,
+        &data,
+        crate::state::BuildingKind::OssuaryKiln,
+    )
+    .unwrap();
+    crate::engine::progression::advance_construction(&mut session, &data, 14.0);
+    crate::engine::progression::start_production(
+        &mut session,
+        &data,
+        crate::state::BuildingKind::OssuaryKiln,
+    )
+    .unwrap();
+    session.workforce.workers[0].assignment = JobKind::Refine;
+    simulate(&mut session, &data, 8.0);
+    assert_eq!(session.economy.ward_charges, 1);
+    assert!(session.progress.production.is_none());
+}
+
+#[test]
+fn refine_order_requires_a_completed_kiln() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    assert!(assign_job(&mut session, JobKind::Refine).is_err());
+}

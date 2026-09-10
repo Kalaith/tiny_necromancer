@@ -29,7 +29,8 @@ stable command dock. The tone is secluded, strange, and quietly industrious.
 3. Raise skeletons and a Brute when a Notable corpse is found.
 4. Build the Work Shed and Grave Lantern and open more grave plots.
 5. Research the technology chain, then use the newly available controls.
-6. Keep suspicion below the configured victory limit while reaching the
+6. Build the Ossuary Kiln and assign a worker to refine ward charges.
+7. Keep suspicion below the configured victory limit while reaching the
    settlement milestone.
 
 ## 4. Player role and verbs
@@ -50,7 +51,8 @@ Bones, mana, and wood are the primary resources. `game_config.json` authors
 starting resources, mana capacity and regeneration, plot expansion costs,
 research durations, corpse discovery chance, victory targets, and suspicion
 thresholds. `buildings.json`, `undead.json`, and `jobs.json` author costs,
-work rates, capacities, suspicion effects, and construction effects.
+work rates, capacities, suspicion effects, construction effects, and the
+Ossuary Kiln's ward-charge recipe.
 
 The vertical-slice victory rule requires the configured undead and usable-plot
 targets, a complete Work Shed and Grave Lantern, a Brute, and suspicion below
@@ -58,8 +60,8 @@ the configured victory maximum.
 
 ### 5.2 Jobs and corpses
 
-Jobs are Dig, Haul, Guard, Wood, and Build. Each job reads its work time,
-output, speed, suspicion, and guard mitigation from `jobs.json`. Corpse quality
+Jobs are Dig, Haul, Guard, Wood, Build, and Refine. Each job reads its work
+time, output, speed, suspicion, and guard mitigation from `jobs.json`. Corpse quality
 bands and Brute eligibility live in `corpses.json`; resurrection recipes live
 in `undead.json`.
 
@@ -76,19 +78,20 @@ the player taps a choice.
 `SeededRng` is stored with the session and serialized into the versioned save.
 Saves use `save_to_slot_with_version` and
 `load_from_slot_with_migration`; legacy payloads receive deterministic defaults
-for positioned buildings, research, zones, and the necromancer.
+for positioned buildings, research, zones, production, ward charges, and the
+necromancer.
 
 ## 6. World and content inventory
 
 The current world is a 10 × 8 cemetery with six authored grave positions, a
-forest edge, a road, a mana source, a stockpile, one starting skeleton, two
+forest edge, a road, a mana source, a stockpile, one starting skeleton, three
 building types, four research technologies, three corpse qualities, and three
 zone types. A single sprite sheet supplies the necromancer, worker, and
 building silhouettes; missing textures fall back to an obvious placeholder.
 
-The planned colony expansion remains deliberately deferred: specialized
-production, district policy, larger populations, trade, farms, housing, and
-additional biomes are not part of the current victory slice.
+The kiln's first specialized production loop is playable, while district
+policy, larger populations, trade, farms, housing, and additional biomes remain
+deliberately deferred from the current victory slice.
 
 ## 7. UI and interaction flow
 

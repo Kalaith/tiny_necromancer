@@ -7,6 +7,11 @@ fn authored_data_loads_and_has_required_content() {
     assert!(data.jobs.contains("dig"));
     assert!(data.undead.contains("brute_skeleton"));
     assert!(data.buildings.contains("grave_lantern"));
+    assert!(data.jobs.contains("refine"));
+    assert!(data
+        .buildings
+        .get("ossuary_kiln")
+        .is_some_and(|building| building.production.is_some()));
     assert!(data
         .event_for_stage(SuspicionStage::Investigation)
         .is_some());
