@@ -84,43 +84,47 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
         JobKind::Dig => worker
             .target_plot
             .and_then(|plot_id| session.world.plots.get(plot_id))
-            .map(|plot| plot.position),
+            .map(|plot| plot.position)
+            .or_else(|| {
+                session
+                    .world
+                    .plots
+                    .iter()
+                    .find(|plot| plot.status == PlotStatus::Ready)
+                    .map(|plot| plot.position)
+            }),
         JobKind::Haul => {
             if worker.carrying > 0 {
-                Some(session.world.storage_position_for(worker.position))
+                Some(storage_destination(session, worker.position))
             } else if session.economy.loose_bones > 0 {
                 session
                     .economy
                     .loose_bones_source
                     .or_else(|| {
-                        session
+                        let dug = session
                             .world
                             .plots
                             .iter()
-                            .find(|plot| plot.status == PlotStatus::Dug)
+                            .filter(|plot| plot.status == PlotStatus::Dug)
                             .map(|plot| plot.position)
+                            .collect::<Vec<_>>();
+                        nearest_reachable_or_nearest(session, worker.position, dug)
                     })
                     .or(Some(WorldState::stockpile_position()))
             } else if session.economy.loose_wood > 0 {
-                session
-                    .economy
-                    .loose_wood_source
-                    .or_else(|| session.world.forest_tiles.first().copied())
+                session.economy.loose_wood_source.or_else(|| {
+                    nearest_reachable_or_nearest(
+                        session,
+                        worker.position,
+                        session.world.forest_tiles.clone(),
+                    )
+                })
             } else {
                 None
             }
         }
-        JobKind::Guard => Some(session.world.patrol_position_for(worker.position)),
-        JobKind::Wood => session
-            .world
-            .forest_tiles
-            .iter()
-            .filter(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
-            .min_by_key(|tile| {
-                (worker.position.x - tile.x).abs() + (worker.position.y - tile.y).abs()
-            })
-            .copied()
-            .or_else(|| session.world.forest_tiles.first().copied()),
+        JobKind::Guard => Some(patrol_destination(session, worker.position)),
+        JobKind::Wood => wood_destination(session, worker.position),
         JobKind::Build => session
             .world
             .buildings
@@ -134,6 +138,64 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
             .find(|building| building.kind == BuildingKind::OssuaryKiln && building.complete)
             .map(Building::work_position),
     }
+}
+
+fn nearest_reachable_or_nearest(
+    session: &GameSession,
+    origin: TilePos,
+    candidates: Vec<TilePos>,
+) -> Option<TilePos> {
+    navigation::nearest_reachable(session, origin, candidates.clone())
+        .or_else(|| nearest_tile(origin, candidates))
+}
+
+fn nearest_tile(origin: TilePos, candidates: Vec<TilePos>) -> Option<TilePos> {
+    candidates.into_iter().min_by_key(|tile| {
+        (
+            (origin.x - tile.x).abs() + (origin.y - tile.y).abs(),
+            tile.y,
+            tile.x,
+        )
+    })
+}
+
+fn storage_destination(session: &GameSession, origin: TilePos) -> TilePos {
+    let fallback = session.world.storage_position();
+    let candidates = session
+        .world
+        .zones
+        .iter()
+        .find(|zone| zone.kind == ZoneKind::Storage)
+        .map_or_else(|| vec![fallback], |zone| zone.tiles.clone());
+    nearest_reachable_or_nearest(session, origin, candidates).unwrap_or(fallback)
+}
+
+fn patrol_destination(session: &GameSession, origin: TilePos) -> TilePos {
+    let fallback = session.world.patrol_position();
+    let candidates = session
+        .world
+        .zones
+        .iter()
+        .find(|zone| zone.kind == ZoneKind::Patrol)
+        .map_or_else(|| vec![fallback], |zone| zone.tiles.clone());
+    nearest_reachable_or_nearest(session, origin, candidates)
+        .unwrap_or_else(|| session.world.patrol_position_for(origin))
+}
+
+fn wood_destination(session: &GameSession, origin: TilePos) -> Option<TilePos> {
+    let marked = session
+        .world
+        .forest_tiles
+        .iter()
+        .filter(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
+        .copied()
+        .collect::<Vec<_>>();
+    let candidates = if marked.is_empty() {
+        session.world.forest_tiles.clone()
+    } else {
+        marked
+    };
+    nearest_reachable_or_nearest(session, origin, candidates)
 }
 
 pub fn move_priority(
@@ -226,18 +288,9 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
         match job {
             JobKind::Guard => {
                 guards += 1;
-                let worker_position = session.workforce.workers[index].position;
-                let patrol = if session
-                    .world
-                    .zones
-                    .iter()
-                    .any(|zone| zone.kind == ZoneKind::Patrol)
-                {
-                    session.world.patrol_position_for(worker_position)
-                } else {
-                    session.world.patrol_position()
-                };
-                if move_worker_to(session, index, patrol) {
+                let patrol = destination_for_worker(session, &session.workforce.workers[index])
+                    .unwrap_or_else(|| WorldState::guard_position(session.world.road_x));
+                if move_worker_to(session, index, patrol) == WorkerMoveResult::Arrived {
                     let worker = &mut session.workforce.workers[index];
                     worker.status = WorkerStatus::Hiding;
                     worker.progress = 0.0;
@@ -276,7 +329,7 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
                     .find(|building| !building.complete)
                     .map(|building| building.work_position());
                 if let Some(target) = construction_target {
-                    if move_worker_to(session, index, target) {
+                    if move_worker_to(session, index, target) == WorkerMoveResult::Arrived {
                         session.workforce.workers[index].status = WorkerStatus::Working;
                         if let Some(message) =
                             progression::advance_construction(session, data, dt * worker_speed)
@@ -383,35 +436,7 @@ fn simulate_dig(
             .filter_map(|worker| worker.target_plot)
             .collect();
         let selected = session.world.selected_plot;
-        let selected_target = session
-            .world
-            .plots
-            .iter()
-            .find(|plot| {
-                plot.status == PlotStatus::Ready
-                    && !claimed.contains(&plot.id)
-                    && selected == Some(plot.id)
-            })
-            .map(|plot| plot.id);
-        let nearest_designated_target = session
-            .world
-            .plots
-            .iter()
-            .filter(|plot| {
-                plot.status == PlotStatus::Ready
-                    && !claimed.contains(&plot.id)
-                    && session.world.zone_contains(ZoneKind::Work, plot.position)
-            })
-            .min_by_key(|plot| tile_distance(worker_position, plot.position))
-            .map(|plot| plot.id);
-        let target_id = selected_target.or(nearest_designated_target).or_else(|| {
-            session
-                .world
-                .plots
-                .iter()
-                .find(|plot| plot.status == PlotStatus::Ready && !claimed.contains(&plot.id))
-                .map(|plot| plot.id)
-        });
+        let target_id = select_reachable_dig_target(session, worker_position, &claimed, selected);
         if let Some(target_id) = target_id {
             if let Some(plot) = session.world.plots.get_mut(target_id) {
                 plot.status = PlotStatus::Digging;
@@ -426,8 +451,13 @@ fn simulate_dig(
     let Some(plot_position) = session.world.plots.get(plot_id).map(|plot| plot.position) else {
         return;
     };
-    if !move_worker_to(session, index, plot_position) {
-        return;
+    match move_worker_to(session, index, plot_position) {
+        WorkerMoveResult::Arrived => {}
+        WorkerMoveResult::Walking => return,
+        WorkerMoveResult::Blocked => {
+            release_dig_target(session, index, plot_id);
+            return;
+        }
     }
     let district_speed =
         districts::work_speed_multiplier(session, &data.config.district_rules, plot_position);
@@ -463,6 +493,74 @@ fn simulate_dig(
     }
 }
 
+fn select_reachable_dig_target(
+    session: &GameSession,
+    origin: TilePos,
+    claimed: &[usize],
+    selected: Option<usize>,
+) -> Option<usize> {
+    if let Some(plot_id) = selected {
+        let selected_candidate = session.world.plots.iter().find(|plot| {
+            plot.id == plot_id && plot.status == PlotStatus::Ready && !claimed.contains(&plot.id)
+        });
+        if selected_candidate
+            .and_then(|plot| navigation::plan_route(session, origin, plot.position).ok())
+            .is_some()
+        {
+            return Some(plot_id);
+        }
+    }
+    let designated = session
+        .world
+        .plots
+        .iter()
+        .filter(|plot| {
+            plot.status == PlotStatus::Ready
+                && !claimed.contains(&plot.id)
+                && session.world.zone_contains(ZoneKind::Work, plot.position)
+        })
+        .map(|plot| (plot.id, plot.position))
+        .collect::<Vec<_>>();
+    reachable_plot_id(session, origin, &designated).or_else(|| {
+        let available = session
+            .world
+            .plots
+            .iter()
+            .filter(|plot| plot.status == PlotStatus::Ready && !claimed.contains(&plot.id))
+            .map(|plot| (plot.id, plot.position))
+            .collect::<Vec<_>>();
+        reachable_plot_id(session, origin, &available)
+    })
+}
+
+fn reachable_plot_id(
+    session: &GameSession,
+    origin: TilePos,
+    candidates: &[(usize, TilePos)],
+) -> Option<usize> {
+    let position = navigation::nearest_reachable(
+        session,
+        origin,
+        candidates.iter().map(|(_, position)| *position),
+    )?;
+    candidates
+        .iter()
+        .find(|(_, candidate)| *candidate == position)
+        .map(|(plot_id, _)| *plot_id)
+}
+
+fn release_dig_target(session: &mut GameSession, index: usize, plot_id: usize) {
+    if let Some(plot) = session.world.plots.get_mut(plot_id) {
+        if plot.status == PlotStatus::Digging {
+            plot.status = PlotStatus::Ready;
+            plot.progress = 0.0;
+        }
+    }
+    let worker = &mut session.workforce.workers[index];
+    worker.target_plot = None;
+    worker.progress = 0.0;
+}
+
 fn simulate_haul(
     session: &mut GameSession,
     data: &GameData,
@@ -482,19 +580,12 @@ fn simulate_haul(
         let (resource, source) = if session.economy.loose_bones > 0 {
             (
                 ResourceKind::Bones,
-                session
-                    .economy
-                    .loose_bones_source
-                    .or_else(|| nearest_dug_plot(session, index))
-                    .or(Some(WorldState::stockpile_position())),
+                destination_for_worker(session, &session.workforce.workers[index]),
             )
         } else if session.economy.loose_wood > 0 {
             (
                 ResourceKind::Wood,
-                session
-                    .economy
-                    .loose_wood_source
-                    .or_else(|| session.world.forest_tiles.first().copied()),
+                destination_for_worker(session, &session.workforce.workers[index]),
             )
         } else {
             session.workforce.workers[index].status = WorkerStatus::Idle;
@@ -506,7 +597,7 @@ fn simulate_haul(
             session.workforce.workers[index].status = WorkerStatus::Idle;
             return;
         };
-        if !move_worker_to(session, index, source) {
+        if move_worker_to(session, index, source) != WorkerMoveResult::Arrived {
             return;
         }
         let amount = match resource {
@@ -537,18 +628,9 @@ fn simulate_haul(
         worker.progress = 0.0;
         return;
     }
-    let worker_position = session.workforce.workers[index].position;
-    let storage_position = if session
-        .world
-        .zones
-        .iter()
-        .any(|zone| zone.kind == ZoneKind::Storage)
-    {
-        session.world.storage_position_for(worker_position)
-    } else {
-        session.world.storage_position()
-    };
-    if !move_worker_to(session, index, storage_position) {
+    let storage_position = destination_for_worker(session, &session.workforce.workers[index])
+        .unwrap_or_else(WorldState::stockpile_position);
+    if move_worker_to(session, index, storage_position) != WorkerMoveResult::Arrived {
         return;
     }
     let worker = &mut session.workforce.workers[index];
@@ -575,17 +657,6 @@ fn simulate_haul(
     }
 }
 
-fn nearest_dug_plot(session: &GameSession, index: usize) -> Option<TilePos> {
-    let worker_position = session.workforce.workers.get(index)?.position;
-    session
-        .world
-        .plots
-        .iter()
-        .filter(|plot| plot.status == PlotStatus::Dug)
-        .min_by_key(|plot| tile_distance(worker_position, plot.position))
-        .map(|plot| plot.position)
-}
-
 fn simulate_wood(
     session: &mut GameSession,
     data: &GameData,
@@ -595,16 +666,13 @@ fn simulate_wood(
     messages: &mut Vec<String>,
 ) {
     let job = data.jobs.get("wood").expect("validated wood job");
-    let worker_position = session.workforce.workers[index].position;
-    let work_position = session
-        .world
-        .forest_tiles
-        .iter()
-        .filter(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
-        .min_by_key(|tile| tile_distance(worker_position, **tile))
-        .copied()
-        .unwrap_or(session.world.forest_tiles[0]);
-    if !move_worker_to(session, index, work_position) {
+    let Some(work_position) = destination_for_worker(session, &session.workforce.workers[index])
+    else {
+        session.workforce.workers[index].status = WorkerStatus::Idle;
+        session.workforce.workers[index].progress = 0.0;
+        return;
+    };
+    if move_worker_to(session, index, work_position) != WorkerMoveResult::Arrived {
         return;
     }
     let district_speed =
@@ -623,10 +691,6 @@ fn simulate_wood(
         );
         messages.push(format!("Gathered {} loose wood.", job.output_amount));
     }
-}
-
-fn tile_distance(from: TilePos, to: TilePos) -> i32 {
-    (from.x - to.x).abs() + (from.y - to.y).abs()
 }
 
 fn simulate_refine(
@@ -652,7 +716,7 @@ fn simulate_refine(
         return;
     }
     let building_position = building.work_position();
-    if !move_worker_to(session, index, building_position) {
+    if move_worker_to(session, index, building_position) != WorkerMoveResult::Arrived {
         return;
     }
     session.workforce.workers[index].status = WorkerStatus::Working;
@@ -668,10 +732,17 @@ fn simulate_refine(
     }
 }
 
-fn move_worker_to(session: &mut GameSession, index: usize, target: TilePos) -> bool {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum WorkerMoveResult {
+    Arrived,
+    Walking,
+    Blocked,
+}
+
+fn move_worker_to(session: &mut GameSession, index: usize, target: TilePos) -> WorkerMoveResult {
     let current = session.workforce.workers[index].position;
     if current == target {
-        return true;
+        return WorkerMoveResult::Arrived;
     }
     if let Some(next) = navigation::next_step(session, current, target) {
         let worker = &mut session.workforce.workers[index];
@@ -682,12 +753,12 @@ fn move_worker_to(session: &mut GameSession, index: usize, target: TilePos) -> b
             WorkerStatus::Walking
         };
         worker.progress = 0.0;
-    } else {
-        let worker = &mut session.workforce.workers[index];
-        worker.status = WorkerStatus::Idle;
-        worker.progress = 0.0;
+        return WorkerMoveResult::Walking;
     }
-    false
+    let worker = &mut session.workforce.workers[index];
+    worker.status = WorkerStatus::Idle;
+    worker.progress = 0.0;
+    WorkerMoveResult::Blocked
 }
 
 #[cfg(test)]

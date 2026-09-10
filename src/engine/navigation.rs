@@ -71,6 +71,20 @@ pub fn plan_route(
     Err(RouteFailure::NoPath)
 }
 
+pub fn nearest_reachable<I>(session: &GameSession, from: TilePos, candidates: I) -> Option<TilePos>
+where
+    I: IntoIterator<Item = TilePos>,
+{
+    candidates
+        .into_iter()
+        .filter_map(|candidate| {
+            let route = plan_route(session, from, candidate).ok()?;
+            Some((route.step_count(), candidate))
+        })
+        .min_by_key(|(steps, tile)| (*steps, tile.y, tile.x))
+        .map(|(_, tile)| tile)
+}
+
 pub fn next_step(session: &GameSession, from: TilePos, target: TilePos) -> Option<TilePos> {
     if from == target {
         return Some(from);
