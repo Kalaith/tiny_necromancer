@@ -247,6 +247,33 @@ fn patrol_target_prefers_a_reachable_marked_post() {
 }
 
 #[test]
+fn idle_dig_preview_uses_a_reachable_grave() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let reachable = macroquad_toolkit::grid::TilePos::new(2, 3);
+    session.world.plots[0].status = PlotStatus::Locked;
+    session.world.plots[3].status = PlotStatus::Ready;
+    session.world.plots[4].status = PlotStatus::Ready;
+    session.world.plots[4].position = reachable;
+    session.world.selected_plot = Some(3);
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(crate::state::Building {
+            kind: crate::state::BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: macroquad_toolkit::grid::TilePos::new(3, y),
+            width: 1,
+            height: 1,
+        });
+    }
+
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        Some(reachable)
+    );
+}
+
+#[test]
 fn digging_skips_a_sealed_selected_grave() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
