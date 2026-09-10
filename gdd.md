@@ -110,10 +110,10 @@ visible ward-charge response. Marked Patrol posts report reachable Guard
 coverage, and an uncovered post becomes an actionable staffing alert.
 
 The current stewardship policy is persistent save data. Balanced respects the
-shared worker priority list, Secure brings Guard duty forward and responds at
-Rumour pressure, and Harvest brings Dig, Haul, and Wood forward when those
-orders are available. The policy affects only automated workers; direct orders
-remain authoritative.
+shared worker priority list, Secure brings Guard duty forward, staffs uncovered
+patrol posts, and responds at Rumour pressure, and Harvest brings Dig, Haul, and
+Wood forward when those orders are available. The policy affects only automated
+workers; direct orders remain authoritative.
 
 After Domain Stewardship, marked districts also carry small operational rules:
 Work tiles speed Dig and Wood work, Storage tiles increase a hauler's bundle,

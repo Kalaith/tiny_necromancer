@@ -23,7 +23,7 @@ impl StewardshipPolicy {
     pub fn description(self) -> &'static str {
         match self {
             Self::Balanced => "Respect the shared worker priority list.",
-            Self::Secure => "Move Guard ahead of other available duties.",
+            Self::Secure => "Move Guard ahead and staff uncovered patrol posts.",
             Self::Harvest => "Move material work ahead of other available duties.",
         }
     }

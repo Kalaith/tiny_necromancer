@@ -520,6 +520,10 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
 
 fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
     let mut available_jobs = Vec::new();
+    let patrol_gap = {
+        let coverage = patrol_coverage(session);
+        coverage.total_posts > coverage.covered_posts
+    };
     for priority in &session.workforce.priorities {
         let available = match priority {
             JobKind::Guard => {
@@ -530,6 +534,8 @@ fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
                         data.config.suspicion_thresholds[1]
                     };
                 session.pressure.suspicion >= threshold
+                    || (session.stewardship_policy == crate::state::StewardshipPolicy::Secure
+                        && patrol_gap)
             }
             JobKind::Haul => {
                 session.economy.loose_bones > 0
