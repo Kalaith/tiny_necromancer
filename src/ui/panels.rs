@@ -6,6 +6,7 @@ use super::orders::draw_orders_panel;
 use super::research::{draw_research_panel, draw_zones_panel};
 use super::{Panel, UiAction, UiContext};
 use crate::engine::alerts::{self, AlertSeverity};
+use crate::engine::districts;
 use crate::state::{BuildingKind, Selection, Technology, UndeadKind};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -294,6 +295,16 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
         0.0,
         dark::TEXT_DIM,
     );
+    draw_text_block(
+        &districts::ledger_summary(ctx.session),
+        rect.x + 24.0,
+        rect.y + 72.0,
+        rect.w - 48.0,
+        16.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
+    );
     if virtual_button(
         Rect::new(rect.right() - 96.0, rect.y + 14.0, 72.0, 44.0),
         "Close",
@@ -306,7 +317,7 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
     for (index, entry) in ctx.session.pressure.feed.iter().take(7).enumerate() {
         let row = Rect::new(
             rect.x + 24.0,
-            rect.y + 92.0 + index as f32 * 52.0,
+            rect.y + 96.0 + index as f32 * 52.0,
             632.0,
             44.0,
         );
