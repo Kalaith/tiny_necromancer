@@ -382,10 +382,11 @@ impl Game {
                         .is_unlocked(Technology::DomainStewardship)
                 {
                     self.session.stewardship_policy = self.session.stewardship_policy.next();
-                    self.session.add_feed(format!(
-                        "Stewardship policy: {}.",
-                        self.session.stewardship_policy.label()
-                    ));
+                    let policy = self.session.stewardship_policy.label();
+                    self.session
+                        .add_feed(format!("Stewardship policy: {policy}."));
+                    self.notifications
+                        .info(format!("Automated workers now follow {policy}."));
                 }
             }
             UiAction::TogglePanel(panel) => {
