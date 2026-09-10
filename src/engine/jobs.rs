@@ -302,19 +302,40 @@ fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) ->
     if candidates.is_empty() {
         return fallback;
     }
-    let guard_slot = session
+    let current_slot = guard_slot(session, worker_id);
+    let preferred = candidates[current_slot % candidates.len()];
+    if navigation::plan_route(session, origin, preferred).is_ok() {
+        return preferred;
+    }
+    let occupied = session
+        .workforce
+        .workers
+        .iter()
+        .filter(|worker| {
+            worker.assignment == JobKind::Guard
+                && worker.id != worker_id
+                && guard_slot(session, worker.id) < current_slot
+        })
+        .map(|worker| patrol_destination(session, worker.position, worker.id))
+        .collect::<Vec<_>>();
+    let unoccupied = candidates
+        .iter()
+        .copied()
+        .filter(|candidate| !occupied.contains(candidate))
+        .collect::<Vec<_>>();
+    nearest_reachable_or_nearest(session, origin, unoccupied)
+        .or_else(|| nearest_reachable_or_nearest(session, origin, candidates.clone()))
+        .unwrap_or_else(|| session.world.patrol_position_for(origin))
+}
+
+fn guard_slot(session: &GameSession, worker_id: u32) -> usize {
+    session
         .workforce
         .workers
         .iter()
         .filter(|worker| worker.assignment == JobKind::Guard)
         .position(|worker| worker.id == worker_id)
-        .unwrap_or(worker_id as usize);
-    let preferred = candidates[guard_slot % candidates.len()];
-    if navigation::plan_route(session, origin, preferred).is_ok() {
-        return preferred;
-    }
-    nearest_reachable_or_nearest(session, origin, candidates)
-        .unwrap_or_else(|| session.world.patrol_position_for(origin))
+        .unwrap_or(worker_id as usize)
 }
 
 fn zone_tiles(session: &GameSession, kind: ZoneKind) -> Vec<TilePos> {

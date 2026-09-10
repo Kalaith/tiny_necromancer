@@ -327,6 +327,47 @@ fn guard_route_names_its_marked_patrol_post() {
 }
 
 #[test]
+fn blocked_patrol_post_falls_back_to_an_unoccupied_reachable_post() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_post = macroquad_toolkit::grid::TilePos::new(5, 1);
+    let sealed_post = macroquad_toolkit::grid::TilePos::new(7, 1);
+    let alternate_post = macroquad_toolkit::grid::TilePos::new(5, 3);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Patrol,
+        tiles: vec![first_post, sealed_post, alternate_post],
+    });
+    session.workforce.workers[0].assignment = JobKind::Guard;
+    let mut second_worker = session.workforce.workers[0].clone();
+    second_worker.id = 9;
+    session.workforce.workers.push(second_worker);
+    for position in [
+        macroquad_toolkit::grid::TilePos::new(6, 1),
+        macroquad_toolkit::grid::TilePos::new(6, 2),
+        macroquad_toolkit::grid::TilePos::new(7, 0),
+        macroquad_toolkit::grid::TilePos::new(7, 2),
+    ] {
+        session.world.buildings.push(crate::state::Building {
+            kind: crate::state::BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position,
+            width: 1,
+            height: 1,
+        });
+    }
+
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        Some(first_post)
+    );
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[1]),
+        Some(alternate_post)
+    );
+}
+
+#[test]
 fn hauler_switches_to_a_reachable_loose_bone_source() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
