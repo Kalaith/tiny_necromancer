@@ -68,7 +68,7 @@ pub fn ledger_summary(session: &GameSession) -> String {
         return "Ledger: no marked district effect recorded yet.".to_owned();
     }
     format!(
-        "Ledger: Work {} cycle{} · Storage +{} haul · Patrol {:.1} quieted",
+        "Ledger: Work {} cycle{} · Storage +{} haul · Patrol -{:.1} suspicion",
         ledger.work_cycles,
         if ledger.work_cycles == 1 { "" } else { "s" },
         ledger.storage_bonus_items,
@@ -99,7 +99,7 @@ pub fn record_storage_bonus(session: &mut GameSession, amount: i32) {
         first
     };
     if first {
-        session.add_feed("Marked Storage gives a hauler extra room on its first drop.");
+        session.add_feed("Marked Storage gives a hauler extra room on its first pickup.");
     }
 }
 

@@ -126,7 +126,7 @@ fn district_ledger_records_effects_and_first_use_notes() {
     assert!((session.progress.district_ledger.patrol_quieting - 0.8).abs() < 0.001);
     assert_eq!(
         ledger_summary(&session),
-        "Ledger: Work 2 cycles · Storage +4 haul · Patrol 0.8 quieted"
+        "Ledger: Work 2 cycles · Storage +4 haul · Patrol -0.8 suspicion"
     );
     assert_eq!(session.pressure.feed.len(), 4);
     assert!(session
@@ -134,4 +134,9 @@ fn district_ledger_records_effects_and_first_use_notes() {
         .feed
         .iter()
         .any(|entry| entry.message.contains("marked Work")));
+    assert!(session
+        .pressure
+        .feed
+        .iter()
+        .any(|entry| entry.message.contains("first pickup")));
 }
