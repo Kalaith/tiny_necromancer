@@ -226,7 +226,14 @@ fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) ->
     if candidates.is_empty() {
         return fallback;
     }
-    let preferred = candidates[worker_id as usize % candidates.len()];
+    let guard_slot = session
+        .workforce
+        .workers
+        .iter()
+        .filter(|worker| worker.assignment == JobKind::Guard)
+        .position(|worker| worker.id == worker_id)
+        .unwrap_or(worker_id as usize);
+    let preferred = candidates[guard_slot % candidates.len()];
     if navigation::plan_route(session, origin, preferred).is_ok() {
         return preferred;
     }

@@ -247,7 +247,7 @@ fn patrol_target_prefers_a_reachable_marked_post() {
 }
 
 #[test]
-fn marked_patrol_posts_distribute_across_guard_workers() {
+fn marked_patrol_posts_follow_guard_roster_order() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
     let first_post = macroquad_toolkit::grid::TilePos::new(5, 1);
@@ -258,14 +258,14 @@ fn marked_patrol_posts_distribute_across_guard_workers() {
     });
     session.workforce.workers[0].assignment = JobKind::Guard;
     let mut second_worker = session.workforce.workers[0].clone();
-    second_worker.id = 2;
+    second_worker.id = 9;
     session.workforce.workers.push(second_worker);
 
     let first_destination = destination_for_worker(&session, &session.workforce.workers[0]);
     let second_destination = destination_for_worker(&session, &session.workforce.workers[1]);
 
-    assert_eq!(first_destination, Some(second_post));
-    assert_eq!(second_destination, Some(first_post));
+    assert_eq!(first_destination, Some(first_post));
+    assert_eq!(second_destination, Some(second_post));
 }
 
 #[test]
