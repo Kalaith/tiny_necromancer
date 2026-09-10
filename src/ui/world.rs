@@ -201,6 +201,7 @@ fn draw_zones(ctx: &UiContext<'_>, view: &GridView) {
     if !ctx.domain_overlays.zones {
         return;
     }
+    let mut patrol_post_index = 0;
     for zone in &ctx.session.world.zones {
         let color = match zone.kind {
             ZoneKind::Work => Color::new(0.27, 0.73, 0.62, 0.20),
@@ -211,12 +212,16 @@ fn draw_zones(ctx: &UiContext<'_>, view: &GridView) {
             let tile = view.tile_rect(*tile_pos).inset(3.0);
             draw_rectangle(tile.x, tile.y, tile.w, tile.h, color);
             draw_rectangle_lines(tile.x, tile.y, tile.w, tile.h, 1.0, color.with_alpha(0.55));
+            let label = match zone.kind {
+                ZoneKind::Work => "W".to_owned(),
+                ZoneKind::Storage => "S".to_owned(),
+                ZoneKind::Patrol => {
+                    patrol_post_index += 1;
+                    format!("P{patrol_post_index}")
+                }
+            };
             draw_text_centered_in_box(
-                match zone.kind {
-                    ZoneKind::Work => "W",
-                    ZoneKind::Storage => "S",
-                    ZoneKind::Patrol => "P",
-                },
+                &label,
                 tile.x,
                 tile.y + tile.h * 0.18,
                 tile.w,
