@@ -115,9 +115,10 @@ and command dock. Panels return `UiAction` intents; `Game` applies those intents
 to the session through the engine services.
 
 Selection is tap/click on an object or ground tile. A selected worker exposes
-job buttons and, after research, repeat priorities. A selected grave exposes
-dig and raise actions. Building placement previews footprint, collision, cost,
-and a textual failure reason, with **Cancel placement** always visible.
+job buttons, current destination, and, after research, repeat priorities. A
+selected grave exposes dig and raise actions. Building placement previews
+footprint, collision, cost, and a textual failure reason, with **Cancel
+placement** always visible.
 
 The Settlement View minimap echoes painted zones, structures, workers, the
 necromancer, and the current selection so the domain remains legible while

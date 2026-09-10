@@ -418,6 +418,30 @@ fn draw_worker_inspector(
             dark::TEXT_DIM
         },
     );
+    let destination = match worker.assignment {
+        JobKind::Dig => worker
+            .target_plot
+            .and_then(|plot_id| ctx.session.world.plots.get(plot_id))
+            .map_or_else(
+                || "next open grave".to_owned(),
+                |plot| format!("grave {:02}", plot.id + 1),
+            ),
+        JobKind::Haul => "nearest marked storage tile".to_owned(),
+        JobKind::Guard => "nearest marked patrol post".to_owned(),
+        JobKind::Wood => "nearest marked forest tile".to_owned(),
+        JobKind::Build => "unfinished structure".to_owned(),
+        JobKind::Refine => "Ossuary Kiln".to_owned(),
+    };
+    draw_text_block(
+        &format!("Destination · {destination}"),
+        panel.x + 18.0,
+        panel.y + 208.0,
+        panel.w - 36.0,
+        18.0,
+        12.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
     for (idx, job) in [
         JobKind::Dig,
         JobKind::Haul,
