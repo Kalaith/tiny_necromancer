@@ -158,7 +158,7 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
             .with_border(1.0, Color::new(0.56, 0.67, 0.60, 0.70)),
     );
     draw_text_block(
-        "WORK AREAS · tap a tool, then paint tiles",
+        "WORK AREAS · tap a tool, then paint or clear tiles",
         rect.x + 18.0,
         rect.y + 14.0,
         440.0,

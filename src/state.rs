@@ -142,6 +142,18 @@ pub struct Zone {
     pub tiles: Vec<TilePos>,
 }
 
+impl Zone {
+    pub fn toggle_tile(&mut self, tile: TilePos) -> bool {
+        if let Some(index) = self.tiles.iter().position(|marked| *marked == tile) {
+            self.tiles.remove(index);
+            true
+        } else {
+            self.tiles.push(tile);
+            false
+        }
+    }
+}
+
 impl BuildingKind {
     pub fn id(self) -> &'static str {
         match self {

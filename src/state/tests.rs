@@ -66,3 +66,16 @@ fn zone_helpers_expose_storage_and_patrol_anchors() {
     assert_eq!(session.world.patrol_position(), patrol);
     assert!(session.world.zone_contains(ZoneKind::Storage, storage));
 }
+
+#[test]
+fn zone_tiles_can_be_toggled_back_off() {
+    let tile = TilePos::new(4, 4);
+    let mut zone = Zone {
+        kind: ZoneKind::Work,
+        tiles: vec![tile],
+    };
+    assert!(zone.toggle_tile(tile));
+    assert!(zone.tiles.is_empty());
+    assert!(!zone.toggle_tile(tile));
+    assert_eq!(zone.tiles, vec![tile]);
+}

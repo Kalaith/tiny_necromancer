@@ -556,6 +556,8 @@ impl Game {
                 let Some(kind) = self.zone_mode else {
                     return;
                 };
+                let mut cleared = false;
+                let mut remove_zone = false;
                 if let Some(zone) = self
                     .session
                     .world
@@ -563,18 +565,21 @@ impl Game {
                     .iter_mut()
                     .find(|zone| zone.kind == kind)
                 {
-                    if !zone.tiles.contains(&tile) {
-                        zone.tiles.push(tile);
-                    }
+                    cleared = zone.toggle_tile(tile);
+                    remove_zone = zone.tiles.is_empty();
                 } else {
                     self.session.world.zones.push(Zone {
                         kind,
                         tiles: vec![tile],
                     });
                 }
+                if remove_zone {
+                    self.session.world.zones.retain(|zone| zone.kind != kind);
+                }
                 self.session.add_feed(format!(
-                    "{} zone marked at {}, {}.",
+                    "{} zone {} at {}, {}.",
                     kind.label(),
+                    if cleared { "cleared" } else { "marked" },
                     tile.x + 1,
                     tile.y + 1
                 ));
