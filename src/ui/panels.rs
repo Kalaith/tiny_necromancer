@@ -43,9 +43,10 @@ pub(super) fn draw_feed(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec
         0.0,
         dark::TEXT_DIM,
     );
+    let history_label = format!("History · {}", ctx.session.pressure.feed.len());
     if virtual_button(
         Rect::new(rect.right() - 88.0, rect.y + 4.0, 74.0, 44.0),
-        "History",
+        &history_label,
         true,
         ButtonTone::Secondary,
         pointer,
