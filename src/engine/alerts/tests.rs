@@ -159,3 +159,63 @@ fn patrol_coverage_alert_points_to_a_worker_for_the_next_post() {
     assert!(alert.detail.contains("1 of 2 marked posts covered"));
     assert_eq!(alert.target, Some(Selection::Worker(1)));
 }
+
+#[test]
+fn idle_work_district_points_to_a_marked_grave() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.plots[0].position],
+    });
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Work district idle")
+        .expect("idle work district should be reported");
+
+    assert_eq!(alert.severity, AlertSeverity::Info);
+    assert!(alert.detail.contains("assign Dig or Wood"));
+    assert_eq!(alert.target, Some(Selection::Grave(0)));
+}
+
+#[test]
+fn idle_work_district_points_to_a_marked_forest_tile() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    for plot in &mut session.world.plots {
+        plot.status = crate::state::PlotStatus::Locked;
+    }
+    let forest_tile = session.world.forest_tiles[2];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![forest_tile],
+    });
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Work district idle")
+        .expect("idle forest work district should be reported");
+
+    assert_eq!(alert.target, Some(Selection::Ground(forest_tile)));
+}
+
+#[test]
+fn assigned_dig_operator_clears_the_work_district_alert() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.workforce.workers[0].assignment = JobKind::Dig;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.plots[0].position],
+    });
+
+    assert!(!collect(&session, &data)
+        .iter()
+        .any(|alert| alert.title == "Work district idle"));
+}

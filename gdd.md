@@ -97,9 +97,12 @@ the player taps a choice.
 
 Operational alerts are derived from the same session state: unattended
 construction, loaded production without a Refine worker, loose materials
-without a Haul order, open graves without a Dig order, and questioning-level
-road pressure. Each alert is a touch target that selects its source so the
-player can move from diagnosis to an order without searching the map.
+without a Haul order, open graves without a Dig order, questioning-level
+road pressure, and idle marked Work districts with an available grave or
+forest tile but no Dig or Wood operator. Each alert is a touch target that
+selects its source so the player can move from diagnosis to an order without
+searching the map. The district advisory stays quiet until Domain Stewardship
+is unlocked and points to the first usable marked work tile.
 
 Domain Stewardship adds a dedicated readout for the settlement: bound workers,
 marked district tiles, ward charges, workforce activity, pressure stage, and
@@ -107,7 +110,9 @@ the latest pressure cause. Its touch controls independently show or hide zone
 marks, worker destination routes, and a road-pressure watch overlay. The panel
 also offers a source-selection target for the first active blocker and a
 visible ward-charge response. Marked Patrol posts report reachable Guard
-coverage, and an uncovered post becomes an actionable staffing alert.
+coverage, and an uncovered post becomes an actionable staffing alert. Marked
+Work tiles likewise become an actionable staffing advisory when they have work
+available but no Dig or Wood operator.
 
 The current stewardship policy is persistent save data. Balanced respects the
 shared worker priority list, Secure brings Guard duty forward, staffs uncovered

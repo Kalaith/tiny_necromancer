@@ -43,6 +43,7 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
     collect_pressure_alert(session, data, &mut alerts);
     collect_route_alert(session, &mut alerts);
     collect_patrol_coverage_alert(session, &mut alerts);
+    collect_work_district_alert(session, &mut alerts);
     collect_construction_alert(session, &mut alerts);
     collect_production_alert(session, &mut alerts);
     collect_material_alert(session, &mut alerts);
@@ -113,6 +114,57 @@ fn collect_patrol_coverage_alert(session: &GameSession, alerts: &mut Vec<Operati
             if gaps == 1 { "" } else { "s" }
         ),
         target,
+    ));
+}
+
+fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
+    if !session.research.is_unlocked(Technology::DomainStewardship) {
+        return;
+    }
+    let has_work_zone = session
+        .world
+        .zones
+        .iter()
+        .any(|zone| zone.kind == crate::state::ZoneKind::Work && !zone.tiles.is_empty());
+    if !has_work_zone
+        || session
+            .workforce
+            .workers
+            .iter()
+            .any(|worker| matches!(worker.assignment, JobKind::Dig | JobKind::Wood))
+    {
+        return;
+    }
+    let grave_target = session
+        .world
+        .plots
+        .iter()
+        .find(|plot| {
+            plot.status == PlotStatus::Ready
+                && session
+                    .world
+                    .zone_contains(crate::state::ZoneKind::Work, plot.position)
+        })
+        .map(|plot| Selection::Grave(plot.id));
+    let forest_target = session
+        .world
+        .forest_tiles
+        .iter()
+        .find(|tile| {
+            session
+                .world
+                .zone_contains(crate::state::ZoneKind::Work, **tile)
+        })
+        .copied()
+        .map(Selection::Ground);
+    let Some(target) = grave_target.or(forest_target) else {
+        return;
+    };
+    alerts.push(OperationalAlert::new(
+        AlertSeverity::Info,
+        "Work district idle",
+        "Marked Work tiles have available labour · assign Dig or Wood.",
+        Some(target),
     ));
 }
 

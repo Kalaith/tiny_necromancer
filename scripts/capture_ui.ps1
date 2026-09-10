@@ -22,6 +22,7 @@ param(
         "colony",
         "domain",
         "patrol-gap",
+        "work-gap",
         "route-blocked",
         "route-domain",
         "notes",

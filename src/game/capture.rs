@@ -36,6 +36,7 @@ impl Game {
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
             "patrol-gap" => self.prepare_capture_patrol_gap(),
+            "work-gap" => self.prepare_capture_work_gap(),
             "route-blocked" => self.prepare_capture_route_blocked(),
             "route-domain" => self.prepare_capture_route_domain(),
             "notes" => self.prepare_capture_notes(),
@@ -252,6 +253,25 @@ impl Game {
             worker.assignment = JobKind::Dig;
             worker.status = WorkerStatus::Idle;
         }
+    }
+
+    fn prepare_capture_work_gap(&mut self) {
+        self.prepare_capture_colony();
+        self.panel = Panel::None;
+        self.zone_mode = None;
+        self.session.pressure.suspicion = 0.0;
+        self.session.pressure.stage = SuspicionStage::Calm;
+        self.session.pressure.last_reason =
+            "A marked work district is waiting for its first operator.".to_owned();
+        self.session
+            .world
+            .zones
+            .retain(|zone| zone.kind != ZoneKind::Patrol);
+        for worker in &mut self.session.workforce.workers {
+            worker.assignment = JobKind::Haul;
+            worker.status = WorkerStatus::Idle;
+        }
+        self.session.world.selected = Some(Selection::Ground(TilePos::new(0, 3)));
     }
 
     fn prepare_capture_route_blocked(&mut self) {
