@@ -135,15 +135,17 @@ pub(super) fn draw_minimap(ctx: &UiContext<'_>) {
             );
         }
     }
-    for zone in &ctx.session.world.zones {
-        let color = match zone.kind {
-            crate::state::ZoneKind::Work => Color::new(0.24, 0.72, 0.58, 0.75),
-            crate::state::ZoneKind::Storage => Color::new(0.88, 0.62, 0.24, 0.82),
-            crate::state::ZoneKind::Patrol => Color::new(0.42, 0.58, 0.92, 0.82),
-        };
-        for tile in &zone.tiles {
-            let marker = minimap_tile_rect(rect, sx, sy, *tile);
-            draw_rectangle(marker.x, marker.y, marker.w, marker.h, color);
+    if ctx.domain_overlays.zones {
+        for zone in &ctx.session.world.zones {
+            let color = match zone.kind {
+                crate::state::ZoneKind::Work => Color::new(0.24, 0.72, 0.58, 0.75),
+                crate::state::ZoneKind::Storage => Color::new(0.88, 0.62, 0.24, 0.82),
+                crate::state::ZoneKind::Patrol => Color::new(0.42, 0.58, 0.92, 0.82),
+            };
+            for tile in &zone.tiles {
+                let marker = minimap_tile_rect(rect, sx, sy, *tile);
+                draw_rectangle(marker.x, marker.y, marker.w, marker.h, color);
+            }
         }
     }
     for building in &ctx.session.world.buildings {
