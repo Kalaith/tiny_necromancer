@@ -294,23 +294,15 @@ impl WorldState {
     }
 
     pub fn storage_position(&self) -> TilePos {
-        if self.zones.iter().any(|zone| zone.kind == ZoneKind::Storage) {
-            self.storage_position_for(Self::stockpile_position())
-        } else {
-            self.zone_anchor(ZoneKind::Storage, Self::stockpile_position())
-        }
+        self.storage_position_for(Self::stockpile_position())
     }
 
     pub fn storage_position_for(&self, origin: TilePos) -> TilePos {
         self.zones
             .iter()
-            .find(|zone| zone.kind == ZoneKind::Storage)
-            .and_then(|zone| {
-                zone.tiles
-                    .iter()
-                    .min_by_key(|tile| tile_distance(origin, **tile))
-                    .copied()
-            })
+            .filter(|zone| zone.kind == ZoneKind::Storage)
+            .flat_map(|zone| zone.tiles.iter().copied())
+            .min_by_key(|tile| tile_distance(origin, *tile))
             .unwrap_or_else(Self::stockpile_position)
     }
 
@@ -321,13 +313,9 @@ impl WorldState {
     pub fn patrol_position_for(&self, origin: TilePos) -> TilePos {
         self.zones
             .iter()
-            .find(|zone| zone.kind == ZoneKind::Patrol)
-            .and_then(|zone| {
-                zone.tiles
-                    .iter()
-                    .min_by_key(|tile| tile_distance(origin, **tile))
-                    .copied()
-            })
+            .filter(|zone| zone.kind == ZoneKind::Patrol)
+            .flat_map(|zone| zone.tiles.iter().copied())
+            .min_by_key(|tile| tile_distance(origin, *tile))
             .unwrap_or_else(|| Self::guard_position(self.road_x))
     }
 

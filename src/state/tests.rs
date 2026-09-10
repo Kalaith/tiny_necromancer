@@ -70,6 +70,38 @@ fn zone_helpers_expose_storage_and_patrol_anchors() {
 }
 
 #[test]
+fn zone_helpers_search_all_marked_districts() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let near_storage = TilePos::new(5, 5);
+    let near_patrol = TilePos::new(5, 1);
+    session.world.zones = vec![
+        Zone {
+            kind: ZoneKind::Storage,
+            tiles: vec![TilePos::new(1, 1)],
+        },
+        Zone {
+            kind: ZoneKind::Storage,
+            tiles: vec![near_storage],
+        },
+        Zone {
+            kind: ZoneKind::Patrol,
+            tiles: vec![TilePos::new(1, 6)],
+        },
+        Zone {
+            kind: ZoneKind::Patrol,
+            tiles: vec![near_patrol],
+        },
+    ];
+
+    assert_eq!(
+        session.world.storage_position_for(near_storage),
+        near_storage
+    );
+    assert_eq!(session.world.patrol_position_for(near_patrol), near_patrol);
+}
+
+#[test]
 fn zone_tiles_can_be_toggled_back_off() {
     let tile = TilePos::new(4, 4);
     let mut zone = Zone {
