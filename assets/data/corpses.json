@@ -1,0 +1,5 @@
+[
+  { "id": "poor", "name": "Poor", "min_integrity": 0.0, "min_strength": 0.0, "brute_eligible": false, "description": "Mostly useful as bones; the ritual will make an ordinary skeleton." },
+  { "id": "sound", "name": "Sound", "min_integrity": 0.45, "min_strength": 0.4, "brute_eligible": false, "description": "A sturdy find with a reliable magical echo." },
+  { "id": "notable", "name": "Notable", "min_integrity": 0.75, "min_strength": 0.7, "brute_eligible": true, "description": "A remarkable body capable of becoming a Brute Skeleton." }
+]

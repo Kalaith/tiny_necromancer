@@ -1,0 +1,4 @@
+[
+  { "id": "skeleton", "name": "Skeleton", "bones_cost": 18, "mana_cost": 8, "work_speed": 1.0, "haul_capacity": 8, "conspicuousness": 0.6, "description": "Cheap, reliable, and willing to do every basic job." },
+  { "id": "brute_skeleton", "name": "Brute Skeleton", "bones_cost": 30, "mana_cost": 14, "work_speed": 1.25, "haul_capacity": 16, "conspicuousness": 1.8, "description": "A notable corpse made excellent at digging and hauling." }
+]

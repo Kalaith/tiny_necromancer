@@ -1,0 +1,7 @@
+[
+  { "id": "dig", "name": "Dig Graves", "description": "Excavate a plot for bones and the occasional corpse.", "work_seconds": 8.0, "output_amount": 8, "base_speed": 1.0, "suspicion_per_cycle": 2.2, "guard_mitigation_per_second": 0.0 },
+  { "id": "haul", "name": "Haul", "description": "Carry loose materials into the hidden stockpile.", "work_seconds": 4.0, "output_amount": 8, "base_speed": 1.0, "suspicion_per_cycle": 0.1, "guard_mitigation_per_second": 0.0 },
+  { "id": "guard", "name": "Guard / Hide", "description": "Keep workers away from the road and calm suspicion.", "work_seconds": 1.0, "output_amount": 0, "base_speed": 1.0, "suspicion_per_cycle": 0.0, "guard_mitigation_per_second": 1.2 },
+  { "id": "wood", "name": "Gather Wood", "description": "Collect timber from the cemetery edge.", "work_seconds": 7.0, "output_amount": 5, "base_speed": 1.0, "suspicion_per_cycle": 0.8, "guard_mitigation_per_second": 0.0 },
+  { "id": "build", "name": "Build", "description": "Raise the next construction order.", "work_seconds": 1.0, "output_amount": 0, "base_speed": 1.0, "suspicion_per_cycle": 0.2, "guard_mitigation_per_second": 0.0 }
+]

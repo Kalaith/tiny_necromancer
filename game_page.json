@@ -1,0 +1,43 @@
+{
+  "title": "Tiny Necromancer",
+  "wasm": "tiny_necromancer",
+  "roost_slug": "rust_tiny_necromancer",
+  "status": {
+    "text": "Playable",
+    "class": "playable"
+  },
+  "controls_hint": "Tap NEW GAME to enter the cemetery",
+  "canvas_rendering": "pixelated",
+  "layout": "viewport",
+  "about": [
+    "Build a hidden cemetery, raise undead workers, and keep suspicion below the road's notice."
+  ],
+  "controls": [
+    {
+      "key": "Tap / Click",
+      "desc": "Start a run, select graves and workers, and use visible commands"
+    },
+    {
+      "key": "Tap CANCEL PLACEMENT",
+      "desc": "Leave building placement without spending resources"
+    },
+    {
+      "key": "Right-drag / Wheel",
+      "desc": "Pan and zoom the cemetery on desktop"
+    }
+  ],
+  "details": [
+    {
+      "label": "Genre",
+      "value": "Cemetery Colony Builder"
+    },
+    {
+      "label": "Engine",
+      "value": "Macroquad + Toolkit"
+    },
+    {
+      "label": "Platform",
+      "value": "Browser, Windows"
+    }
+  ]
+}

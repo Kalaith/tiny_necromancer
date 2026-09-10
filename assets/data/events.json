@@ -1,0 +1,32 @@
+[
+  {
+    "id": "rumour",
+    "stage": "rumour",
+    "title": "Rumour at the hedge",
+    "body": "A farmer swears the cemetery made a shovelling sound after midnight. The road is still quiet, but people are listening.",
+    "choices": [
+      { "id": "hide", "label": "Hide the workers", "description": "Send everyone to cover for a moment.", "suspicion_delta": -8.0, "bones_delta": 0, "mana_delta": 0, "wood_delta": 0, "pause_digging": false },
+      { "id": "pause", "label": "Pause digging", "description": "Lose a little momentum while the rumour cools.", "suspicion_delta": -4.0, "bones_delta": -2, "mana_delta": 0, "wood_delta": 0, "pause_digging": true }
+    ]
+  },
+  {
+    "id": "questioning",
+    "stage": "questioning",
+    "title": "Questions by the road",
+    "body": "A villager points at the fresh earth and asks why the ground keeps moving. Your answer will set the tone for the next few minutes.",
+    "choices": [
+      { "id": "ward", "label": "Spend mana on a ward", "description": "A soft green light makes the cemetery look peaceful.", "suspicion_delta": -14.0, "bones_delta": 0, "mana_delta": -6, "wood_delta": 0, "pause_digging": false },
+      { "id": "hide", "label": "Hide and wait", "description": "Keep the operation still until the question passes.", "suspicion_delta": -8.0, "bones_delta": 0, "mana_delta": 0, "wood_delta": 0, "pause_digging": true }
+    ]
+  },
+  {
+    "id": "investigation",
+    "stage": "investigation",
+    "title": "The boundary is watched",
+    "body": "A priest and a local official have reached the road boundary. They have not entered, but every noisy job now matters.",
+    "choices": [
+      { "id": "accept", "label": "Accept the setback", "description": "Give up materials and keep the peace.", "suspicion_delta": -18.0, "bones_delta": -8, "mana_delta": 0, "wood_delta": -5, "pause_digging": true },
+      { "id": "ward", "label": "Raise the lantern ward", "description": "Spend mana to make the cemetery feel forgotten.", "suspicion_delta": -10.0, "bones_delta": 0, "mana_delta": -10, "wood_delta": 0, "pause_digging": false }
+    ]
+  }
+]

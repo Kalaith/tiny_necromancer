@@ -1,0 +1,4 @@
+[
+  { "id": "work_shed", "name": "Work Shed", "bones_cost": 8, "mana_cost": 0, "wood_cost": 18, "build_seconds": 10.0, "speed_multiplier": 1.2, "suspicion_multiplier": 1.0, "suspicion_delta": 3.0, "effect_text": "Tools improve job throughput by 20%." },
+  { "id": "grave_lantern", "name": "Grave Lantern", "bones_cost": 10, "mana_cost": 8, "wood_cost": 12, "build_seconds": 12.0, "speed_multiplier": 1.0, "suspicion_multiplier": 0.65, "suspicion_delta": 2.0, "effect_text": "Wards reduce supernatural suspicion and steady resurrection." }
+]

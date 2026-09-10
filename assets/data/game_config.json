@@ -1,0 +1,30 @@
+{
+  "game_name": "tiny_necromancer",
+  "display_name": "Tiny Necromancer",
+  "save_slot": "graveyard",
+  "version": "3.0.0",
+  "world_width": 10,
+  "world_height": 8,
+  "tick_seconds": 0.5,
+  "starting_bones": 54,
+  "starting_mana": 16,
+  "starting_wood": 12,
+  "max_mana": 99,
+  "worker_wood_reserve": 24,
+  "starting_unlocked_plots": 1,
+  "starting_seed": 87431,
+  "mana_regen_per_second": 0.35,
+  "corpse_discovery_chance": 0.28,
+  "victory_undead": 5,
+  "victory_plots": 6,
+  "victory_suspicion_max": 70.0,
+  "suspicion_thresholds": [25.0, 50.0, 70.0],
+  "plot_unlock_base_wood": 6,
+  "plot_unlock_step_wood": 2,
+  "research_durations": {
+    "binding_routines": 6.0,
+    "gravecraft": 10.0,
+    "ossuary_logistics": 14.0,
+    "domain_stewardship": 18.0
+  }
+}

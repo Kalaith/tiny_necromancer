@@ -1,0 +1,558 @@
+//! Runtime orchestration: input intents, simulation ticks, persistence, and feedback.
+
+use crate::data::{GameData, SuspicionStage};
+use crate::engine::{self, corpses, jobs, progression, suspicion};
+use crate::state::{
+    BuildingKind, GamePhase, GameSession, SaveData, Selection, Technology, UndeadKind, Zone,
+    ZoneKind,
+};
+use crate::ui::{self, Panel, UiAction, UiContext};
+use macroquad::prelude::*;
+use macroquad_toolkit::assets::AssetManager;
+use macroquad_toolkit::camera::{CameraBounds, CameraBoundsPolicy, CameraTransform};
+use macroquad_toolkit::events::EventBus;
+use macroquad_toolkit::grid::TilePos;
+use macroquad_toolkit::notifications::{
+    NotificationAnchor, NotificationManager, NotificationRenderConfig,
+};
+use macroquad_toolkit::persistence::{
+    load_from_slot_with_migration, save_to_slot_with_version, slot_exists,
+};
+use macroquad_toolkit::prelude::{begin_virtual_ui_frame, dark, end_virtual_ui_frame, InputState};
+use macroquad_toolkit::ui::VirtualUi;
+
+pub struct Game {
+    data: GameData,
+    session: GameSession,
+    assets: AssetManager,
+    notifications: NotificationManager,
+    camera: CameraTransform,
+    camera_drag: Option<Vec2>,
+    events: EventBus<UiAction>,
+    save_exists: bool,
+    tick_accumulator: f32,
+    panel: Panel,
+    placement: Option<BuildingKind>,
+    zone_mode: Option<ZoneKind>,
+}
+
+impl Game {
+    pub async fn new() -> Self {
+        let data = GameData::load()
+            .unwrap_or_else(|error| panic!("Tiny Necromancer data failed validation: {error}"));
+        let mut assets = AssetManager::new();
+        let placeholder = Image::gen_image_color(16, 16, Color::new(0.22, 0.12, 0.28, 1.0));
+        assets.set_placeholder_texture_direct(Texture2D::from_image(&placeholder));
+        let loaded_assets = assets.load_texture_configs(&data.texture_manifest).await;
+        let mut notifications = NotificationManager::new();
+        notifications.info(format!(
+            "Cemetery ready; {loaded_assets} authored textures loaded"
+        ));
+        let session = GameSession::new(&data.config);
+        let camera = CameraTransform::new(Vec2::ZERO, 1.0).expect("valid initial camera");
+        let mut game = Self {
+            data,
+            session,
+            assets,
+            notifications,
+            camera,
+            camera_drag: None,
+            events: EventBus::new(),
+            save_exists: false,
+            tick_accumulator: 0.0,
+            panel: Panel::None,
+            placement: None,
+            zone_mode: None,
+        };
+        game.refresh_save_state();
+        game
+    }
+
+    pub fn begin_capture_scene(&mut self, scene: &str) {
+        self.session = GameSession::new(&self.data.config);
+        if scene != "menu" {
+            self.session.begin();
+        }
+        self.notifications.clear();
+        self.events.drain().for_each(drop);
+        self.tick_accumulator = 0.0;
+        self.camera = CameraTransform::new(Vec2::ZERO, 1.0).expect("valid initial camera");
+        self.camera_drag = None;
+        self.panel = Panel::None;
+        self.placement = None;
+        self.zone_mode = None;
+        match scene {
+            "menu" | "gameplay" | "scrolled" => {}
+            "research" => self.prepare_capture_research(),
+            "colony" => self.prepare_capture_colony(),
+            "placement" => {
+                self.panel = Panel::Build;
+                self.placement = Some(BuildingKind::WorkShed);
+            }
+            "paused" => self.session.phase = GamePhase::Paused,
+            "event" => {
+                self.session.pressure.suspicion = self.data.config.suspicion_thresholds[0];
+                self.session.pressure.stage = SuspicionStage::Rumour;
+                self.session.pressure.active_event = Some("rumour".to_owned());
+            }
+            "victory" => self.prepare_capture_victory(),
+            "zoomed" => {
+                self.camera.zoom_at(
+                    ui::world_grid_rect(),
+                    ui::world_grid_rect().center(),
+                    1.25,
+                    (0.75, 1.5),
+                );
+                self.camera.pan_screen(vec2(20.0, -12.0));
+            }
+            other => panic!("Unknown Tiny Necromancer capture scene: {other}"),
+        }
+    }
+
+    fn prepare_capture_victory(&mut self) {
+        self.session.economy.bones = 160;
+        self.session.economy.mana = 80;
+        self.session.progress.unlocked_plots = 6;
+        for plot in &mut self.session.world.plots {
+            plot.status = crate::state::PlotStatus::Dug;
+        }
+        self.session.world.buildings = vec![
+            crate::state::Building {
+                kind: BuildingKind::WorkShed,
+                progress: 10.0,
+                complete: true,
+                position: crate::state::default_building_position_for_kind(BuildingKind::WorkShed),
+                width: 2,
+                height: 2,
+            },
+            crate::state::Building {
+                kind: BuildingKind::GraveLantern,
+                progress: 12.0,
+                complete: true,
+                position: crate::state::default_building_position_for_kind(
+                    BuildingKind::GraveLantern,
+                ),
+                width: 1,
+                height: 1,
+            },
+        ];
+        self.session.economy.corpses.push(crate::state::Corpse {
+            id: 1,
+            integrity: 0.9,
+            strength: 0.86,
+            skill: 0.9,
+            magical_residue: 0.95,
+            cause_of_death: "old battlefield wound".to_owned(),
+            quality: crate::state::CorpseQuality::Notable,
+        });
+        for _ in 0..3 {
+            let _ = corpses::raise(&mut self.session, &self.data, UndeadKind::Skeleton);
+        }
+        let _ = corpses::raise(&mut self.session, &self.data, UndeadKind::BruteSkeleton);
+        self.session.pressure.suspicion = 44.0;
+        self.session.phase = GamePhase::Victory;
+    }
+
+    fn prepare_capture_research(&mut self) {
+        self.session.economy.bones = 120;
+        self.session.economy.mana = 60;
+        self.session.economy.wood = 70;
+        self.session.world.buildings = vec![crate::state::Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: crate::state::default_building_position_for_kind(BuildingKind::WorkShed),
+            width: 2,
+            height: 2,
+        }];
+        self.session.research.current = Some(Technology::BindingRoutines);
+        self.session.research.progress = 2.0;
+        self.session.world.selected = Some(Selection::Building(0));
+        self.panel = Panel::Research;
+    }
+
+    fn prepare_capture_colony(&mut self) {
+        self.session.economy.bones = 240;
+        self.session.economy.mana = 120;
+        self.session.economy.wood = 180;
+        self.session.progress.unlocked_plots = 6;
+        for plot in &mut self.session.world.plots {
+            plot.status = crate::state::PlotStatus::Dug;
+        }
+        self.session.world.buildings = vec![
+            crate::state::Building {
+                kind: BuildingKind::WorkShed,
+                progress: 10.0,
+                complete: true,
+                position: TilePos::new(6, 2),
+                width: 2,
+                height: 2,
+            },
+            crate::state::Building {
+                kind: BuildingKind::GraveLantern,
+                progress: 12.0,
+                complete: true,
+                position: TilePos::new(7, 6),
+                width: 1,
+                height: 1,
+            },
+        ];
+        self.session.research.completed = vec![
+            Technology::BindingRoutines,
+            Technology::Gravecraft,
+            Technology::OssuaryLogistics,
+            Technology::DomainStewardship,
+        ];
+        for _ in 0..5 {
+            let _ = corpses::raise(&mut self.session, &self.data, UndeadKind::Skeleton);
+        }
+        self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
+        self.panel = Panel::Zones;
+    }
+
+    pub fn update(&mut self, dt: f32) {
+        let frame_dt = dt.min(0.1);
+        let input = InputState::capture();
+        if input.escape_pressed {
+            if self.placement.is_some() || self.zone_mode.is_some() {
+                self.events.push(UiAction::CancelPlacement);
+            } else if self.panel != Panel::None {
+                self.events.push(UiAction::TogglePanel(Panel::None));
+            } else {
+                self.events.push(UiAction::TogglePause);
+            }
+        }
+        if is_key_pressed(KeyCode::S) {
+            self.events.push(UiAction::Save);
+        }
+        if is_key_pressed(KeyCode::L) {
+            self.events.push(UiAction::Load);
+        }
+        self.update_camera();
+        for action in self.events.drain().collect::<Vec<_>>() {
+            self.apply_action(action);
+        }
+        if self.session.phase == GamePhase::Playing && self.session.pressure.active_event.is_none()
+        {
+            self.tick_accumulator += frame_dt;
+            while self.tick_accumulator >= self.data.config.tick_seconds {
+                self.tick_accumulator -= self.data.config.tick_seconds;
+                let report = engine::simulate_tick(
+                    &mut self.session,
+                    &self.data,
+                    self.data.config.tick_seconds,
+                );
+                for message in report.messages {
+                    self.notifications.info(message);
+                }
+                if report.became_victorious {
+                    self.notifications
+                        .success("The tiny operation has reached its finish line.");
+                }
+            }
+        }
+        self.notifications.update(frame_dt);
+    }
+
+    fn update_camera(&mut self) {
+        let viewport = VirtualUi::new(ui::LOGICAL_WIDTH, ui::LOGICAL_HEIGHT);
+        let mouse = viewport.mouse_position();
+        let rect = ui::world_grid_rect();
+        if rect.contains(mouse) {
+            if is_mouse_button_pressed(MouseButton::Right) {
+                self.camera_drag = Some(mouse);
+            }
+            if is_mouse_button_down(MouseButton::Right) {
+                if let Some(last) = self.camera_drag.replace(mouse) {
+                    self.camera.pan_screen(mouse - last);
+                }
+            } else {
+                self.camera_drag = None;
+            }
+            let wheel = mouse_wheel().1;
+            if wheel != 0.0 {
+                self.camera
+                    .zoom_at(rect, mouse, 1.1_f32.powf(wheel), (0.75, 1.5));
+            }
+        } else {
+            self.camera_drag = None;
+        }
+        self.camera.constrain(
+            rect,
+            CameraBounds::new(vec2(-80.0, -60.0), vec2(80.0, 60.0)),
+            CameraBoundsPolicy::TargetInside,
+        );
+    }
+
+    pub fn draw(&mut self) {
+        clear_background(dark::BACKGROUND);
+        let virtual_ui = begin_virtual_ui_frame(ui::LOGICAL_WIDTH, ui::LOGICAL_HEIGHT);
+        let ctx = UiContext {
+            data: &self.data,
+            session: &self.session,
+            save_exists: self.save_exists,
+            camera: self.camera,
+            ui: &virtual_ui,
+            sprites: self.assets.get_texture("cemetery_sprites"),
+            panel: self.panel,
+            placement: self.placement,
+            zone_mode: self.zone_mode,
+        };
+        for action in ui::draw_game_ui(ctx) {
+            self.events.push(action);
+        }
+        end_virtual_ui_frame();
+        self.notifications
+            .draw_with_config(&NotificationRenderConfig {
+                anchor: NotificationAnchor::TopRight,
+                ..Default::default()
+            });
+        let _ = self.assets.len();
+    }
+
+    fn apply_action(&mut self, action: UiAction) {
+        match action {
+            UiAction::NewGame => {
+                self.session = GameSession::new(&self.data.config);
+                self.session.begin();
+                self.tick_accumulator = 0.0;
+                self.panel = Panel::None;
+                self.placement = None;
+                self.zone_mode = None;
+                self.notifications
+                    .info("A fresh graveyard is ready. Start with Dig Graves.");
+            }
+            UiAction::TogglePause => match self.session.phase {
+                GamePhase::Playing => self.session.phase = GamePhase::Paused,
+                GamePhase::Paused => self.session.phase = GamePhase::Playing,
+                _ => {}
+            },
+            UiAction::Save => self.save_game(),
+            UiAction::Load => self.load_game(),
+            UiAction::SelectWorker(index) => {
+                jobs::select_worker(&mut self.session, index);
+                if index < self.session.workforce.workers.len() {
+                    self.session.world.selected = Some(Selection::Worker(index));
+                }
+            }
+            UiAction::SelectPlot(tile) => {
+                if let Some(plot) = self.session.world.plots.iter().find(|plot| {
+                    plot.position == tile && plot.status != crate::state::PlotStatus::Locked
+                }) {
+                    self.session.world.selected_plot = Some(plot.id);
+                    self.session.world.selected = Some(Selection::Grave(plot.id));
+                    self.notifications.info(format!(
+                        "Selected plot {} ({:?})",
+                        plot.id + 1,
+                        plot.status
+                    ));
+                }
+            }
+            UiAction::SelectTile(tile) => {
+                if let Some((index, _)) = self
+                    .session
+                    .workforce
+                    .workers
+                    .iter()
+                    .enumerate()
+                    .find(|(_, worker)| worker.position == tile)
+                {
+                    self.session.workforce.selected_worker = index;
+                    self.session.world.selected = Some(Selection::Worker(index));
+                } else if self.session.world.necromancer_position == tile {
+                    self.session.world.selected = Some(Selection::Necromancer);
+                } else if let Some((index, _)) = self
+                    .session
+                    .world
+                    .buildings
+                    .iter()
+                    .enumerate()
+                    .find(|(_, building)| {
+                        tile.x >= building.position.x
+                            && tile.x < building.position.x + building.width
+                            && tile.y >= building.position.y
+                            && tile.y < building.position.y + building.height
+                    })
+                {
+                    self.session.world.selected = Some(Selection::Building(index));
+                } else if let Some(plot) = self.session.world.plots.iter().find(|plot| {
+                    plot.position == tile && plot.status != crate::state::PlotStatus::Locked
+                }) {
+                    self.session.world.selected_plot = Some(plot.id);
+                    self.session.world.selected = Some(Selection::Grave(plot.id));
+                } else {
+                    self.session.world.selected = Some(Selection::Ground(tile));
+                }
+            }
+            UiAction::SelectNecromancer => {
+                self.session.world.selected = Some(Selection::Necromancer);
+            }
+            UiAction::MoveNecromancer(tile) => {
+                if tile.x >= 0
+                    && tile.y >= 0
+                    && tile.x < self.session.world.width as i32
+                    && tile.y < self.session.world.height as i32
+                {
+                    self.session.world.necromancer_position = tile;
+                    self.session.world.selected = Some(Selection::Necromancer);
+                    self.session.add_feed(format!(
+                        "The necromancer moves to {}, {}.",
+                        tile.x + 1,
+                        tile.y + 1
+                    ));
+                }
+            }
+            UiAction::AssignJob(job) => {
+                let result = jobs::assign_job(&mut self.session, job);
+                self.notify_result(result);
+            }
+            UiAction::ToggleAutomation => {
+                let result = if self
+                    .session
+                    .research
+                    .is_unlocked(Technology::BindingRoutines)
+                {
+                    jobs::toggle_automation(&mut self.session)
+                } else {
+                    Err("Study Binding Routines before repeating worker priorities.".to_owned())
+                };
+                self.notify_result(result);
+            }
+            UiAction::Raise(kind) => {
+                let result = corpses::raise(&mut self.session, &self.data, kind);
+                self.notify_result(result);
+            }
+            UiAction::QueueBuilding(kind) => {
+                let result = progression::queue_building(&mut self.session, &self.data, kind);
+                self.notify_result(result);
+            }
+            UiAction::BeginPlacement(kind) => {
+                self.placement = Some(kind);
+                self.panel = Panel::None;
+            }
+            UiAction::PlaceBuilding(tile) => {
+                let Some(kind) = self.placement else {
+                    return;
+                };
+                let result = if !self.session.research.is_unlocked(Technology::Gravecraft)
+                    && tile != crate::state::default_building_position_for_kind(kind)
+                {
+                    Err("Study Gravecraft before placing structures away from the restored footprints.".to_owned())
+                } else {
+                    progression::queue_building_at(&mut self.session, &self.data, kind, tile)
+                };
+                if result.is_ok() {
+                    self.placement = None;
+                    self.session.world.selected =
+                        Some(Selection::Building(self.session.world.buildings.len() - 1));
+                }
+                self.notify_result(result);
+            }
+            UiAction::CancelPlacement => {
+                self.placement = None;
+                self.zone_mode = None;
+            }
+            UiAction::UnlockPlot => {
+                let result = progression::unlock_plot(&mut self.session, &self.data);
+                self.notify_result(result);
+            }
+            UiAction::ResolveEvent(choice) => {
+                let result = suspicion::resolve_event(&mut self.session, &self.data, &choice);
+                self.notify_result(result);
+            }
+            UiAction::StartResearch(technology) => {
+                let result = progression::start_research(&mut self.session, technology);
+                self.notify_result(result);
+            }
+            UiAction::TogglePanel(panel) => {
+                self.panel = if self.panel == panel {
+                    Panel::None
+                } else {
+                    panel
+                };
+            }
+            UiAction::ToggleZone(kind) => {
+                if self.session.research.is_unlocked(Technology::Gravecraft) {
+                    self.zone_mode = if self.zone_mode == Some(kind) {
+                        None
+                    } else {
+                        Some(kind)
+                    };
+                }
+            }
+            UiAction::PaintZone(tile) => {
+                let Some(kind) = self.zone_mode else {
+                    return;
+                };
+                if let Some(zone) = self
+                    .session
+                    .world
+                    .zones
+                    .iter_mut()
+                    .find(|zone| zone.kind == kind)
+                {
+                    if !zone.tiles.contains(&tile) {
+                        zone.tiles.push(tile);
+                    }
+                } else {
+                    self.session.world.zones.push(Zone {
+                        kind,
+                        tiles: vec![tile],
+                    });
+                }
+                self.session.add_feed(format!(
+                    "{} zone marked at {}, {}.",
+                    kind.label(),
+                    tile.x + 1,
+                    tile.y + 1
+                ));
+            }
+        }
+        suspicion::update_stage(&mut self.session, &self.data);
+        progression::check_victory(&mut self.session, &self.data);
+    }
+
+    fn notify_result(&mut self, result: Result<(), String>) {
+        match result {
+            Ok(()) => self.notifications.success("Order accepted."),
+            Err(error) => self.notifications.warning(error),
+        }
+    }
+
+    fn save_game(&mut self) {
+        let save = self.session.to_save(&self.data.config.version);
+        match save_to_slot_with_version(
+            &self.data.config.game_name,
+            &self.data.config.save_slot,
+            &save,
+            &self.data.config.version,
+        ) {
+            Ok(()) => {
+                self.notifications.success("Saved the cemetery.");
+                self.refresh_save_state();
+            }
+            Err(error) => self.notifications.danger(format!("Save failed: {error}")),
+        }
+    }
+
+    fn load_game(&mut self) {
+        let loaded: Result<SaveData, String> = load_from_slot_with_migration(
+            &self.data.config.game_name,
+            &self.data.config.save_slot,
+            &self.data.config.version,
+            |version, value| crate::state::migrate_save_value(version, value, &self.data.config),
+        );
+        match loaded {
+            Ok(save) => {
+                self.session = GameSession::from_save(save);
+                self.notifications.success("Loaded the cemetery.");
+                self.refresh_save_state();
+            }
+            Err(error) => self.notifications.warning(format!("Load failed: {error}")),
+        }
+    }
+
+    fn refresh_save_state(&mut self) {
+        self.save_exists = slot_exists(&self.data.config.game_name, &self.data.config.save_slot);
+    }
+}

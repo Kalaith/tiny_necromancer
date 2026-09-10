@@ -1,0 +1,145 @@
+# Visual direction and UI transition plan
+
+Status: proposed design, grounded in the current prototype. This document does not implement runtime changes.
+
+## Core direction
+
+A small, personal necromancy game that gradually becomes an undead colony builder. The player starts by watching one skeleton work beside one grave. Research lets them delegate repeated decisions, lay out a settlement, and eventually manage districts in that same landscape.
+
+The world is the primary interface. Graves, resources, workers, buildings, and threats should be visible places and actors that the player can select. UI explains what they select and helps them give orders.
+
+The supplied image is a visual reference, not a mandatory feature list or literal screen layout. Adopt its wooded cemetery, readable figures, warm lanterns, violet magic, visible labour, and increasingly developed settlement. Its promotional left column, “Early Game” and “End Game” headings, and descriptive captions belong outside gameplay. Farms, food, trade, housing, and iron are possible later systems, not requirements inferred from the image.
+
+## Non-negotiable title rule
+
+- The game name and logo appear only on the title page.
+- No game name in the playing HUD, pause menu, research screen, loading overlay over a session, events, victory screen, or gameplay watermark.
+- Use functional labels such as “Paused,” “Research,” and “Settlement established.” Location names such as “Hidden Cemetery” are allowed when useful, without creating a replacement permanent banner.
+- For literal compliance, use a neutral native window caption such as “Game”; the title page itself carries the branding. Internal identifiers, save metadata, and distribution filenames can retain the product name.
+- The title page is a dedicated composition, not a gameplay header showing through an overlay. Show the logo once, an atmospheric cemetery scene, and New Game / Continue / Settings / Quit where supported.
+
+## Art direction
+
+Use a fixed, orthographic top-down view with slightly angled character and building artwork so faces, doorways, and roof shapes remain readable. Keep a square ground grid; avoid rotating the camera or introducing an isometric diamond grid.
+
+Aim for detailed pixel art with restrained texture. Prototype at a consistent 32-pixel ground tile scale, with characters roughly one tile tall and larger buildings using multiple tiles. Validate silhouettes at gameplay zoom before producing the full set. Use crisp texture filtering and stable sprite alignment; test zoom steps for shimmer. UI text remains separately rendered for legibility.
+
+| Element | Visual treatment | Gameplay purpose |
+| --- | --- | --- |
+| Terrain | Moss green grass, brown soil, irregular edges, worn paths | Make the cemetery feel like a place instead of a board |
+| Structures | Weathered timber, cool stone, iron fences, distinct roof shapes | Recognize function without reading every label |
+| Undead | Pale bone silhouettes, different proportions and tools by role | Follow individual workers early and read labour at colony scale |
+| Necromancer | Dark robe, clear staff silhouette, controlled violet glow | Keep a recognizable player presence as the settlement grows |
+| Light | Amber lanterns; violet rituals; limited sickly green processing effects | Separate ordinary work, magic, and specialized production |
+| HUD | Charcoal surfaces, thin muted metal borders, ivory text | Support the landscape without competing with it |
+| Feedback | Cyan selection outline; amber warning icon; red critical icon | Communicate state through shape and text as well as colour |
+
+The tone is secluded, strange, and quietly industrious. Avoid uniform black terrain, giant decorative borders, and constant purple glow. Darkness must never hide selectable objects or work states.
+
+Construction should visibly progress through a marked footprint, delivered materials, scaffold, and finished structure. Graves change from undisturbed stone to disturbed earth to an open excavation. Workers carry visible bundles and perform short digging, hauling, building, and guarding animations. Tool motion and carried goods should make activity readable without permanent overhead text.
+
+Draw ground first, then low details, then actors and structures sorted by their ground contact point, then effects and selection feedback. Fade obstructing roofs or foliage when a selected actor is behind them. Decorative trees must not create misleading walkable gaps.
+
+## Progression: research changes how the player gives orders
+
+The following technology names and population ranges are proposals. Population describes expected scale; completed research unlocks controls. Do not gate UI solely on a worker count or elapsed time.
+
+| Stage | Suggested scale | Technology / requirement | World change | Interface change |
+| --- | --- | --- | --- | --- |
+| Lone practitioner | 1–3 undead | Starting abilities | One grave, a clearing, a ruined shed, scattered supplies | Close camera, compact resources, selected-object actions |
+| Small operation | 3–8 undead | **Binding Routines**, researched at the restored shed | Stockpile and repeated work routes become visible | Jobs panel with priorities and repeat orders |
+| Permanent settlement | 8–20 undead | **Gravecraft**, following Binding Routines | Placeable buildings, paths, work areas, expanding boundary | Build palette, placement preview, zone painting; optional minimap |
+| Organized colony | 20+ undead | **Ossuary Logistics**, following Gravecraft | Linked storage and specialized production areas | Hauling rules, production queues, population summary and alerts |
+| Undead domain | Larger settlement | **Domain Stewardship**, following Logistics | District landmarks, patrol routes, ward network | District summaries and overlay controls; detailed worker selection remains available |
+
+Introduce research through a contextual “Study bindings” action at the shed. Once this starts, expose the Research control in its permanent position. Show the current project and the next reachable discoveries; reserve the full tree for the expanded panel.
+
+Each unlock teaches one practical change: “Set digging to repeat,” then “Place a stockpile,” then “Paint a work area.” Keep earlier commands available. Open the new control with a small highlight and a dismissible explanation; do not rearrange the entire HUD or force a zoom change.
+
+Keep the necromancer present throughout. Recommended first implementation: a selectable ritual actor with click-to-move and contextual casting. This requires new gameplay support. Decide on direct keyboard movement only after testing that slice; the current S/L save shortcuts would conflict with conventional movement controls. Later, the camera can roam while a “Find necromancer” control returns to the character. Strategic commands should not require walking to every worker.
+
+## Gameplay screen layout
+
+Use the full screen as the world viewport with compact overlays. At 1280 × 720, target at least 75% of the world unobscured during ordinary play with panels collapsed, and at least 60% with one inspector open.
+
+| Region | Early game | Colony game |
+| --- | --- | --- |
+| Top left | Bones, mana, wood; population | Same anchors; add unlocked resources with an overflow drawer |
+| Top right | Suspicion, pause/menu, elapsed time | Same positions; day/time and speed controls only once supported |
+| Bottom centre | Raise and available build actions | Stable command dock: Build, Orders, Undead, Research, Zones; tools appear as unlocked |
+| Right edge | Collapsible selected-object inspector | Same inspector; production, storage, district detail according to selection |
+| Bottom left | Up to three short, fading events | Actionable alerts with a history drawer; select an alert to find its source |
+| Lower right | No minimap for the initial clearing | Toggleable minimap once the settlement exceeds the useful camera view |
+
+Use a roughly 280–320 pixel inspector at the baseline resolution. Keep only one large management panel open at a time. A minimap shares the right edge when space permits and hides while a tall inspector is open. Avoid stacking panels until the map is a narrow leftover strip.
+
+Global controls stay in place across progression. New tools fill reserved dock positions or a consistent overflow menu; do not move existing buttons. Reveal resources only when obtainable or immediately needed by a visible recipe. Do not show empty food, iron, stone, or trade systems merely to resemble the reference.
+
+At smaller resolutions, use a bottom inspector sheet, resource overflow, and a scrollable command dock. Keep essential targets at least 44 logical pixels. Hover can add detail, but every action must also work through selection for touch. Test larger text without clipping costs or dismiss controls.
+
+## Selection and orders
+
+| Selected object | Inspector information | Main actions |
+| --- | --- | --- |
+| Grave | State, progress, contents when known | Dig, assign worker, raise if valid |
+| Worker | Name, role, current job, carried item, reason for idleness | Give order, set priority after research, locate |
+| Tree / resource node | Remaining material, work required | Harvest, designate area after research |
+| Building | Construction state or output, staff, requirements | Assign, queue production, upgrade when supported |
+| Ground | Terrain and placement validity | Move selected actor or enter available construction tools |
+| District | Workforce, stored resources, blocked work | Set policy, adjust priorities, locate bottleneck |
+
+Left click or tap selects. A clearly chosen command followed by a ground click issues an order; do not overload ordinary selection with accidental movement. Start with the current right-drag camera pan and wheel zoom. Any future right-click quick order must distinguish a click from a drag. Provide camera buttons or gestures for touch. Escape cancels placement first, then closes the current panel, then pauses.
+
+Building placement shows footprint, entrance, valid/invalid outline, cost, and a textual failure reason. Draw the grid only during placement, designation, or an optional overlay. Default labels appear for selection, hover, or meaningful trouble. At distant zoom, replace tiny worker details with restrained role indicators and district summaries.
+
+HUD input consumes clicks before world selection. Dragging, closing an inspector, or scrolling a palette must never also select a grave or place a building. Modals block the underlying world consistently.
+
+## Preserve the game's distinctive pressure
+
+Suspicion remains an important system, not a buried statistic. Keep a small persistent indicator with its current stage. Expanding it explains the largest contributors and available responses. Show local causes in the world where the simulation supports them: visible work near the road, a patrol, exposed remains, or an active ward. Until those entities exist, use accurate alerts rather than decorative threats that imply nonexistent mechanics.
+
+Resource gains should appear briefly at their source, with totals in the HUD. Longer production chains need explicit blocked states such as “Waiting for wood” and “No hauler assigned.” Routine work does not require a modal. Decisions and serious threats can open one.
+
+Do not add conventional food and housing needs automatically. If later design requires them, give them a necromancy-specific purpose, such as crypt capacity or maintaining living collaborators. First establish the core bones → undead labour → construction → research → expansion loop.
+
+## Current prototype and remaining direction
+
+The current game has a 10 × 8 world, six authored grave positions, one starting skeleton, two building types, jobs, repeat priorities, corpse qualities, suspicion events, versioned save support, a selectable necromancer, positioned buildings, four research technologies, work areas, and a settlement overview. The sprite sheet is registered through the texture manifest and falls back to an obvious placeholder when unavailable. The current victory condition ends the slice after the small cemetery is established; pathfinding, linked storage, specialized production, and district simulation remain future work.
+
+| Implemented foundation | Remaining direction |
+| --- | --- |
+| `src/ui.rs`: world-first HUD and panels | Responsive bottom-sheet variants for smaller viewports |
+| `src/ui/world.rs`: full-world grid and actors | Walkability, pathfinding, and richer obstruction handling |
+| `src/ui/components.rs`: title page, phase overlays, and grid picking | Continue accessibility and large-text verification |
+| `src/main.rs`: neutral native window caption | Keep the game name on the title page only |
+| `src/game.rs`: camera, input, captures, and action dispatch | Add touch camera gestures if the world outgrows one viewport |
+| `src/state.rs`: positioned buildings, research, zones, and save migration | Expand the persistent colony model without resetting existing saves |
+| `src/engine/progression.rs`: research-driven capabilities and milestone | Add the full material → hauling → production chain |
+| `assets/data/texture_manifest.json` and asset registry | Add later terrain, props, effects, and HUD assets as they become playable |
+
+Keep simulation independent of camera zoom and panel visibility. UI should read a shared capability model derived from research; the simulation must validate those same capabilities when accepting orders. Do not implement technology progression only by hiding buttons.
+
+Existing saves already receive deterministic defaults for positioned buildings, research, zones, and the necromancer. Future save changes need the same explicit migration policy; never silently reset a player's cemetery during the transition.
+
+## Delivery sequence
+
+1. **World-first UI foundation (implemented).** Dedicated title page; no in-session branding; full-screen cemetery; compact resource/status strip; contextual inspector; collapsible feed and command dock. Verification covers 1280 × 720 title, gameplay, pause, event, placement, research, colony, and victory scenes.
+2. **One convincing cemetery scene (implemented for the slice).** Terrain and sprites cover the necromancer, skeleton, graves, trees, stockpile, shed, and lantern. Digging, hauling, construction progress, selection, and camera transforms are readable.
+3. **First research transition (implemented for the slice).** Binding Routines and the research chain gate repeat priorities, placement, work areas, logistics, and domain controls. Versioned saves preserve the new state with deterministic defaults.
+4. **First colony slice (next).** Add walkability/pathfinding appropriate to footprints, linked storage destinations, and one complete material → hauling → construction/production chain. The original cemetery should remain recognizable as part of the expanded settlement.
+5. **Scale and domain controls (later).** Extend the current settlement overview with useful zoom levels, district summaries, production alerts, and stewardship systems. Validate worker selection and simulation performance before growing the content set.
+
+Defer trade, farms, housing, multiple biomes, and large defence systems until the first colony slice works. Art for later systems follows approved gameplay rather than committing production effort based solely on the reference.
+
+## Review checklist
+
+- Capture title, initial gameplay, selection, placement, research unlock, colony overview, pause, event, and victory/milestone screens. The name appears only on the title capture; check the native caption too.
+- The initial screenshot reads as a small top-down cemetery; the later screenshot reads as a colony in the same world.
+- Early players see only relevant controls, and can select a grave, issue work, and raise a skeleton without opening a management dashboard.
+- Later players can identify idle workers, missing materials, and suspicion sources without opening every building.
+- World work remains readable with labels disabled; important statuses remain understandable without colour alone.
+- Test UI click blocking, zoomed picking, drag-versus-click, placement cancellation, resize, and large text.
+- Test research prerequisites in the simulation, save/load of unlocks and placements, and migration from an existing cemetery save.
+- Keep existing job, corpse, suspicion, and progression checks passing while each related system changes.
+
+The first implementation target is a complete playable cemetery screen with the current mechanics and the new visual hierarchy. It establishes the identity before expanding the simulation into a colony builder.
