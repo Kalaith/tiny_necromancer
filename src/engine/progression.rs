@@ -210,6 +210,32 @@ pub fn start_production(
     Ok(())
 }
 
+pub fn cancel_production(
+    session: &mut GameSession,
+    data: &GameData,
+    kind: BuildingKind,
+) -> Result<(), String> {
+    let Some(order) = session.progress.production.as_ref() else {
+        return Err("There is no active ward cycle to adjust.".to_owned());
+    };
+    if order.building != kind {
+        return Err("That structure has no active ward cycle.".to_owned());
+    }
+    if session.progress.production_queue == 0 {
+        return Err("There is no reserved ward cycle to cancel.".to_owned());
+    }
+    let recipe = data
+        .buildings
+        .get(kind.id())
+        .and_then(|building| building.production.as_ref())
+        .ok_or_else(|| "That structure has no production recipe.".to_owned())?;
+    session.progress.production_queue -= 1;
+    session.economy.bones += recipe.bones_cost;
+    session.economy.wood += recipe.wood_cost;
+    session.add_feed("A reserved ward cycle is cancelled; materials return to storage.");
+    Ok(())
+}
+
 pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -> Option<String> {
     let mut order = session.progress.production.clone()?;
     let recipe = data

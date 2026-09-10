@@ -136,7 +136,9 @@ deliberately deferred from the current victory slice.
 The Ossuary Kiln loads one ward-charge cycle at a time and accepts up to three
 reserved follow-up cycles. Reserved materials are removed when the cycle is
 queued, so the player can see the true available stock before committing to a
-longer production run.
+longer production run. A reserved follow-up cycle can be cancelled from the
+kiln inspector; its recipe materials return immediately while the active cycle
+keeps its progress.
 
 ## 7. UI and interaction flow
 

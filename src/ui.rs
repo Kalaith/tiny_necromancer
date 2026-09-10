@@ -17,6 +17,7 @@ mod domain;
 mod hud;
 mod orders;
 mod panels;
+mod production;
 mod research;
 mod world;
 mod world_feedback;
@@ -98,6 +99,7 @@ pub enum UiAction {
     UnlockPlot,
     StartResearch(Technology),
     StartProduction(BuildingKind),
+    CancelProduction(BuildingKind),
     UseWardCharge,
     MovePriority(JobKind, i32),
     ToggleDomainOverlay(DomainOverlay),

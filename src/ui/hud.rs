@@ -2,6 +2,7 @@
 
 use super::components::{compact_virtual_button, pause_control_rect};
 use super::components::{stage_label, status_label, virtual_button};
+use super::production::{draw_kiln_inspector, is_kiln};
 use super::{Panel, UiAction, UiContext};
 use crate::state::{
     BuildingKind, GamePhase, JobKind, PlotStatus, Selection, Technology, UndeadKind, WorkerStatus,
@@ -670,70 +671,8 @@ fn draw_building_inspector(
             dark::TEXT_DIM,
         );
     }
-    if building.kind == BuildingKind::OssuaryKiln && building.complete {
-        let recipe = ctx
-            .data
-            .buildings
-            .get(building.kind.id())
-            .and_then(|def| def.production.as_ref());
-        if let Some(recipe) = recipe {
-            let active = ctx
-                .session
-                .progress
-                .production
-                .as_ref()
-                .is_some_and(|order| order.building == building.kind);
-            let queued = ctx.session.progress.production_queue;
-            let label = if active {
-                if queued < crate::engine::progression::MAX_PRODUCTION_QUEUE {
-                    format!(
-                        "Queue ward cycle · B{} W{}",
-                        recipe.bones_cost, recipe.wood_cost
-                    )
-                } else {
-                    "Ward queue full".to_owned()
-                }
-            } else {
-                format!("Load kiln · B{} W{}", recipe.bones_cost, recipe.wood_cost)
-            };
-            if virtual_button(
-                Rect::new(panel.x + 18.0, panel.y + 232.0, panel.w - 36.0, 44.0),
-                &label,
-                ctx.session.phase == GamePhase::Playing
-                    && queued < crate::engine::progression::MAX_PRODUCTION_QUEUE
-                    && ctx.session.economy.bones >= recipe.bones_cost
-                    && ctx.session.economy.wood >= recipe.wood_cost,
-                ButtonTone::Positive,
-                pointer,
-            ) {
-                actions.push(UiAction::StartProduction(building.kind));
-            }
-            if virtual_button(
-                Rect::new(panel.x + 18.0, panel.y + 286.0, panel.w - 36.0, 44.0),
-                "Spend ward charge · -8 suspicion",
-                ctx.session.economy.ward_charges > 0 && ctx.session.phase == GamePhase::Playing,
-                ButtonTone::Secondary,
-                pointer,
-            ) {
-                actions.push(UiAction::UseWardCharge);
-            }
-            draw_text_block(
-                &format!(
-                    "Ward charges · {} · stored {} · queued {}/{}",
-                    recipe.effect_text,
-                    ctx.session.economy.ward_charges,
-                    queued,
-                    crate::engine::progression::MAX_PRODUCTION_QUEUE
-                ),
-                panel.x + 18.0,
-                panel.y + 348.0,
-                panel.w - 36.0,
-                48.0,
-                14.0,
-                4.0,
-                dark::TEXT_DIM,
-            );
-        }
+    if is_kiln(building) {
+        draw_kiln_inspector(ctx, pointer, actions, panel, building);
     }
 }
 

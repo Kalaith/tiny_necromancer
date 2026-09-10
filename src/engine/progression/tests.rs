@@ -143,6 +143,28 @@ fn kiln_queue_rolls_into_the_next_reserved_cycle() {
 }
 
 #[test]
+fn cancelling_a_reserved_cycle_refunds_materials_but_keeps_working_cycle() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    queue_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_construction(&mut session, &data, 14.0);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    session.progress.production.as_mut().unwrap().progress = 2.0;
+    let bones_after_two_loads = session.economy.bones;
+
+    cancel_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+
+    assert_eq!(session.progress.production_queue, 0);
+    assert_eq!(session.economy.bones, bones_after_two_loads + 12);
+    assert_eq!(session.economy.wood, 70);
+    assert_eq!(session.progress.production.unwrap().progress, 2.0);
+}
+
+#[test]
 fn full_kiln_queue_does_not_spend_more_materials() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

@@ -357,6 +357,10 @@ impl Game {
                 let result = progression::start_production(&mut self.session, &self.data, kind);
                 self.notify_result(result);
             }
+            UiAction::CancelProduction(kind) => {
+                let result = progression::cancel_production(&mut self.session, &self.data, kind);
+                self.notify_result(result);
+            }
             UiAction::UseWardCharge => {
                 let result = progression::use_ward_charge(&mut self.session);
                 self.notify_result(result);

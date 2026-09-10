@@ -40,15 +40,15 @@ pub(super) fn draw_feed(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec
         },
         rect.x + 14.0,
         rect.y + 10.0,
-        rect.w - 112.0,
+        rect.w - 126.0,
         16.0,
         11.0,
         0.0,
         dark::TEXT_DIM,
     );
-    let history_label = format!("History · {}", ctx.session.pressure.feed.len());
+    let history_label = format!("History {}", ctx.session.pressure.feed.len());
     if virtual_button(
-        Rect::new(rect.right() - 88.0, rect.y + 4.0, 74.0, 44.0),
+        Rect::new(rect.right() - 104.0, rect.y + 4.0, 90.0, 44.0),
         &history_label,
         true,
         ButtonTone::Secondary,

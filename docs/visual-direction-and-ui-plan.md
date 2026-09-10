@@ -85,7 +85,7 @@ At smaller resolutions, use a bottom inspector sheet, resource overflow, and a s
 | Grave | State, progress, contents when known | Dig, assign worker, raise if valid |
 | Worker | Name, role, current job, carried item, reason for idleness | Give order, set priority after research, locate |
 | Tree / resource node | Remaining material, work required | Harvest, designate area after research |
-| Building | Construction state or output, staff, requirements | Assign, queue production, upgrade when supported |
+| Building | Construction state or output, staff, requirements | Assign, queue or cancel reserved production, upgrade when supported |
 | Ground | Terrain and placement validity | Move selected actor or enter available construction tools |
 | District | Workforce, stored resources, blocked work | Set policy, adjust priorities, locate bottleneck |
 
