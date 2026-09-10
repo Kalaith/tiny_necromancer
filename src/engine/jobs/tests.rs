@@ -598,6 +598,29 @@ fn domain_patrol_rule_strengthens_guard_mitigation() {
 }
 
 #[test]
+fn domain_patrol_ledger_ignores_an_already_calm_road() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let patrol = crate::state::WorldState::guard_position(session.world.road_x);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Patrol,
+        tiles: vec![patrol],
+    });
+    session.workforce.workers[0].position = patrol;
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    simulate(&mut session, &data, 1.0);
+
+    assert_eq!(session.progress.district_ledger.patrol_quieting, 0.0);
+    assert!(!session
+        .pressure
+        .feed
+        .iter()
+        .any(|entry| entry.message.contains("marked Patrol")));
+}
+
+#[test]
 fn hauler_walks_to_storage_before_transfer() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

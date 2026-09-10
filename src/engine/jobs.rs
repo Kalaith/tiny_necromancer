@@ -253,12 +253,16 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
             .expect("validated guard job")
             .guard_mitigation_per_second;
         let district_bonus = (guard_quieting - guards as f32).max(0.0);
+        let suspicion_before = session.pressure.suspicion;
         suspicion::adjust_quiet(
             session,
             -(mitigation * guard_quieting * dt),
             "guards keep the road quiet",
         );
-        districts::record_patrol_quieting(session, mitigation * district_bonus * dt);
+        let baseline_quieting = mitigation * guards as f32 * dt;
+        let district_quieting = mitigation * district_bonus * dt;
+        let room_after_baseline = (suspicion_before - baseline_quieting).max(0.0);
+        districts::record_patrol_quieting(session, room_after_baseline.min(district_quieting));
     }
     messages
 }
