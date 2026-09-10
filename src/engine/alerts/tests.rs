@@ -1,0 +1,85 @@
+use super::*;
+use crate::state::{Building, BuildingKind, GameSession, ProductionOrder};
+use macroquad_toolkit::grid::TilePos;
+
+#[test]
+fn loaded_production_without_a_refiner_becomes_actionable() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.production = Some(ProductionOrder {
+        building: BuildingKind::OssuaryKiln,
+        progress: 1.0,
+    });
+    session.world.buildings.push(Building {
+        kind: BuildingKind::OssuaryKiln,
+        progress: 14.0,
+        complete: true,
+        position: TilePos::new(6, 4),
+        width: 2,
+        height: 1,
+    });
+    let alerts = collect(&session, &data);
+    let alert = alerts
+        .iter()
+        .find(|alert| alert.title == "Kiln unattended")
+        .expect("production blocker should be reported");
+    assert_eq!(alert.target, Some(Selection::Building(0)));
+}
+
+#[test]
+fn assigned_refiner_clears_the_kiln_alert() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.production = Some(ProductionOrder {
+        building: BuildingKind::OssuaryKiln,
+        progress: 1.0,
+    });
+    session.workforce.workers[0].assignment = JobKind::Refine;
+    assert!(!collect(&session, &data)
+        .iter()
+        .any(|alert| alert.title == "Kiln unattended"));
+}
+
+#[test]
+fn loose_material_without_a_hauler_points_to_its_source() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let source = TilePos::new(4, 3);
+    session.economy.loose_bones = 8;
+    session.economy.loose_bones_source = Some(source);
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Materials waiting")
+        .expect("loose material should be reported");
+    assert_eq!(alert.target, Some(Selection::Ground(source)));
+}
+
+#[test]
+fn construction_without_a_builder_points_to_the_scaffold() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.world.buildings.push(Building {
+        kind: BuildingKind::WorkShed,
+        progress: 2.0,
+        complete: false,
+        position: TilePos::new(6, 2),
+        width: 2,
+        height: 2,
+    });
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Construction stalled")
+        .expect("unfinished structure should be reported");
+    assert_eq!(alert.target, Some(Selection::Building(0)));
+}
+
+#[test]
+fn road_pressure_alert_waits_until_the_questioning_threshold() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.pressure.suspicion = data.config.suspicion_thresholds[1];
+    session.pressure.stage = crate::data::SuspicionStage::Questioning;
+    assert!(collect(&session, &data)
+        .iter()
+        .any(|alert| alert.severity == AlertSeverity::Critical));
+}

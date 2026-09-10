@@ -92,7 +92,7 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         hud::draw_status_strip(&ctx, pointer, &mut actions);
         hud::draw_inspector(&ctx, pointer, &mut actions);
         hud::draw_command_dock(&ctx, pointer, &mut actions);
-        panels::draw_feed(&ctx);
+        panels::draw_feed(&ctx, pointer, &mut actions);
         if ctx.session.research.is_unlocked(Technology::Gravecraft) {
             panels::draw_minimap(&ctx);
         }

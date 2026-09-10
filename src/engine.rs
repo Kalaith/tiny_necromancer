@@ -1,5 +1,6 @@
 //! Deterministic simulation services used by the game session.
 
+pub mod alerts;
 pub mod corpses;
 pub mod jobs;
 pub mod movement;

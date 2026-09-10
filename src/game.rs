@@ -303,8 +303,8 @@ impl Game {
             progress: 4.0,
         });
         self.session.progress.production_queue = 1;
-        self.session.workforce.workers[0].assignment = JobKind::Refine;
-        self.session.workforce.workers[0].status = WorkerStatus::Working;
+        self.session.workforce.workers[0].assignment = JobKind::Guard;
+        self.session.workforce.workers[0].status = WorkerStatus::Hiding;
         self.session.workforce.workers[0].position = TilePos::new(5, 4);
         self.session.world.selected = Some(Selection::Building(1));
     }

@@ -92,6 +92,12 @@ and Investigation using the ordered thresholds in `game_config.json`.
 resource, suspicion, and digging effects. Active events block simulation until
 the player taps a choice.
 
+Operational alerts are derived from the same session state: unattended
+construction, loaded production without a Refine worker, loose materials
+without a Haul order, open graves without a Dig order, and questioning-level
+road pressure. Each alert is a touch target that selects its source so the
+player can move from diagnosis to an order without searching the map.
+
 ### 5.4 Determinism and saves
 
 `SeededRng` is stored with the session and serialized into the versioned save.
@@ -138,7 +144,10 @@ previews footprint, collision, cost, and a textual failure reason, with
 destination marker, violet ritual pulse, and a **Cancel movement** target while
 walking.
 
-The Settlement View minimap echoes painted zones, structures, workers, the
+The field-notes area becomes an Operational Alerts tray when a real blocker
+exists. Tapping an alert selects its source; when the cemetery is healthy, the
+same space returns to fading field notes. The Settlement View minimap echoes
+painted zones, structures, workers, the
 necromancer, and the current selection so the domain remains legible while
 the world is busy. Active zone tools preview the hovered tile with **Tap to
 mark** or **Tap to clear** copy. The event modal blocks the world and presents
@@ -167,9 +176,9 @@ visual-direction milestones: workers route around structure footprints, Work,
 Storage, and Patrol zones choose nearby destinations, actors interpolate between
 simulation tiles, and procedural animation makes digging, hauling, gathering,
 construction, guarding, refining, walking, and ritual focus readable. Domain
-Stewardship surfaces a compact district overview. The next milestone can add
-larger-scale production alerts and stewardship controls while preserving the
-clear touch-first interaction at smaller viewport sizes.
+Stewardship now surfaces a compact district overview and actionable operational
+alerts. The next milestone can add richer stewardship policies while preserving
+the clear touch-first interaction at smaller viewport sizes.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.

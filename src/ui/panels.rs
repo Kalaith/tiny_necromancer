@@ -4,28 +4,64 @@ use super::components::virtual_button;
 use super::orders::draw_orders_panel;
 use super::research::{draw_research_panel, draw_zones_panel};
 use super::{Panel, UiAction, UiContext};
-use crate::state::{BuildingKind, Technology, UndeadKind};
+use crate::engine::alerts::{self, AlertSeverity};
+use crate::state::{BuildingKind, Selection, Technology, UndeadKind};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::Pointer;
 
-pub(super) fn draw_feed(ctx: &UiContext<'_>) {
-    let rect = Rect::new(20.0, 572.0, 310.0, 102.0);
+pub(super) fn draw_feed(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
+    let operational = alerts::collect(ctx.session, ctx.data);
+    let rect = if operational.is_empty() {
+        Rect::new(20.0, 572.0, 310.0, 102.0)
+    } else {
+        Rect::new(20.0, 508.0, 310.0, 166.0)
+    };
     draw_surface(
         rect,
         &SurfaceStyle::new(Color::new(0.045, 0.055, 0.055, 0.90))
             .with_border(1.0, Color::new(0.46, 0.57, 0.50, 0.50)),
     );
     draw_text_block(
-        "FIELD NOTES",
+        if operational.is_empty() {
+            "FIELD NOTES"
+        } else {
+            "OPERATIONAL ALERTS · TAP TO LOCATE"
+        },
         rect.x + 14.0,
         rect.y + 10.0,
-        120.0,
+        rect.w - 28.0,
         16.0,
         11.0,
         0.0,
         dark::TEXT_DIM,
     );
+    if operational.is_empty() {
+        draw_feed_history(ctx, rect);
+    } else {
+        for (index, alert) in operational.iter().take(3).enumerate() {
+            let button = Rect::new(
+                rect.x + 14.0,
+                rect.y + 32.0 + index as f32 * 46.0,
+                rect.w - 28.0,
+                44.0,
+            );
+            if virtual_button(
+                button,
+                &format!("{} · {}", alert.title, alert.detail),
+                true,
+                alert_tone(alert.severity),
+                pointer,
+            ) {
+                if let Some(target) = alert.target {
+                    actions.push(alert_action(ctx, target));
+                }
+            }
+        }
+    }
+}
+
+fn draw_feed_history(ctx: &UiContext<'_>, rect: Rect) {
     for (index, entry) in ctx.session.pressure.feed.iter().take(3).enumerate() {
         let age_alpha = (1.0 - entry.age_seconds / 18.0).clamp(0.42, 1.0);
         let text_color = if index == 0 {
@@ -43,6 +79,30 @@ pub(super) fn draw_feed(ctx: &UiContext<'_>) {
             0.0,
             text_color,
         );
+    }
+}
+
+fn alert_tone(severity: AlertSeverity) -> ButtonTone {
+    match severity {
+        AlertSeverity::Critical => ButtonTone::Danger,
+        AlertSeverity::Warning => ButtonTone::Warning,
+        AlertSeverity::Info => ButtonTone::Secondary,
+    }
+}
+
+fn alert_action(ctx: &UiContext<'_>, target: Selection) -> UiAction {
+    match target {
+        Selection::Worker(index) => UiAction::SelectWorker(index),
+        Selection::Necromancer => UiAction::SelectNecromancer,
+        Selection::Ground(tile) => UiAction::SelectTile(tile),
+        Selection::Grave(index) => ctx.session.world.plots.get(index).map_or(
+            UiAction::SelectTile(crate::state::WorldState::stockpile_position()),
+            |plot| UiAction::SelectTile(plot.position),
+        ),
+        Selection::Building(index) => ctx.session.world.buildings.get(index).map_or(
+            UiAction::SelectTile(crate::state::WorldState::stockpile_position()),
+            |building| UiAction::SelectTile(building.position),
+        ),
     }
 }
 
