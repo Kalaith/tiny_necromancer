@@ -1,7 +1,8 @@
 //! Compact field notes and settlement overview.
 
 use super::components::virtual_button;
-use super::research::{draw_research_panel, draw_small_info_panel, draw_zones_panel};
+use super::orders::draw_orders_panel;
+use super::research::{draw_research_panel, draw_zones_panel};
 use super::{Panel, UiAction, UiContext};
 use crate::state::{BuildingKind, Technology, UndeadKind};
 use macroquad::prelude::*;
@@ -168,7 +169,7 @@ fn minimap_selection_tile(ctx: &UiContext<'_>) -> Option<macroquad_toolkit::grid
 pub(super) fn draw_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
     match ctx.panel {
         Panel::Build => draw_build_panel(ctx, pointer, actions),
-        Panel::Orders => draw_orders_panel(ctx),
+        Panel::Orders => draw_orders_panel(ctx, pointer, actions),
         Panel::Undead => draw_undead_panel(ctx, pointer, actions),
         Panel::Research => draw_research_panel(ctx, pointer, actions),
         Panel::Zones => draw_zones_panel(ctx, pointer, actions),
@@ -262,21 +263,6 @@ fn draw_build_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiA
             actions.push(UiAction::BeginPlacement(BuildingKind::OssuaryKiln));
         }
     }
-}
-
-fn draw_orders_panel(ctx: &UiContext<'_>) {
-    draw_small_info_panel(
-        "ORDERS",
-        if ctx
-            .session
-            .research
-            .is_unlocked(Technology::BindingRoutines)
-        {
-            "Repeat priorities are unlocked. Select a worker to tune the queue."
-        } else {
-            "Direct orders are available now. Binding Routines will add repeat priorities."
-        },
-    );
 }
 
 fn draw_undead_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {

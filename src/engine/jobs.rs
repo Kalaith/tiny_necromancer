@@ -79,6 +79,46 @@ pub fn toggle_automation(session: &mut GameSession) -> Result<(), String> {
     Ok(())
 }
 
+pub fn move_priority(
+    session: &mut GameSession,
+    job: JobKind,
+    direction: i32,
+) -> Result<(), String> {
+    if !session
+        .research
+        .is_unlocked(crate::state::Technology::BindingRoutines)
+    {
+        return Err("Study Binding Routines before tuning worker priorities.".to_owned());
+    }
+    if direction != -1 && direction != 1 {
+        return Err("Priority movement must be one step at a time.".to_owned());
+    }
+    session.workforce.normalize_priorities();
+    let index = session
+        .workforce
+        .priorities
+        .iter()
+        .position(|priority| *priority == job)
+        .ok_or_else(|| "That job is not in the priority list.".to_owned())?;
+    let destination = if direction < 0 {
+        index
+            .checked_sub(1)
+            .ok_or_else(|| format!("{} is already the highest priority.", job.label()))?
+    } else {
+        let destination = index + 1;
+        if destination >= session.workforce.priorities.len() {
+            return Err(format!("{} is already the lowest priority.", job.label()));
+        }
+        destination
+    };
+    session.workforce.priorities.swap(index, destination);
+    session.add_feed(format!(
+        "{} moved in the worker priority list.",
+        job.label()
+    ));
+    Ok(())
+}
+
 pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<String> {
     let mut messages = Vec::new();
     let worker_count = session.workforce.workers.len();

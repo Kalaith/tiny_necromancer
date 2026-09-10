@@ -1,5 +1,12 @@
 use super::*;
 
+fn simulate_for_seconds(session: &mut GameSession, data: &crate::data::GameData, seconds: f32) {
+    let ticks = (seconds / data.config.tick_seconds).ceil() as usize;
+    for _ in 0..ticks {
+        simulate(session, data, data.config.tick_seconds);
+    }
+}
+
 #[test]
 fn digging_completes_and_produces_loose_bones() {
     let data = crate::data::GameData::load().unwrap();
@@ -19,7 +26,7 @@ fn hauling_respects_worker_capacity() {
     session.economy.loose_bones = 20;
     session.workforce.workers[0].assignment = JobKind::Haul;
     session.workforce.workers[0].position = crate::state::WorldState::stockpile_position();
-    simulate(&mut session, &data, 4.0);
+    simulate_for_seconds(&mut session, &data, 4.5);
     assert_eq!(session.economy.loose_bones, 12);
     assert_eq!(session.economy.bones, data.config.starting_bones + 8);
 }
@@ -46,10 +53,58 @@ fn auto_mode_chooses_haul_before_more_digging() {
     session.economy.loose_bones = 8;
     session.workforce.workers[0].position = crate::state::WorldState::stockpile_position();
     toggle_automation(&mut session).unwrap();
-    simulate(&mut session, &data, 4.0);
+    simulate_for_seconds(&mut session, &data, 4.5);
     assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
     assert_eq!(session.economy.loose_bones, 0);
     assert_eq!(session.economy.bones, data.config.starting_bones + 8);
+}
+
+#[test]
+fn binding_routines_reorders_shared_priorities() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::BindingRoutines];
+    assert_eq!(session.workforce.priorities[0], JobKind::Guard);
+    move_priority(&mut session, JobKind::Dig, -1).unwrap();
+    assert_eq!(session.workforce.priorities[1], JobKind::Dig);
+    assert_eq!(session.workforce.priorities[2], JobKind::Haul);
+    move_priority(&mut session, JobKind::Dig, -1).unwrap();
+    assert_eq!(session.workforce.priorities[0], JobKind::Dig);
+    assert_eq!(session.workforce.priorities[1], JobKind::Guard);
+    assert!(move_priority(&mut session, JobKind::Dig, -1).is_err());
+}
+
+#[test]
+fn automated_worker_can_choose_refine_from_the_priority_list() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![
+        crate::state::Technology::Gravecraft,
+        crate::state::Technology::OssuaryLogistics,
+        crate::state::Technology::BindingRoutines,
+    ];
+    session.world.buildings.push(crate::state::Building {
+        kind: crate::state::BuildingKind::OssuaryKiln,
+        progress: 14.0,
+        complete: true,
+        position: macroquad_toolkit::grid::TilePos::new(6, 4),
+        width: 2,
+        height: 1,
+    });
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    crate::engine::progression::start_production(
+        &mut session,
+        &data,
+        crate::state::BuildingKind::OssuaryKiln,
+    )
+    .unwrap();
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].position = macroquad_toolkit::grid::TilePos::new(5, 4);
+    session.workforce.priorities = vec![JobKind::Refine, JobKind::Guard];
+    simulate(&mut session, &data, 8.0);
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Refine);
+    assert_eq!(session.economy.ward_charges, 1);
 }
 
 #[test]

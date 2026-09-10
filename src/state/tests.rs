@@ -79,3 +79,15 @@ fn zone_tiles_can_be_toggled_back_off() {
     assert!(!zone.toggle_tile(tile));
     assert_eq!(zone.tiles, vec![tile]);
 }
+
+#[test]
+fn older_priority_lists_receive_new_jobs_without_losing_order() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.workforce.priorities = vec![JobKind::Dig, JobKind::Haul];
+    let restored = GameSession::from_save(session.to_save(&data.config.version));
+    assert_eq!(restored.workforce.priorities[0], JobKind::Dig);
+    assert_eq!(restored.workforce.priorities[1], JobKind::Haul);
+    assert!(restored.workforce.priorities.contains(&JobKind::Refine));
+    assert_eq!(restored.workforce.priorities.len(), 6);
+}

@@ -40,8 +40,9 @@ jobs, raises undead, places buildings, opens plots, starts research, paints
 work areas, resolves road-pressure events, pauses, and saves.
 
 Workers follow their assigned job or, after Binding Routines, the shared
-priority list. The simulation chooses their targets and advances work between
-visible orders; the player does not micromanage walking paths. Tile positions
+priority list, which can be reordered from the touch-first Orders board. The
+simulation chooses their targets and advances work between visible orders; the
+player does not micromanage walking paths. Tile positions
 remain authoritative for simulation and saves, while the runtime presents each
 step through a short interpolation with facing, walking sway, and job motion.
 The necromancer uses the same four-way navigation, accepts a new destination by
@@ -76,7 +77,9 @@ nearest marked Storage tile from their current position, which keeps larger
 stockpile districts practical. An empty area keeps the original fallback
 target so marking a zone is never required to continue a job. Tapping a marked
 tile clears it, so an accidental mark can be corrected without restarting the
-colony.
+colony. The Orders board exposes every repeat duty, its active automated worker
+count, and touch-sized Up/Down controls. Older saves retain their authored
+order and receive any newly introduced duty at the end of the list.
 Loose bones and wood retain a source tile. A hauler walks to that source, picks
 up a capacity-limited bundle, visibly carries it to Storage, and only then
 credits the stockpile. This keeps world feedback and resource totals aligned.
@@ -125,7 +128,9 @@ to the session through the engine services.
 
 Selection is tap/click on an object or ground tile. A selected worker exposes
 job buttons, current destination, carried item, an idle reason, and, after
-research, repeat priorities. The selected worker receives a short route hint,
+research, repeat priorities. The Orders panel reorders the shared list without
+keyboard input, and automated workers can select Refine when a kiln cycle is
+active. The selected worker receives a short route hint,
 active jobs show compact badges and tool motion, and source progress appears in
 the world. A selected grave exposes dig and raise actions. Building placement
 previews footprint, collision, cost, and a textual failure reason, with

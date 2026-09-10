@@ -6,6 +6,9 @@ use macroquad_toolkit::rng::SeededRng;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+mod workforce;
+pub use workforce::{Worker, WorkforceState};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GamePhase {
     MainMenu,
@@ -198,6 +201,17 @@ pub enum JobKind {
 }
 
 impl JobKind {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Dig => "dig",
+            Self::Haul => "haul",
+            Self::Guard => "guard",
+            Self::Wood => "wood",
+            Self::Build => "build",
+            Self::Refine => "refine",
+        }
+    }
+
     pub fn label(self) -> &'static str {
         match self {
             Self::Dig => "Dig",
@@ -372,42 +386,6 @@ fn tile_distance(from: TilePos, to: TilePos) -> i32 {
     (from.x - to.x).abs() + (from.y - to.y).abs()
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Worker {
-    pub id: u32,
-    pub name: String,
-    pub kind: UndeadKind,
-    pub assignment: JobKind,
-    pub position: TilePos,
-    pub status: WorkerStatus,
-    pub progress: f32,
-    pub target_plot: Option<usize>,
-    pub carrying: i32,
-    #[serde(default)]
-    pub carrying_resource: Option<ResourceKind>,
-    #[serde(default)]
-    pub priority_mode: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkforceState {
-    pub workers: Vec<Worker>,
-    pub selected_worker: usize,
-    pub next_worker_id: u32,
-    #[serde(default = "default_priorities")]
-    pub priorities: Vec<JobKind>,
-}
-
-fn default_priorities() -> Vec<JobKind> {
-    vec![
-        JobKind::Guard,
-        JobKind::Haul,
-        JobKind::Dig,
-        JobKind::Build,
-        JobKind::Wood,
-    ]
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CorpseQuality {
     Poor,
@@ -573,7 +551,7 @@ impl GameSession {
                 }],
                 selected_worker: 0,
                 next_worker_id: 2,
-                priorities: default_priorities(),
+                priorities: WorkforceState::default_priorities(),
             },
             economy: EconomyState {
                 bones: config.starting_bones,
@@ -647,6 +625,7 @@ impl GameSession {
                 worker.carrying_resource = Some(ResourceKind::Bones);
             }
         }
+        save.workforce.normalize_priorities();
         Self {
             phase: save.phase,
             world: save.world,

@@ -92,6 +92,7 @@ impl Game {
         match scene {
             "menu" | "gameplay" | "scrolled" => {}
             "research" => self.prepare_capture_research(),
+            "orders" => self.prepare_capture_orders(),
             "colony" => self.prepare_capture_colony(),
             "production" => self.prepare_capture_production(),
             "placement" => {
@@ -186,6 +187,24 @@ impl Game {
         self.session.research.progress = 2.0;
         self.session.world.selected = Some(Selection::Building(0));
         self.panel = Panel::Research;
+    }
+
+    fn prepare_capture_orders(&mut self) {
+        self.session.economy.bones = 120;
+        self.session.economy.mana = 60;
+        self.session.economy.wood = 70;
+        self.session.research.completed = vec![Technology::BindingRoutines];
+        self.session.workforce.workers[0].priority_mode = true;
+        self.session.workforce.priorities = vec![
+            JobKind::Dig,
+            JobKind::Haul,
+            JobKind::Guard,
+            JobKind::Build,
+            JobKind::Wood,
+            JobKind::Refine,
+        ];
+        self.session.world.selected = Some(Selection::Worker(0));
+        self.panel = Panel::Orders;
     }
 
     fn prepare_capture_colony(&mut self) {
@@ -660,6 +679,10 @@ impl Game {
             }
             UiAction::UseWardCharge => {
                 let result = progression::use_ward_charge(&mut self.session);
+                self.notify_result(result);
+            }
+            UiAction::MovePriority(job, direction) => {
+                let result = jobs::move_priority(&mut self.session, job, direction);
                 self.notify_result(result);
             }
             UiAction::TogglePanel(panel) => {

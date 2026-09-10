@@ -14,6 +14,7 @@ use macroquad_toolkit::ui::{Pointer, VirtualUi};
 pub mod animation;
 mod components;
 mod hud;
+mod orders;
 mod panels;
 mod research;
 mod world;
@@ -61,6 +62,7 @@ pub enum UiAction {
     StartResearch(Technology),
     StartProduction(BuildingKind),
     UseWardCharge,
+    MovePriority(JobKind, i32),
     TogglePanel(Panel),
     ToggleZone(ZoneKind),
     PaintZone(TilePos),
@@ -129,10 +131,8 @@ fn ui_occludes(point: Vec2, ctx: &UiContext<'_>) -> bool {
         Rect::new(0.0, 0.0, 0.0, 0.0)
     };
     let panel = match ctx.panel {
-        Panel::Research => Rect::new(238.0, 106.0, 680.0, 490.0),
-        Panel::Build | Panel::Orders | Panel::Undead | Panel::Zones => {
-            Rect::new(350.0, 460.0, 580.0, 150.0)
-        }
+        Panel::Research | Panel::Orders => Rect::new(238.0, 106.0, 680.0, 490.0),
+        Panel::Build | Panel::Undead | Panel::Zones => Rect::new(350.0, 460.0, 580.0, 150.0),
         Panel::None => Rect::new(0.0, 0.0, 0.0, 0.0),
     };
     dock.contains_point(point)

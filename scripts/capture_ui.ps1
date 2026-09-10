@@ -18,6 +18,7 @@ param(
         "gameplay",
         "placement",
         "research",
+        "orders",
         "colony",
         "production",
         "worker-walking",
