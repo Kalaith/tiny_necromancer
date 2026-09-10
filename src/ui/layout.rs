@@ -53,6 +53,15 @@ impl UiLayout {
     pub fn contains_compact_sheet(&self, point: macroquad::prelude::Vec2) -> bool {
         self.compact && self.sheet_rect.contains(point)
     }
+
+    pub fn compact_camera_controls(&self) -> [Rect; 3] {
+        let y = (self.world_rect.bottom() - 52.0).clamp(84.0, 94.0);
+        [
+            Rect::new(12.0, y, 44.0, 44.0),
+            Rect::new(60.0, y, 44.0, 44.0),
+            Rect::new(112.0, y, 80.0, 44.0),
+        ]
+    }
 }
 
 #[cfg(test)]

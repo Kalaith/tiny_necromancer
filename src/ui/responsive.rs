@@ -1,7 +1,7 @@
 //! Compact bottom-sheet composition for narrow touch viewports.
 
 use super::components::{compact_virtual_button, selected_tile_at, virtual_button};
-use super::{Panel, UiAction, UiContext};
+use super::{CameraZoom, Panel, UiAction, UiContext};
 use crate::state::{GamePhase, Selection, Technology};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -15,6 +15,11 @@ mod tests;
 
 pub(super) fn draw_compact_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
     let pointer = Pointer::read(|point| ctx.ui.screen_to_ui(point));
+    let pointer = if ctx.touch_claimed {
+        pointer.suppressed()
+    } else {
+        pointer
+    };
     let mut actions = Vec::new();
     super::world::draw_world_scene(&ctx);
     if ctx.session.phase == GamePhase::MainMenu {
@@ -22,6 +27,7 @@ pub(super) fn draw_compact_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         return actions;
     }
     draw_compact_status(&ctx, pointer, &mut actions);
+    draw_compact_camera_controls(&ctx, pointer, &mut actions);
     if let Some(event_id) = &ctx.session.pressure.active_event {
         draw_compact_event(&ctx, event_id, pointer, &mut actions);
         return actions;
@@ -48,6 +54,33 @@ pub(super) fn draw_compact_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         }
     }
     actions
+}
+
+fn draw_compact_camera_controls(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+) {
+    if ctx.session.pressure.active_event.is_some() {
+        return;
+    }
+    let [zoom_in, zoom_out, recenter] = ctx.layout.compact_camera_controls();
+    if compact_virtual_button(zoom_in, "+", true, ButtonTone::Secondary, 16.0, pointer) {
+        actions.push(UiAction::ZoomCamera(CameraZoom::In));
+    }
+    if compact_virtual_button(zoom_out, "-", true, ButtonTone::Secondary, 16.0, pointer) {
+        actions.push(UiAction::ZoomCamera(CameraZoom::Out));
+    }
+    if compact_virtual_button(
+        recenter,
+        "Recenter",
+        true,
+        ButtonTone::Secondary,
+        11.0,
+        pointer,
+    ) {
+        actions.push(UiAction::CenterCamera);
+    }
 }
 
 fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {

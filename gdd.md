@@ -10,8 +10,9 @@ vertical slice ending when a small settlement is established.
 The presentation is an orthographic top-down Macroquad scene with a full-world
 desktop viewport, contextual inspector, compact status strip, and stable command
 dock. Smaller touch viewports keep the world visible above a bottom command
-sheet with the same actions. The tone is secluded, strange, and quietly
-industrious.
+sheet with the same actions, plus visible zoom and recenter controls and
+single-finger pan / two-finger pinch camera gestures. The tone is secluded,
+strange, and quietly industrious.
 
 ## 2. Design pillars
 

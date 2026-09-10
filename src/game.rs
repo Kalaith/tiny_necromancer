@@ -6,11 +6,12 @@ use crate::state::{
     BuildingKind, GamePhase, GameSession, SaveData, Selection, Technology, Zone, ZoneKind,
 };
 use crate::ui::animation::AnimationClock;
-use crate::ui::{self, DomainOverlays, Panel, UiAction, UiContext};
+use crate::ui::{self, CameraZoom, DomainOverlays, Panel, UiAction, UiContext};
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::camera::{CameraBounds, CameraBoundsPolicy, CameraTransform};
 use macroquad_toolkit::events::EventBus;
+use macroquad_toolkit::input::TouchGesture;
 use macroquad_toolkit::notifications::{
     NotificationAnchor, NotificationManager, NotificationRenderConfig,
 };
@@ -29,6 +30,9 @@ pub struct Game {
     notifications: NotificationManager,
     camera: CameraTransform,
     camera_drag: Option<Vec2>,
+    touch_gesture: TouchGesture,
+    touch_camera_owned: bool,
+    touch_claimed: bool,
     events: EventBus<UiAction>,
     save_exists: bool,
     tick_accumulator: f32,
@@ -62,6 +66,9 @@ impl Game {
             notifications,
             camera,
             camera_drag: None,
+            touch_gesture: TouchGesture::new(),
+            touch_camera_owned: false,
+            touch_claimed: false,
             events: EventBus::new(),
             save_exists: false,
             tick_accumulator: 0.0,
@@ -133,6 +140,24 @@ impl Game {
         };
         let mouse = viewport.mouse_position();
         let rect = layout.world_rect;
+        let touch_frame = self.touch_gesture.update();
+        self.touch_claimed = false;
+        if layout.compact {
+            if touch_frame.active {
+                if !self.touch_camera_owned && touch_frame.claimed {
+                    self.touch_camera_owned = rect.contains(touch_frame.center);
+                }
+                if self.touch_camera_owned && touch_frame.claimed {
+                    self.camera.apply_gesture(rect, &touch_frame, (0.75, 1.5));
+                }
+                self.touch_claimed = touch_frame.claimed;
+            } else {
+                self.touch_claimed = touch_frame.claimed;
+                self.touch_camera_owned = false;
+            }
+        } else {
+            self.touch_camera_owned = false;
+        }
         if rect.contains(mouse) {
             if is_mouse_button_pressed(MouseButton::Right) {
                 self.camera_drag = Some(mouse);
@@ -189,6 +214,7 @@ impl Game {
             zone_mode: self.zone_mode,
             domain_overlays: self.domain_overlays,
             layout,
+            touch_claimed: self.touch_claimed,
         };
         for action in ui::draw_game_ui(ctx) {
             self.events.push(action);
@@ -366,6 +392,23 @@ impl Game {
             UiAction::ResolveEvent(choice) => {
                 let result = suspicion::resolve_event(&mut self.session, &self.data, &choice);
                 self.notify_result(result);
+            }
+            UiAction::ZoomCamera(factor) => {
+                let layout = ui::UiLayout::current(self.panel);
+                let factor = match factor {
+                    CameraZoom::In => 1.15,
+                    CameraZoom::Out => 1.0 / 1.15,
+                };
+                self.camera.zoom_at(
+                    layout.world_rect,
+                    layout.world_rect.center(),
+                    factor,
+                    (0.75, 1.5),
+                );
+            }
+            UiAction::CenterCamera => {
+                self.camera = CameraTransform::new(Vec2::ZERO, self.camera.zoom())
+                    .expect("valid camera reset");
             }
             UiAction::StartResearch(technology) => {
                 let result = progression::start_research(&mut self.session, technology);

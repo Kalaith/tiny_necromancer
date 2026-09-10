@@ -54,6 +54,12 @@ pub enum DomainOverlay {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CameraZoom {
+    In,
+    Out,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct DomainOverlays {
     pub zones: bool,
     pub routes: bool,
@@ -111,6 +117,8 @@ pub enum UiAction {
     ToggleZone(ZoneKind),
     PaintZone(TilePos),
     ResolveEvent(String),
+    ZoomCamera(CameraZoom),
+    CenterCamera,
 }
 
 pub struct UiContext<'a> {
@@ -128,6 +136,7 @@ pub struct UiContext<'a> {
     pub zone_mode: Option<ZoneKind>,
     pub domain_overlays: DomainOverlays,
     pub layout: UiLayout,
+    pub touch_claimed: bool,
 }
 
 pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
@@ -174,8 +183,12 @@ pub fn draw_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
 
 fn ui_occludes(point: Vec2, ctx: &UiContext<'_>) -> bool {
     if ctx.layout.compact {
+        let camera_controls = ctx.layout.compact_camera_controls();
         return ctx.layout.contains_compact_sheet(point)
             || Rect::new(0.0, 0.0, ctx.layout.logical_width, 84.0).contains_point(point)
+            || camera_controls
+                .iter()
+                .any(|control| control.contains_point(point))
             || Rect::new(ctx.layout.logical_width - 88.0, 8.0, 80.0, 48.0).contains_point(point);
     }
     let dock = Rect::new(298.0, 618.0, 684.0, 86.0);

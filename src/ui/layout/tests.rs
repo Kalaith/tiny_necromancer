@@ -33,3 +33,14 @@ fn management_sheets_grow_for_touch_sized_lists() {
     );
     assert!(layout.world_rect.h >= 128.0);
 }
+
+#[test]
+fn compact_camera_controls_are_touch_sized_and_inside_the_world() {
+    let layout = UiLayout::for_dimensions(360.0, 640.0, Panel::None);
+
+    for control in layout.compact_camera_controls() {
+        assert!(control.w >= 44.0 && control.h >= 44.0);
+        assert!(control.y >= layout.world_rect.y);
+        assert!(control.bottom() <= layout.world_rect.bottom());
+    }
+}
