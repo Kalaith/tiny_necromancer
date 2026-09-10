@@ -362,15 +362,16 @@ fn draw_compact_domain_panel(
         dark::ACCENT,
     );
     let (clear_routes, total_routes) = super::super::world_feedback::route_counts(ctx);
+    let patrol_coverage = crate::engine::jobs::patrol_coverage(ctx.session);
     let route_summary = if total_routes == 0 {
         format!(
-            "Routes · no destinations · P{}",
-            super::super::world_feedback::patrol_post_count(ctx)
+            "Routes · no destinations · P{}/{}",
+            patrol_coverage.covered_posts, patrol_coverage.total_posts
         )
     } else {
         format!(
-            "Routes · {clear_routes}/{total_routes} clear · P{}",
-            super::super::world_feedback::patrol_post_count(ctx)
+            "Routes · {clear_routes}/{total_routes} clear · P{}/{}",
+            patrol_coverage.covered_posts, patrol_coverage.total_posts
         )
     };
     draw_text_block(
@@ -407,14 +408,21 @@ fn draw_compact_domain_panel(
     ) {
         actions.push(UiAction::UseWardCharge);
     }
-    let route_target = alerts::collect(ctx.session, ctx.data)
+    let coverage_alert = alerts::collect(ctx.session, ctx.data)
         .into_iter()
-        .find(|alert| alert.title == "Route blocked")
-        .and_then(|alert| alert.target);
+        .find(|alert| matches!(alert.title, "Route blocked" | "Patrol coverage"));
+    let route_target = coverage_alert.as_ref().and_then(|alert| alert.target);
     if let Some(Selection::Worker(index)) = route_target {
         if virtual_button(
             Rect::new(sheet.x + 16.0, sheet.y + 320.0, sheet.w - 32.0, 44.0),
-            "Inspect route",
+            if coverage_alert
+                .as_ref()
+                .is_some_and(|alert| alert.title == "Patrol coverage")
+            {
+                "Staff patrol"
+            } else {
+                "Inspect route"
+            },
             true,
             ButtonTone::Warning,
             pointer,

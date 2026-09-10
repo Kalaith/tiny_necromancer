@@ -269,6 +269,28 @@ fn marked_patrol_posts_follow_guard_roster_order() {
 }
 
 #[test]
+fn patrol_coverage_counts_reachable_unique_posts() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Patrol,
+        tiles: vec![
+            macroquad_toolkit::grid::TilePos::new(5, 1),
+            macroquad_toolkit::grid::TilePos::new(5, 3),
+            macroquad_toolkit::grid::TilePos::new(5, 3),
+        ],
+    });
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    let coverage = patrol_coverage(&session);
+
+    assert_eq!(coverage.total_posts, 2);
+    assert_eq!(coverage.covered_posts, 1);
+    assert_eq!(coverage.guard_count, 1);
+}
+
+#[test]
 fn hauler_switches_to_a_reachable_loose_bone_source() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

@@ -106,7 +106,8 @@ marked district tiles, ward charges, workforce activity, pressure stage, and
 the latest pressure cause. Its touch controls independently show or hide zone
 marks, worker destination routes, and a road-pressure watch overlay. The panel
 also offers a source-selection target for the first active blocker and a
-visible ward-charge response.
+visible ward-charge response. Marked Patrol posts report reachable Guard
+coverage, and an uncovered post becomes an actionable staffing alert.
 
 The current stewardship policy is persistent save data. Balanced respects the
 shared worker priority list, Secure brings Guard duty forward and responds at

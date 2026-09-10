@@ -2,7 +2,7 @@
 
 use crate::data::{GameData, SuspicionStage};
 use crate::engine::{jobs, navigation};
-use crate::state::{GameSession, JobKind, PlotStatus, Selection};
+use crate::state::{GameSession, JobKind, PlotStatus, Selection, Technology};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AlertSeverity {
@@ -42,6 +42,7 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
     let mut alerts = Vec::new();
     collect_pressure_alert(session, data, &mut alerts);
     collect_route_alert(session, &mut alerts);
+    collect_patrol_coverage_alert(session, &mut alerts);
     collect_construction_alert(session, &mut alerts);
     collect_production_alert(session, &mut alerts);
     collect_material_alert(session, &mut alerts);
@@ -84,6 +85,35 @@ fn collect_route_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>
     if let Some(alert) = alerts.last_mut() {
         alert.detail.push_str(&suffix);
     }
+}
+
+fn collect_patrol_coverage_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
+    if !session.research.is_unlocked(Technology::DomainStewardship) {
+        return;
+    }
+    let coverage = jobs::patrol_coverage(session);
+    if coverage.total_posts == 0 || coverage.covered_posts >= coverage.total_posts {
+        return;
+    }
+    let gaps = coverage.total_posts - coverage.covered_posts;
+    let target = session
+        .workforce
+        .workers
+        .iter()
+        .position(|worker| worker.assignment != JobKind::Guard)
+        .map(Selection::Worker);
+    alerts.push(OperationalAlert::new(
+        AlertSeverity::Warning,
+        "Patrol coverage",
+        format!(
+            "{} of {} marked posts covered · assign {} more Guard{}.",
+            coverage.covered_posts,
+            coverage.total_posts,
+            gaps,
+            if gaps == 1 { "" } else { "s" }
+        ),
+        target,
+    ));
 }
 
 fn collect_pressure_alert(

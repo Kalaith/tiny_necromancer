@@ -10,6 +10,13 @@ use macroquad_toolkit::grid::TilePos;
 
 mod dig;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PatrolCoverage {
+    pub total_posts: usize,
+    pub covered_posts: usize,
+    pub guard_count: usize,
+}
+
 pub fn assign_job(session: &mut GameSession, job: JobKind) -> Result<(), String> {
     if job == JobKind::Refine && !session.has_building(BuildingKind::OssuaryKiln) {
         return Err("Complete an Ossuary Kiln before assigning Refine Wards.".to_owned());
@@ -137,6 +144,41 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
                 .map(Building::work_position)
                 .collect(),
         ),
+    }
+}
+
+pub fn patrol_coverage(session: &GameSession) -> PatrolCoverage {
+    let posts =
+        zone_tiles(session, ZoneKind::Patrol)
+            .into_iter()
+            .fold(Vec::new(), |mut posts, tile| {
+                if !posts.contains(&tile) {
+                    posts.push(tile);
+                }
+                posts
+            });
+    let mut covered = Vec::new();
+    let mut guard_count = 0;
+    for worker in &session.workforce.workers {
+        if worker.assignment != JobKind::Guard {
+            continue;
+        }
+        guard_count += 1;
+        let Some(destination) = destination_for_worker(session, worker) else {
+            continue;
+        };
+        if !posts.contains(&destination)
+            || navigation::plan_route(session, worker.position, destination).is_err()
+            || covered.contains(&destination)
+        {
+            continue;
+        }
+        covered.push(destination);
+    }
+    PatrolCoverage {
+        total_posts: posts.len(),
+        covered_posts: covered.len(),
+        guard_count,
     }
 }
 

@@ -3,7 +3,7 @@
 use super::components::GridView;
 use super::UiContext;
 use crate::engine::{districts, jobs, navigation};
-use crate::state::{JobKind, PlotStatus, ResourceKind, Selection, Worker, WorkerStatus, ZoneKind};
+use crate::state::{JobKind, PlotStatus, ResourceKind, Selection, Worker, WorkerStatus};
 use macroquad::prelude::*;
 use macroquad_toolkit::grid::TilePos;
 use macroquad_toolkit::prelude::*;
@@ -323,16 +323,6 @@ pub(super) fn route_counts(ctx: &UiContext<'_>) -> (usize, usize) {
         }
     }
     (clear, total)
-}
-
-pub(super) fn patrol_post_count(ctx: &UiContext<'_>) -> usize {
-    ctx.session
-        .world
-        .zones
-        .iter()
-        .filter(|zone| zone.kind == ZoneKind::Patrol)
-        .map(|zone| zone.tiles.len())
-        .sum()
 }
 
 pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> String {

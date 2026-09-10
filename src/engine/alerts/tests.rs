@@ -135,3 +135,27 @@ fn route_alert_counts_additional_blocked_workers() {
         .expect("blocked workers should share one route alert");
     assert!(alert.detail.contains("(+1 more blocked)"));
 }
+
+#[test]
+fn patrol_coverage_alert_points_to_a_worker_for_the_next_post() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Patrol,
+        tiles: vec![TilePos::new(5, 1), TilePos::new(5, 3)],
+    });
+    session.workforce.workers[0].assignment = JobKind::Guard;
+    let mut second = session.workforce.workers[0].clone();
+    second.id = 9;
+    second.assignment = JobKind::Dig;
+    session.workforce.workers.push(second);
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Patrol coverage")
+        .expect("uncovered patrol post should be reported");
+
+    assert!(alert.detail.contains("1 of 2 marked posts covered"));
+    assert_eq!(alert.target, Some(Selection::Worker(1)));
+}

@@ -3,7 +3,7 @@
 use super::components::virtual_button;
 use super::{DomainOverlay, UiAction, UiContext};
 use crate::data::SuspicionStage;
-use crate::engine::{alerts, districts};
+use crate::engine::{alerts, districts, jobs};
 use crate::state::{GamePhase, JobKind, Selection, Technology};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -202,15 +202,16 @@ fn draw_stewardship_readout(
     actions: &mut Vec<UiAction>,
 ) {
     let (clear_routes, total_routes) = super::world_feedback::route_counts(ctx);
+    let patrol_coverage = jobs::patrol_coverage(ctx.session);
     let route_summary = if total_routes == 0 {
         format!(
-            "no destinations plotted · {} patrol posts",
-            super::world_feedback::patrol_post_count(ctx)
+            "no destinations plotted · {}/{} patrol posts",
+            patrol_coverage.covered_posts, patrol_coverage.total_posts
         )
     } else {
         format!(
-            "{clear_routes}/{total_routes} routes clear · {} patrol posts",
-            super::world_feedback::patrol_post_count(ctx)
+            "{clear_routes}/{total_routes} routes clear · {}/{} patrol posts",
+            patrol_coverage.covered_posts, patrol_coverage.total_posts
         )
     };
     draw_text_block(

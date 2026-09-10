@@ -35,6 +35,7 @@ impl Game {
             "orders" => self.prepare_capture_orders(),
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
+            "patrol-gap" => self.prepare_capture_patrol_gap(),
             "route-blocked" => self.prepare_capture_route_blocked(),
             "route-domain" => self.prepare_capture_route_domain(),
             "notes" => self.prepare_capture_notes(),
@@ -235,6 +236,18 @@ impl Game {
                 worker.status = WorkerStatus::Hiding;
                 worker.position = position;
             }
+        }
+    }
+
+    fn prepare_capture_patrol_gap(&mut self) {
+        self.prepare_capture_domain();
+        self.session.pressure.suspicion = 0.0;
+        self.session.pressure.stage = SuspicionStage::Calm;
+        self.session.pressure.last_reason =
+            "The marked patrol network needs more hands.".to_owned();
+        for worker in self.session.workforce.workers.iter_mut().skip(1) {
+            worker.assignment = JobKind::Dig;
+            worker.status = WorkerStatus::Idle;
         }
     }
 

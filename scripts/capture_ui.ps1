@@ -21,6 +21,7 @@ param(
         "orders",
         "colony",
         "domain",
+        "patrol-gap",
         "route-blocked",
         "route-domain",
         "notes",
