@@ -35,6 +35,7 @@ impl Game {
             "orders" => self.prepare_capture_orders(),
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
+            "route-blocked" => self.prepare_capture_route_blocked(),
             "notes" => self.prepare_capture_notes(),
             "production" => self.prepare_capture_production(),
             "placement" => {
@@ -226,6 +227,27 @@ impl Game {
             worker.assignment = JobKind::Guard;
             worker.status = WorkerStatus::Hiding;
             worker.position = TilePos::new(5, 5);
+        }
+    }
+
+    fn prepare_capture_route_blocked(&mut self) {
+        self.prepare_capture_domain();
+        self.panel = Panel::None;
+        self.session.world.selected = Some(Selection::Worker(0));
+        if let Some(worker) = self.session.workforce.workers.first_mut() {
+            worker.position = TilePos::new(2, 2);
+            worker.status = WorkerStatus::Idle;
+            worker.assignment = JobKind::Guard;
+        }
+        for y in 0..self.session.world.height as i32 {
+            self.session.world.buildings.push(crate::state::Building {
+                kind: BuildingKind::WorkShed,
+                progress: 10.0,
+                complete: true,
+                position: TilePos::new(3, y),
+                width: 1,
+                height: 1,
+            });
         }
     }
 

@@ -21,6 +21,7 @@ param(
         "orders",
         "colony",
         "domain",
+        "route-blocked",
         "notes",
         "production",
         "worker-walking",
