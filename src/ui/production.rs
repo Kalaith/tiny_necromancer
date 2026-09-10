@@ -58,8 +58,10 @@ pub(super) fn draw_kiln_inspector(
             "Cancel reserved cycle · +B{} W{}",
             recipe.bones_cost, recipe.wood_cost
         )
+    } else if active {
+        "No reserved cycle · active work stays".to_owned()
     } else {
-        "No reserved cycle".to_owned()
+        "Load a cycle first".to_owned()
     };
     if virtual_button(
         Rect::new(panel.x + 18.0, panel.y + 286.0, panel.w - 36.0, 44.0),
