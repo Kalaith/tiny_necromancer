@@ -22,6 +22,7 @@ param(
         "colony",
         "domain",
         "route-blocked",
+        "route-domain",
         "notes",
         "production",
         "worker-walking",

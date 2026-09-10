@@ -36,6 +36,7 @@ impl Game {
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
             "route-blocked" => self.prepare_capture_route_blocked(),
+            "route-domain" => self.prepare_capture_route_domain(),
             "notes" => self.prepare_capture_notes(),
             "production" => self.prepare_capture_production(),
             "placement" => {
@@ -249,6 +250,11 @@ impl Game {
                 height: 1,
             });
         }
+    }
+
+    fn prepare_capture_route_domain(&mut self) {
+        self.prepare_capture_route_blocked();
+        self.panel = Panel::Domain;
     }
 
     fn prepare_capture_notes(&mut self) {

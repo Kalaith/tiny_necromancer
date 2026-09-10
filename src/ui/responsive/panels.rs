@@ -2,8 +2,8 @@
 
 use super::super::components::{compact_virtual_button, virtual_button};
 use super::super::{DomainOverlay, Panel, UiAction, UiContext};
-use crate::engine::districts;
-use crate::state::{BuildingKind, GamePhase, Technology, UndeadKind, ZoneKind};
+use crate::engine::{alerts, districts};
+use crate::state::{BuildingKind, GamePhase, Selection, Technology, UndeadKind, ZoneKind};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::Pointer;
@@ -400,6 +400,21 @@ fn draw_compact_domain_panel(
         pointer,
     ) {
         actions.push(UiAction::UseWardCharge);
+    }
+    let route_target = alerts::collect(ctx.session, ctx.data)
+        .into_iter()
+        .find(|alert| alert.title == "Route blocked")
+        .and_then(|alert| alert.target);
+    if let Some(Selection::Worker(index)) = route_target {
+        if virtual_button(
+            Rect::new(sheet.x + 16.0, sheet.y + 320.0, sheet.w - 32.0, 44.0),
+            "Inspect route",
+            true,
+            ButtonTone::Warning,
+            pointer,
+        ) {
+            actions.push(UiAction::SelectWorker(index));
+        }
     }
 }
 
