@@ -232,6 +232,7 @@ impl Game {
         ];
         self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
         self.panel = Panel::Zones;
+        self.zone_mode = Some(ZoneKind::Work);
     }
 
     fn prepare_capture_production(&mut self) {

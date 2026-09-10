@@ -121,10 +121,11 @@ and a textual failure reason, with **Cancel placement** always visible.
 
 The Settlement View minimap echoes painted zones, structures, workers, the
 necromancer, and the current selection so the domain remains legible while
-the world is busy. The event modal blocks the world and presents only choice
-buttons. Pause, save, load, recovery, and replay actions are also visible
-controls. Desktop right-drag and wheel camera controls supplement the touch
-path.
+the world is busy. Active zone tools preview the hovered tile with **Tap to
+mark** or **Tap to clear** copy. The event modal blocks the world and presents
+only choice buttons. Pause, save, load, recovery, and replay actions are also
+visible controls. Desktop right-drag and wheel camera controls supplement the
+touch path.
 
 ## 8. Toolkit mapping
 
