@@ -125,7 +125,7 @@ fn collect_production_alert(session: &GameSession, alerts: &mut Vec<OperationalA
         AlertSeverity::Warning,
         "Kiln unattended",
         format!(
-            "Ward cycle loaded · assign a Refine worker ({} queued).",
+            "Ward cycle loaded · assign a Refine worker ({} reserved).",
             session.progress.production_queue
         ),
         target.map(Selection::Building),

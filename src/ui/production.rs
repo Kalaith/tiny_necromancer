@@ -81,7 +81,7 @@ pub(super) fn draw_kiln_inspector(
     }
     draw_text_block(
         &format!(
-            "Ward charges · {} · stored {} · queued {}/{}",
+            "Ward charges · {} · stored {} · reserved {}/{}",
             recipe.effect_text,
             ctx.session.economy.ward_charges,
             queued,

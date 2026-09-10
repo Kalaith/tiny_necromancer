@@ -606,7 +606,7 @@ fn draw_building_inspector(
                 .map_or(8.0, |recipe| recipe.seconds);
             draw_text_block(
                 &format!(
-                    "Refining ward charge · queued {}/{}",
+                    "Refining ward charge · reserved {}/{}",
                     ctx.session.progress.production_queue,
                     crate::engine::progression::MAX_PRODUCTION_QUEUE
                 ),
