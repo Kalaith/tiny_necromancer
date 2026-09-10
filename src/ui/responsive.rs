@@ -61,7 +61,9 @@ fn draw_compact_camera_controls(
     pointer: Pointer,
     actions: &mut Vec<UiAction>,
 ) {
-    if ctx.session.pressure.active_event.is_some() {
+    if ctx.session.pressure.active_event.is_some()
+        || !matches!(ctx.session.phase, GamePhase::Playing | GamePhase::Paused)
+    {
         return;
     }
     let [zoom_in, zoom_out, recenter] = ctx.layout.compact_camera_controls();

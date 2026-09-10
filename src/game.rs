@@ -11,7 +11,7 @@ use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::camera::{CameraBounds, CameraBoundsPolicy, CameraTransform};
 use macroquad_toolkit::events::EventBus;
-use macroquad_toolkit::input::TouchGesture;
+use macroquad_toolkit::input::{TouchGesture, TouchGestureFrame};
 use macroquad_toolkit::notifications::{
     NotificationAnchor, NotificationManager, NotificationRenderConfig,
 };
@@ -132,25 +132,35 @@ impl Game {
     }
 
     fn update_camera(&mut self) {
-        let layout = ui::UiLayout::current(self.panel);
-        let viewport = if layout.compact {
+        let compact = ui::UiLayout::current(self.panel).compact;
+        let viewport = if compact {
             VirtualUi::responsive()
         } else {
             VirtualUi::new(ui::LOGICAL_WIDTH, ui::LOGICAL_HEIGHT)
         };
+        let layout = ui::UiLayout::for_dimensions(
+            viewport.logical_width,
+            viewport.logical_height,
+            self.panel,
+        );
         let mouse = viewport.mouse_position();
         let rect = layout.world_rect;
         let touch_frame = self.touch_gesture.update();
         self.touch_claimed = false;
         if layout.compact {
             if touch_frame.active {
-                if !self.touch_camera_owned && touch_frame.claimed {
-                    self.touch_camera_owned = rect.contains(touch_frame.center);
+                let frame = TouchGestureFrame {
+                    pan: touch_frame.pan / viewport.scale,
+                    center: viewport.screen_to_ui(touch_frame.center),
+                    ..touch_frame
+                };
+                if !self.touch_camera_owned && frame.claimed {
+                    self.touch_camera_owned = rect.contains(frame.center);
                 }
-                if self.touch_camera_owned && touch_frame.claimed {
-                    self.camera.apply_gesture(rect, &touch_frame, (0.75, 1.5));
+                if self.touch_camera_owned && frame.claimed {
+                    self.camera.apply_gesture(rect, &frame, (0.75, 1.5));
                 }
-                self.touch_claimed = touch_frame.claimed;
+                self.touch_claimed = frame.claimed;
             } else {
                 self.touch_claimed = touch_frame.claimed;
                 self.touch_camera_owned = false;
