@@ -27,6 +27,12 @@ pub(super) fn draw_feed(ctx: &UiContext<'_>) {
         dark::TEXT_DIM,
     );
     for (index, entry) in ctx.session.pressure.feed.iter().take(3).enumerate() {
+        let age_alpha = (1.0 - entry.age_seconds / 18.0).clamp(0.42, 1.0);
+        let text_color = if index == 0 {
+            dark::TEXT.with_alpha(age_alpha)
+        } else {
+            dark::TEXT_DIM.with_alpha(age_alpha)
+        };
         draw_text_block(
             &entry.message,
             rect.x + 14.0,
@@ -35,11 +41,7 @@ pub(super) fn draw_feed(ctx: &UiContext<'_>) {
             18.0,
             if index == 0 { 13.0 } else { 12.0 },
             0.0,
-            if index == 0 {
-                dark::TEXT
-            } else {
-                dark::TEXT_DIM
-            },
+            text_color,
         );
     }
 }
