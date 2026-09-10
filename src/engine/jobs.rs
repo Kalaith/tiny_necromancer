@@ -239,6 +239,7 @@ fn simulate_dig(
         .expect("validated undead type")
         .conspicuousness;
     if session.workforce.workers[index].target_plot.is_none() {
+        let worker_position = session.workforce.workers[index].position;
         let claimed: Vec<usize> = session
             .workforce
             .workers
@@ -256,17 +257,18 @@ fn simulate_dig(
                     && selected == Some(plot.id)
             })
             .map(|plot| plot.id);
-        let designated_target = session
+        let nearest_designated_target = session
             .world
             .plots
             .iter()
-            .find(|plot| {
+            .filter(|plot| {
                 plot.status == PlotStatus::Ready
                     && !claimed.contains(&plot.id)
                     && session.world.zone_contains(ZoneKind::Work, plot.position)
             })
+            .min_by_key(|plot| tile_distance(worker_position, plot.position))
             .map(|plot| plot.id);
-        let target_id = selected_target.or(designated_target).or_else(|| {
+        let target_id = selected_target.or(nearest_designated_target).or_else(|| {
             session
                 .world
                 .plots
@@ -382,11 +384,13 @@ fn simulate_wood(
     messages: &mut Vec<String>,
 ) {
     let job = data.jobs.get("wood").expect("validated wood job");
+    let worker_position = session.workforce.workers[index].position;
     let work_position = session
         .world
         .forest_tiles
         .iter()
-        .find(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
+        .filter(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
+        .min_by_key(|tile| tile_distance(worker_position, **tile))
         .copied()
         .unwrap_or(session.world.forest_tiles[0]);
     if !move_worker_to(session, index, work_position) {
@@ -405,6 +409,10 @@ fn simulate_wood(
         );
         messages.push(format!("Gathered {} loose wood.", job.output_amount));
     }
+}
+
+fn tile_distance(from: TilePos, to: TilePos) -> i32 {
+    (from.x - to.x).abs() + (from.y - to.y).abs()
 }
 
 fn simulate_refine(

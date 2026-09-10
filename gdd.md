@@ -65,8 +65,8 @@ time, output, speed, suspicion, and guard mitigation from `jobs.json`. Corpse qu
 bands and Brute eligibility live in `corpses.json`; resurrection recipes live
 in `undead.json`.
 
-Painted Work areas guide digging and wood gathering, Storage areas choose the
-hauler's drop points, and Patrol areas choose the guard's post. Haulers use the
+Painted Work areas guide digging and wood gathering toward the nearest eligible
+grave or forest tile, Storage areas choose the hauler's drop points, and Patrol areas choose the guard's post. Haulers use the
 nearest marked Storage tile from their current position, which keeps larger
 stockpile districts practical. An empty area keeps the original fallback
 target so marking a zone is never required to continue a job. Tapping a marked
