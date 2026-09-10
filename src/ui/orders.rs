@@ -28,6 +28,22 @@ pub(super) fn draw_orders_panel(
         0.0,
         dark::TEXT_BRIGHT,
     );
+    if ctx
+        .session
+        .research
+        .is_unlocked(Technology::DomainStewardship)
+    {
+        draw_text_block(
+            &format!("DOMAIN POLICY · {}", ctx.session.stewardship_policy.label()),
+            rect.x + 424.0,
+            rect.y + 24.0,
+            232.0,
+            18.0,
+            11.0,
+            0.0,
+            dark::ACCENT,
+        );
+    }
     if !ctx
         .session
         .research
