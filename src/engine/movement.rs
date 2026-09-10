@@ -160,8 +160,13 @@ pub fn request_necromancer_destination(
     if !navigation::is_valid_destination(session, destination) {
         return Err("That tile is blocked or outside the cemetery.".to_owned());
     }
-    if navigation::next_step(session, session.world.necromancer_position, destination).is_none() {
-        return Err("The necromancer cannot find a route to that tile.".to_owned());
+    if let Err(failure) =
+        navigation::plan_route(session, session.world.necromancer_position, destination)
+    {
+        return Err(format!(
+            "The necromancer cannot reach that tile: {}.",
+            failure.label()
+        ));
     }
     session.world.necromancer_destination = Some(destination);
     Ok(())
@@ -174,20 +179,30 @@ pub fn simulate_necromancer(session: &mut GameSession) -> Option<String> {
         return None;
     }
     let current = session.world.necromancer_position;
-    match navigation::next_step(session, current, destination) {
-        Some(next) => {
+    match navigation::plan_route(session, current, destination) {
+        Ok(route) => {
+            let Some(next) = route.next_step() else {
+                session.world.necromancer_destination = None;
+                return None;
+            };
             session.world.necromancer_position = next;
             if next == destination {
                 session.world.necromancer_destination = None;
             }
             None
         }
-        None => {
+        Err(failure) => {
             session.world.necromancer_destination = None;
-            Some("The necromancer's route is blocked; choose another destination.".to_owned())
+            Some(format!(
+                "The necromancer's route failed: {}.",
+                failure.label()
+            ))
         }
     }
 }
+
+#[cfg(test)]
+mod tests;
 
 pub fn drop_worker_cargo(session: &mut GameSession, index: usize) {
     let Some(worker) = session.workforce.workers.get_mut(index) else {
