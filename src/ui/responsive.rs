@@ -62,13 +62,10 @@ fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<
             ctx.session.economy.wood,
             Color::new(0.86, 0.68, 0.40, 1.0),
         ),
-        (
-            "UNDEAD",
-            ctx.session.active_undead() as i32,
-            dark::TEXT_BRIGHT,
-        ),
     ];
-    let card_width = ((width - 104.0) / 4.0).max(72.0);
+    let show_undead_card = width >= 400.0;
+    let card_count = if show_undead_card { 4.0 } else { 3.0 };
+    let card_width = ((width - 104.0) / card_count).max(72.0);
     for (index, (label, value, color)) in values.into_iter().enumerate() {
         let rect = Rect::new(8.0 + index as f32 * card_width, 8.0, card_width - 4.0, 48.0);
         draw_surface(
@@ -97,6 +94,34 @@ fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<
             color,
         );
     }
+    if show_undead_card {
+        let rect = Rect::new(8.0 + 3.0 * card_width, 8.0, card_width - 4.0, 48.0);
+        draw_surface(
+            rect,
+            &SurfaceStyle::new(Color::new(0.055, 0.07, 0.065, 0.92))
+                .with_border(1.0, Color::new(0.42, 0.54, 0.46, 0.60)),
+        );
+        draw_text_block(
+            "UNDEAD",
+            rect.x + 8.0,
+            rect.y + 7.0,
+            rect.w - 16.0,
+            14.0,
+            9.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
+        draw_text_block(
+            &ctx.session.active_undead().to_string(),
+            rect.x + 8.0,
+            rect.y + 23.0,
+            rect.w - 16.0,
+            20.0,
+            17.0,
+            0.0,
+            dark::TEXT_BRIGHT,
+        );
+    }
     if virtual_button(
         pause,
         if ctx.session.phase == GamePhase::Paused {
@@ -110,12 +135,22 @@ fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<
     ) {
         actions.push(UiAction::TogglePause);
     }
-    draw_text_block(
-        &format!(
+    let suspicion = if show_undead_card {
+        format!(
             "SUSPICION · {} {:.0}%",
             super::components::stage_label(ctx.session.pressure.stage),
             ctx.session.pressure.suspicion
-        ),
+        )
+    } else {
+        format!(
+            "SUSPICION · {} {:.0}% · UNDEAD {}",
+            super::components::stage_label(ctx.session.pressure.stage),
+            ctx.session.pressure.suspicion,
+            ctx.session.active_undead()
+        )
+    };
+    draw_text_block(
+        &suspicion,
         12.0,
         64.0,
         width - 24.0,
