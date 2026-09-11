@@ -308,6 +308,21 @@ pub(super) fn worker_route_summary(ctx: &UiContext<'_>, worker: &Worker) -> Opti
         Ok(route) => format!("ROUTE · {} steps", route.step_count()),
         Err(failure) => format!("NO ROUTE · {}", failure.label()),
     };
+    let summary = if worker.assignment == JobKind::Haul
+        && worker.carrying > 0
+        && ctx
+            .session
+            .world
+            .zone_contains(crate::state::ZoneKind::Storage, destination)
+    {
+        format!(
+            "DROP {},{} · {summary}",
+            destination.x + 1,
+            destination.y + 1
+        )
+    } else {
+        summary
+    };
     Some(
         jobs::patrol_post_number(ctx.session, worker)
             .map_or(summary.clone(), |post| format!("POST P{post} · {summary}")),
