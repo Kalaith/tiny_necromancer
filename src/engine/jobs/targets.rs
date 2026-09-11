@@ -212,7 +212,7 @@ fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -
     } else {
         candidates
     };
-    let current_slot = assignment_slot(session, JobKind::Haul, worker_id);
+    let current_slot = storage_slot(session, worker_id);
     let preferred = if current_slot == 0 {
         nearest_reachable_or_nearest(session, origin, candidates.clone()).unwrap_or(fallback)
     } else {
@@ -225,7 +225,8 @@ fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -
         .filter(|worker| {
             worker.assignment == JobKind::Haul
                 && worker.id != worker_id
-                && assignment_slot(session, JobKind::Haul, worker.id) < current_slot
+                && worker.carrying > 0
+                && storage_slot(session, worker.id) < current_slot
         })
         .map(|worker| storage_destination(session, worker.position, worker.id))
         .collect::<Vec<_>>();
@@ -257,6 +258,18 @@ fn assignment_slot(session: &GameSession, job: JobKind, worker_id: u32) -> usize
         .workers
         .iter()
         .filter(|worker| worker.assignment == job)
+        .position(|worker| worker.id == worker_id)
+        .unwrap_or(worker_id as usize)
+}
+
+fn storage_slot(session: &GameSession, worker_id: u32) -> usize {
+    session
+        .workforce
+        .workers
+        .iter()
+        .filter(|worker| {
+            worker.assignment == JobKind::Haul && (worker.id == worker_id || worker.carrying > 0)
+        })
         .position(|worker| worker.id == worker_id)
         .unwrap_or(worker_id as usize)
 }

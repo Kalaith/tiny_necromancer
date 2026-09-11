@@ -541,6 +541,31 @@ fn marked_forest_slots_split_two_wood_workers_across_targets() {
 }
 
 #[test]
+fn idle_haulers_do_not_reserve_a_storage_drop_point() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_storage = macroquad_toolkit::grid::TilePos::new(5, 1);
+    let second_storage = macroquad_toolkit::grid::TilePos::new(6, 5);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![first_storage, second_storage],
+    });
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = first_storage;
+    let mut carrying_worker = session.workforce.workers[0].clone();
+    carrying_worker.id = session.workforce.next_worker_id;
+    carrying_worker.carrying = 1;
+    carrying_worker.position = first_storage;
+    session.workforce.next_worker_id += 1;
+    session.workforce.workers.push(carrying_worker);
+
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[1]),
+        Some(first_storage)
+    );
+}
+
+#[test]
 fn idle_dig_preview_uses_a_reachable_grave() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
