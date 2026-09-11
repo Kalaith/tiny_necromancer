@@ -32,6 +32,16 @@ fn market_rotates_and_wraps_after_elapsed_time() {
 }
 
 #[test]
+fn trusted_broker_refreshes_the_next_offer_faster() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = lantern_session(&data);
+    session.progress.market.favor = 8;
+    session.progress.market.refresh_seconds = 1.0;
+    advance_market(&mut session, 1.0);
+    assert!((session.progress.market.refresh_seconds - 24.0).abs() < 0.001);
+}
+
+#[test]
 fn market_requires_a_complete_lantern() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

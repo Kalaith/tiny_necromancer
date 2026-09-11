@@ -17,6 +17,12 @@ fn broker_standing_advances_at_persistent_favor_thresholds() {
 
     market.favor = 2;
     assert!((market.standing_progress() - (2.0 / 3.0)).abs() < 0.001);
+    assert!((market.refresh_interval() - 30.0).abs() < 0.001);
+
+    market.favor = 3;
+    assert!((market.refresh_interval() - 27.0).abs() < 0.001);
+    market.favor = 8;
+    assert!((market.refresh_interval() - 24.0).abs() < 0.001);
 }
 
 #[test]

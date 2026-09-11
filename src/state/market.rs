@@ -70,6 +70,14 @@ impl MarketState {
         let start = BROKER_STANDING_THRESHOLDS[tier];
         (self.favor.saturating_sub(start) as f32 / (target - start) as f32).clamp(0.0, 1.0)
     }
+
+    pub fn refresh_interval(&self) -> f32 {
+        match self.standing_tier() {
+            0 => MARKET_REFRESH_SECONDS,
+            1 => 27.0,
+            _ => 24.0,
+        }
+    }
 }
 
 fn default_refresh_seconds() -> f32 {

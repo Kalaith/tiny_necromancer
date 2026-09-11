@@ -346,15 +346,17 @@ fn standing_summary(ctx: &UiContext<'_>) -> String {
     let market = &ctx.session.progress.market;
     match market.next_standing_target() {
         Some(target) => format!(
-            "Broker standing · {} · favor {}/{}",
+            "Broker standing · {} · favor {}/{} · cycle {:.0}s",
             market.standing_label(),
             market.favor,
-            target
+            target,
+            market.refresh_interval()
         ),
         None => format!(
-            "Broker standing · {} · favor {} · highest standing",
+            "Broker standing · {} · favor {} · cycle {:.0}s",
             market.standing_label(),
-            market.favor
+            market.favor,
+            market.refresh_interval()
         ),
     }
 }

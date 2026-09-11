@@ -2,7 +2,7 @@
 
 use crate::data::GameData;
 use crate::engine::{districts, suspicion};
-use crate::state::{BuildingKind, GameSession, MarketState};
+use crate::state::{BuildingKind, GameSession};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TradeOfferKind {
@@ -80,7 +80,7 @@ pub fn advance_market(session: &mut GameSession, dt: f32) -> Option<String> {
     while session.progress.market.refresh_seconds <= 0.0 {
         session.progress.market.offer_index =
             (session.progress.market.offer_index + 1) % OFFERS.len();
-        session.progress.market.refresh_seconds += MarketState::default().refresh_seconds;
+        session.progress.market.refresh_seconds += session.progress.market.refresh_interval();
         rotated = true;
     }
     rotated.then(|| {

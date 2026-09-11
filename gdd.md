@@ -229,7 +229,9 @@ Repeated exchanges build broker favor. Three favor earns the Acquainted
 standing and eight earns Trusted standing; each exchange then raises less
 suspicion, from +2.0 at Whisper to +1.5 when Acquainted and +1.0 when Trusted.
 Standing and its next threshold remain visible in the market panel and save
-with the cemetery.
+with the cemetery. Acquainted offers refresh in 27 seconds and Trusted offers
+refresh in 24 seconds, making a broker relationship useful beyond pressure
+management.
 
 ## 7. UI and interaction flow
 
