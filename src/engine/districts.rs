@@ -95,6 +95,12 @@ pub fn compact_operations_summary(session: &GameSession) -> String {
     )
 }
 
+pub fn staffing_needs_attention(session: &GameSession) -> bool {
+    [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
+        .into_iter()
+        .any(|kind| marked_tile_count(session, kind) > 0 && operator_count(session, kind) == 0)
+}
+
 pub fn tile_summary(
     session: &GameSession,
     config: &DistrictRules,

@@ -108,6 +108,9 @@ fn operations_summary_names_staffing_by_district() {
         compact_operations_summary(&session),
         "Staffing: W 1/1 · S 0/0 · P 0/1 posts"
     );
+    assert!(staffing_needs_attention(&session));
+    let fresh_session = GameSession::new(&data.config);
+    assert!(!staffing_needs_attention(&fresh_session));
 }
 
 #[test]
