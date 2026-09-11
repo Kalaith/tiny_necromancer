@@ -1,7 +1,7 @@
 //! Derived operational alerts that point the player toward real blockers.
 
 use crate::data::{GameData, SuspicionStage};
-use crate::engine::{districts, jobs, navigation};
+use crate::engine::{districts, jobs, navigation, progression};
 use crate::state::{GameSession, JobKind, PlotStatus, Selection, Technology, ZoneKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -389,6 +389,14 @@ fn collect_production_alert(session: &GameSession, alerts: &mut Vec<OperationalA
         return;
     };
     if order.bones_remaining > 0 || order.wood_remaining > 0 {
+        if session.workforce.workers.iter().any(|worker| {
+            worker.haul_plan.is_some_and(|plan| {
+                plan.destination_kind == crate::state::HaulDestination::Kiln
+                    && progression::production_input_need(session, plan.resource) > 0
+            })
+        }) {
+            return;
+        }
         let target = session
             .world
             .buildings

@@ -72,6 +72,37 @@ fn missing_kiln_inputs_point_to_the_kiln_before_refining() {
 }
 
 #[test]
+fn kiln_input_alert_quiets_while_a_supply_route_is_committed() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.production = Some(ProductionOrder {
+        building: BuildingKind::OssuaryKiln,
+        progress: 0.0,
+        bones_remaining: 8,
+        wood_remaining: 6,
+    });
+    session.world.buildings.push(Building {
+        kind: BuildingKind::OssuaryKiln,
+        progress: 14.0,
+        complete: true,
+        position: TilePos::new(6, 4),
+        width: 2,
+        height: 1,
+    });
+    session.workforce.workers[0].haul_plan = Some(crate::state::HaulPlan {
+        resource: crate::state::ResourceKind::Bones,
+        source: crate::state::WorldState::stockpile_position(),
+        destination: crate::engine::progression::production_destination(&session).unwrap(),
+        storage_policy: crate::state::RoutePolicy::MarkedFirst,
+        destination_kind: crate::state::HaulDestination::Kiln,
+    });
+
+    assert!(!collect(&session, &data)
+        .iter()
+        .any(|alert| alert.title == "Kiln inputs waiting"));
+}
+
+#[test]
 fn loose_material_without_a_hauler_points_to_its_source() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
