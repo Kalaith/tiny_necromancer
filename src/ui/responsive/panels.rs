@@ -344,11 +344,7 @@ fn draw_compact_zones_panel(
                     width,
                     44.0,
                 ),
-                &format!(
-                    "{} · {}",
-                    kind.label(),
-                    ctx.session.world.route_policies.for_kind(kind).label()
-                ),
+                ctx.session.world.route_policies.for_kind(kind).label(),
                 ctx.session.phase == crate::state::GamePhase::Playing,
                 ButtonTone::Secondary,
                 11.0,
