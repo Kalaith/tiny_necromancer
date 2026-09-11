@@ -279,7 +279,7 @@ fn draw_compact_zones_panel(
         .research
         .is_unlocked(Technology::DomainStewardship)
     {
-        "Mark a Work, Storage, or Patrol tile; Domain bonuses stay local."
+        "Mark a Work, Storage, or Patrol tile; bonuses stay local. Work alerts point to reachable work."
     } else {
         "Choose a tool, then tap world tiles to mark or clear them."
     };
