@@ -71,7 +71,9 @@ impl Technology {
     pub fn description(self) -> &'static str {
         match self {
             Self::BindingRoutines => "Repeat orders and worker priorities become reliable.",
-            Self::Gravecraft => "Place structures and paint work areas across the clearing.",
+            Self::Gravecraft => {
+                "Place structures beyond the restored sites and paint work areas across the clearing."
+            }
             Self::OssuaryLogistics => "Link stockpiles and queue specialized production.",
             Self::DomainStewardship => "See districts, patrol routes, and ward coverage.",
         }

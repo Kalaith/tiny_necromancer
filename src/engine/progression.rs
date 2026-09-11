@@ -146,12 +146,28 @@ pub fn queue_building(
     )
 }
 
+pub fn placement_requires_gravecraft(
+    session: &GameSession,
+    kind: BuildingKind,
+    position: TilePos,
+) -> bool {
+    !session.research.is_unlocked(Technology::Gravecraft)
+        && kind != BuildingKind::WorkShed
+        && position != crate::state::default_building_position_for_kind(kind)
+}
+
 pub fn queue_building_at(
     session: &mut GameSession,
     data: &GameData,
     kind: BuildingKind,
     position: TilePos,
 ) -> Result<(), String> {
+    if placement_requires_gravecraft(session, kind, position) {
+        return Err(
+            "Study Gravecraft before placing structures away from the restored footprints."
+                .to_owned(),
+        );
+    }
     if kind == BuildingKind::OssuaryKiln
         && !session.research.is_unlocked(Technology::OssuaryLogistics)
     {

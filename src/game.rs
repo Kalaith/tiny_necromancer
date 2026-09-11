@@ -377,13 +377,8 @@ impl Game {
                 let Some(kind) = self.placement else {
                     return;
                 };
-                let result = if !self.session.research.is_unlocked(Technology::Gravecraft)
-                    && tile != crate::state::default_building_position_for_kind(kind)
-                {
-                    Err("Study Gravecraft before placing structures away from the restored footprints.".to_owned())
-                } else {
-                    progression::queue_building_at(&mut self.session, &self.data, kind, tile)
-                };
+                let result =
+                    progression::queue_building_at(&mut self.session, &self.data, kind, tile);
                 if result.is_ok() {
                     self.placement = None;
                     self.session.world.selected =

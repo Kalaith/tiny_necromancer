@@ -287,6 +287,46 @@ fn buildings_cannot_cover_graves_or_the_forest_edge() {
 }
 
 #[test]
+fn work_shed_can_be_placed_before_binding_routines() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+
+    queue_building_at(
+        &mut session,
+        &data,
+        BuildingKind::WorkShed,
+        TilePos::new(6, 0),
+    )
+    .unwrap();
+
+    assert_eq!(session.world.buildings[0].kind, BuildingKind::WorkShed);
+}
+
+#[test]
+fn later_structures_still_need_gravecraft_outside_restored_sites() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.mana = 100;
+    session.economy.wood = 100;
+
+    let error = queue_building_at(
+        &mut session,
+        &data,
+        BuildingKind::GraveLantern,
+        TilePos::new(6, 0),
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error,
+        "Study Gravecraft before placing structures away from the restored footprints."
+    );
+}
+
+#[test]
 fn kiln_queue_rolls_into_the_next_reserved_cycle() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

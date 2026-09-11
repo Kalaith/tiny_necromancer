@@ -2,9 +2,9 @@
 
 use super::components::{selected_tile_at, GridView};
 use super::{animation, UiContext};
-use crate::engine::districts;
+use crate::engine::{districts, progression};
 use crate::state::{
-    Building, BuildingKind, GamePhase, PlotStatus, Selection, Technology, WorkerStatus, ZoneKind,
+    Building, BuildingKind, GamePhase, PlotStatus, Selection, WorkerStatus, ZoneKind,
 };
 use macroquad::prelude::*;
 use macroquad_toolkit::grid::TilePos;
@@ -699,9 +699,7 @@ fn placement_valid(
     {
         return (false, "BLOCKED · outside the cemetery");
     }
-    if !ctx.session.research.is_unlocked(Technology::Gravecraft)
-        && position != crate::state::default_building_position_for_kind(kind)
-    {
+    if progression::placement_requires_gravecraft(ctx.session, kind, position) {
         return (false, "BLOCKED · study Gravecraft");
     }
     let overlaps = ctx.session.world.buildings.iter().any(|building| {
