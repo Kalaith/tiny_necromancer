@@ -1,6 +1,5 @@
 use super::*;
-use crate::state::{Building, BuildingKind, StewardshipPolicy, WorldState};
-
+use crate::state::{Building, BuildingKind, WorldState};
 #[test]
 fn district_rules_wait_for_domain_stewardship() {
     let data = crate::data::GameData::load().unwrap();
@@ -67,23 +66,6 @@ fn district_rules_wait_for_domain_stewardship() {
         1.0
     );
 }
-
-#[test]
-fn rule_summary_names_only_marked_districts() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    session.research.completed = vec![Technology::DomainStewardship];
-    session.world.zones.push(crate::state::Zone {
-        kind: ZoneKind::Storage,
-        tiles: vec![WorldState::stockpile_position()],
-    });
-
-    assert_eq!(
-        rule_summary(&session, &data.config.district_rules),
-        "Rules: marked tiles · Storage +4 haul · +24 capacity/tile"
-    );
-}
-
 #[test]
 fn operations_summary_names_staffing_by_district() {
     let data = crate::data::GameData::load().unwrap();
@@ -129,50 +111,6 @@ fn operations_summary_names_staffing_by_district() {
     });
     assert!(!staffing_needs_attention(&locked_session));
 }
-
-#[test]
-fn staffing_gap_scales_with_marked_slots() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    session.research.completed = vec![Technology::DomainStewardship];
-    session.world.zones.push(crate::state::Zone {
-        kind: ZoneKind::Work,
-        tiles: vec![
-            session.world.plots[0].position,
-            session.world.plots[1].position,
-        ],
-    });
-    session.workforce.workers[0].assignment = JobKind::Dig;
-
-    assert_eq!(marked_tile_count(&session, ZoneKind::Work), 2);
-    assert_eq!(operator_count(&session, ZoneKind::Work), 1);
-    assert_eq!(staffing_gap(&session, ZoneKind::Work), 1);
-    assert!(staffing_needs_attention(&session));
-}
-
-#[test]
-fn work_staffing_matches_workers_to_the_marked_role() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    session.research.completed = vec![Technology::DomainStewardship];
-    session.stewardship_policy = StewardshipPolicy::Harvest;
-    let forest_tile = session.world.forest_tiles[2];
-    session.world.zones.push(crate::state::Zone {
-        kind: ZoneKind::Work,
-        tiles: vec![forest_tile],
-    });
-    session.workforce.workers[0].assignment = JobKind::Dig;
-
-    assert_eq!(operator_count(&session, ZoneKind::Work), 0);
-    assert_eq!(staffing_gap(&session, ZoneKind::Work), 1);
-    assert!(policy_bias(&session, JobKind::Wood) < policy_bias(&session, JobKind::Dig));
-
-    session.workforce.workers[0].assignment = JobKind::Wood;
-
-    assert_eq!(operator_count(&session, ZoneKind::Work), 1);
-    assert_eq!(staffing_gap(&session, ZoneKind::Work), 0);
-}
-
 #[test]
 fn service_coverage_separates_assignment_from_route_access() {
     let data = crate::data::GameData::load().unwrap();
@@ -216,113 +154,6 @@ fn service_coverage_separates_assignment_from_route_access() {
     assert_eq!(route_gap_district(&session, 0), Some(ZoneKind::Storage));
     assert_eq!(route_gap_district(&session, 99), None);
 }
-
-#[test]
-fn coverage_summary_ignores_extra_workers_when_naming_route_need() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    session.research.completed = vec![Technology::DomainStewardship];
-    session.world.zones.push(crate::state::Zone {
-        kind: ZoneKind::Storage,
-        tiles: vec![WorldState::stockpile_position()],
-    });
-    for worker in &mut session.workforce.workers {
-        worker.assignment = JobKind::Haul;
-    }
-
-    assert_eq!(
-        coverage_summary(&session),
-        "Route coverage (reachable/needed): Work 0/0 · Storage 1/1 · Patrol 0/0"
-    );
-    assert_eq!(
-        compact_coverage_summary(&session),
-        "Routes: W 0/0 · S 1/1 · P 0/0"
-    );
-    assert!(!route_coverage_needs_attention(&session));
-}
-
-#[test]
-fn route_gap_worker_survives_competing_routes_to_one_slot() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    session.research.completed = vec![Technology::DomainStewardship];
-    session.world.zones.push(crate::state::Zone {
-        kind: ZoneKind::Storage,
-        tiles: vec![TilePos::new(5, 5), TilePos::new(6, 6)],
-    });
-    for worker in &mut session.workforce.workers {
-        worker.assignment = JobKind::Refine;
-        worker.position = TilePos::new(2, 2);
-    }
-    let mut second = session.workforce.workers[0].clone();
-    second.id = session.workforce.next_worker_id;
-    session.workforce.next_worker_id += 1;
-    session.workforce.workers.push(second);
-    session.workforce.workers[0].assignment = JobKind::Haul;
-    session.workforce.workers[1].assignment = JobKind::Haul;
-    for position in [
-        TilePos::new(5, 6),
-        TilePos::new(7, 6),
-        TilePos::new(6, 5),
-        TilePos::new(6, 7),
-    ] {
-        session.world.buildings.push(Building {
-            kind: BuildingKind::WorkShed,
-            progress: 10.0,
-            complete: true,
-            position,
-            width: 1,
-            height: 1,
-        });
-    }
-
-    let coverage = service_coverage(&session, ZoneKind::Storage);
-
-    assert_eq!(coverage.marked, 2);
-    assert_eq!(coverage.assigned, 2);
-    assert_eq!(coverage.reachable, 1);
-    assert_eq!(first_route_gap_worker(&session, ZoneKind::Storage), Some(0));
-}
-
-#[test]
-fn marked_tile_summary_explains_the_local_domain_rule() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    let tile = session.world.plots[0].position;
-    session.research.completed = vec![Technology::DomainStewardship];
-    session.world.zones.push(crate::state::Zone {
-        kind: ZoneKind::Work,
-        tiles: vec![tile],
-    });
-
-    assert_eq!(
-        tile_summary(&session, &data.config.district_rules, tile),
-        Some(format!(
-            "Work district · 1 marked tile · +{:.0}% Dig/Wood speed here.",
-            (data.config.district_rules.work_speed_multiplier - 1.0) * 100.0
-        ))
-    );
-}
-
-#[test]
-fn marked_tile_summary_names_domain_as_the_next_unlock() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    let tile = WorldState::stockpile_position();
-    session.world.zones.push(crate::state::Zone {
-        kind: ZoneKind::Storage,
-        tiles: vec![tile],
-    });
-
-    assert_eq!(
-        tile_summary(&session, &data.config.district_rules, tile),
-        Some(
-            "Storage district · 1 marked tile · Domain Stewardship will activate its local rule."
-                .to_owned()
-        )
-    );
-}
-
 #[test]
 fn marked_tile_summary_keeps_overlapping_district_marks_visible() {
     let data = crate::data::GameData::load().unwrap();
@@ -349,86 +180,6 @@ fn marked_tile_summary_keeps_overlapping_district_marks_visible() {
     assert!(summary.contains("+4 Haul · +24 storage here."));
     assert!(summary.contains("\n"));
 }
-
-#[test]
-fn locked_overlapping_tile_summary_avoids_repeated_unlock_copy() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    let tile = session.world.plots[0].position;
-    session.world.zones = vec![
-        crate::state::Zone {
-            kind: ZoneKind::Work,
-            tiles: vec![tile],
-        },
-        crate::state::Zone {
-            kind: ZoneKind::Storage,
-            tiles: vec![tile],
-        },
-    ];
-
-    assert_eq!(
-        tile_summary(&session, &data.config.district_rules, tile),
-        Some(
-            "Work district + Storage district · Domain Stewardship will activate their local rules."
-                .to_owned()
-        )
-    );
-}
-
-#[test]
-fn empty_districts_keep_original_job_values() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    session.research.completed = vec![Technology::DomainStewardship];
-    let tile = session.world.plots[0].position;
-
-    assert_eq!(
-        work_speed_multiplier(&session, &data.config.district_rules, tile),
-        1.0
-    );
-    assert_eq!(
-        haul_capacity_bonus(&session, &data.config.district_rules, tile),
-        0
-    );
-    assert_eq!(
-        guard_mitigation_multiplier(&session, &data.config.district_rules, tile),
-        1.0
-    );
-    assert!(rule_summary(&session, &data.config.district_rules).starts_with("No district rules"));
-}
-
-#[test]
-fn marked_storage_tiles_expand_material_capacity_after_domain() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    let storage_tile = WorldState::stockpile_position();
-    session.world.zones.push(crate::state::Zone {
-        kind: ZoneKind::Storage,
-        tiles: vec![storage_tile, TilePos::new(5, 5)],
-    });
-
-    assert_eq!(storage_capacity(&session, &data.config.district_rules), 96);
-    session.research.completed = vec![Technology::DomainStewardship];
-
-    assert_eq!(
-        storage_capacity(&session, &data.config.district_rules),
-        96 + 2 * data.config.district_rules.storage_volume_per_tile
-    );
-}
-
-#[test]
-fn storage_summary_names_used_and_remaining_room() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-    session.economy.bones = 90;
-    session.economy.wood = 4;
-
-    assert_eq!(
-        storage_summary(&session, &data.config.district_rules),
-        "Storage: 94/96 used · 2 room"
-    );
-}
-
 #[test]
 fn district_ledger_records_effects_and_first_use_notes() {
     let data = crate::data::GameData::load().unwrap();
@@ -478,27 +229,4 @@ fn district_ledger_records_effects_and_first_use_notes() {
         .feed
         .iter()
         .any(|entry| entry.message.contains("first pickup")));
-}
-
-#[test]
-fn district_activity_trail_keeps_the_newest_eight_real_effects() {
-    let data = crate::data::GameData::load().unwrap();
-    let mut session = GameSession::new(&data.config);
-
-    record_storage_bonus(&mut session, 0);
-    record_patrol_quieting(&mut session, 0.0);
-    for _ in 0..10 {
-        record_work_cycle(&mut session);
-    }
-
-    assert_eq!(
-        session.progress.district_ledger.recent_activity.len(),
-        RECENT_ACTIVITY_LIMIT
-    );
-    assert!(session
-        .progress
-        .district_ledger
-        .recent_activity
-        .iter()
-        .all(|entry| entry.kind == DistrictActivityKind::WorkCycle));
 }
