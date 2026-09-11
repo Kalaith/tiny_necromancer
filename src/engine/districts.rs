@@ -74,7 +74,7 @@ pub fn operations_summary(session: &GameSession) -> String {
     let suffix = if staffing_needs_attention(session) {
         " · Needs staff."
     } else {
-        ""
+        " · Ready."
     };
     format!(
         "Staffing (workers/marks): Work {}/{} · Storage {}/{} · Patrol {}/{} post{}{}",
@@ -93,7 +93,7 @@ pub fn compact_operations_summary(session: &GameSession) -> String {
     let suffix = if staffing_needs_attention(session) {
         " · GAP"
     } else {
-        ""
+        " · OK"
     };
     format!(
         "Staffing: W {}/{} · S {}/{} · P {}/{} posts{}",

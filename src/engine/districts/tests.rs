@@ -112,6 +112,14 @@ fn operations_summary_names_staffing_by_district() {
     assert!(staffing_needs_attention(&session));
     let fresh_session = GameSession::new(&data.config);
     assert!(!staffing_needs_attention(&fresh_session));
+    assert_eq!(
+        operations_summary(&fresh_session),
+        "Staffing (workers/marks): Work 1/0 · Storage 0/0 · Patrol 0/0 posts · Ready."
+    );
+    assert_eq!(
+        compact_operations_summary(&fresh_session),
+        "Staffing: W 1/0 · S 0/0 · P 0/0 posts · OK"
+    );
 
     let mut locked_session = GameSession::new(&data.config);
     locked_session.world.zones.push(crate::state::Zone {
