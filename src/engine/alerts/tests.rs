@@ -290,6 +290,39 @@ fn storage_staffing_alert_replaces_generic_material_waiting() {
 }
 
 #[test]
+fn unreachable_storage_keeps_the_source_material_alert() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    let source = TilePos::new(4, 2);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![source],
+    });
+    session.economy.loose_bones = 8;
+    session.economy.loose_bones_source = Some(source);
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: TilePos::new(3, y),
+            width: 1,
+            height: 1,
+        });
+    }
+
+    let alerts = collect(&session, &data);
+
+    assert!(!alerts
+        .iter()
+        .any(|alert| alert.title == "Storage district idle"));
+    assert!(alerts
+        .iter()
+        .any(|alert| alert.title == "Materials waiting"));
+}
+
+#[test]
 fn work_district_skips_an_unreachable_grave_for_the_next_reachable_target() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
