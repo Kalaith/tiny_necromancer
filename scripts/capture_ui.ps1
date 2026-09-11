@@ -31,6 +31,7 @@ param(
         "work-domain",
         "route-blocked",
         "route-domain",
+        "district-route-gap",
         "notes",
         "production",
         "worker-walking",

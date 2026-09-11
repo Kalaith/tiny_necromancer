@@ -42,6 +42,7 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
     let mut alerts = Vec::new();
     collect_pressure_alert(session, data, &mut alerts);
     collect_route_alert(session, &mut alerts);
+    collect_district_route_alert(session, &mut alerts);
     collect_patrol_coverage_alert(session, &mut alerts);
     collect_work_district_alert(session, &mut alerts);
     collect_storage_district_alert(session, &mut alerts);
@@ -116,6 +117,32 @@ fn collect_patrol_coverage_alert(session: &GameSession, alerts: &mut Vec<Operati
         ),
         target,
     ));
+}
+
+fn collect_district_route_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
+    if !session.research.is_unlocked(Technology::DomainStewardship)
+        || alerts.iter().any(|alert| alert.title == "Route blocked")
+    {
+        return;
+    }
+    for kind in [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol] {
+        let coverage = districts::service_coverage(session, kind);
+        let Some(worker_index) = districts::first_route_gap_worker(session, kind) else {
+            continue;
+        };
+        alerts.push(OperationalAlert::new(
+            AlertSeverity::Warning,
+            "District route gap",
+            format!(
+                "{}/{} assigned hands reach marked {} slots · clear a route or move the obstruction.",
+                coverage.reachable,
+                coverage.needed(),
+                kind.label()
+            ),
+            Some(Selection::Worker(worker_index)),
+        ));
+        return;
+    }
 }
 
 fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {

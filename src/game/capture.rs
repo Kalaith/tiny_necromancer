@@ -46,6 +46,7 @@ impl Game {
             "work-domain" => self.prepare_capture_work_domain(),
             "route-blocked" => self.prepare_capture_route_blocked(),
             "route-domain" => self.prepare_capture_route_domain(),
+            "district-route-gap" => self.prepare_capture_district_route_gap(),
             "notes" => self.prepare_capture_notes(),
             "production" => self.prepare_capture_production(),
             "placement" => {
@@ -378,6 +379,37 @@ impl Game {
     fn prepare_capture_route_domain(&mut self) {
         self.prepare_capture_route_blocked();
         self.panel = Panel::Domain;
+    }
+
+    fn prepare_capture_district_route_gap(&mut self) {
+        self.prepare_capture_domain();
+        self.panel = Panel::Domain;
+        self.session.pressure.suspicion = 0.0;
+        self.session.pressure.stage = SuspicionStage::Calm;
+        self.session.world.zones = vec![Zone {
+            kind: ZoneKind::Storage,
+            tiles: vec![TilePos::new(6, 5)],
+        }];
+        if let Some(worker) = self.session.workforce.workers.first_mut() {
+            worker.assignment = JobKind::Haul;
+            worker.status = WorkerStatus::Idle;
+            worker.position = TilePos::new(2, 2);
+        }
+        for worker in self.session.workforce.workers.iter_mut().skip(1) {
+            worker.assignment = JobKind::Refine;
+            worker.status = WorkerStatus::Idle;
+        }
+        for y in 0..self.session.world.height as i32 {
+            self.session.world.buildings.push(crate::state::Building {
+                kind: BuildingKind::WorkShed,
+                progress: 10.0,
+                complete: true,
+                position: TilePos::new(3, y),
+                width: 1,
+                height: 1,
+            });
+        }
+        self.session.world.selected = Some(Selection::Worker(0));
     }
 
     fn prepare_capture_notes(&mut self) {

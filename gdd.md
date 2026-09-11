@@ -98,12 +98,14 @@ the player taps a choice.
 Operational alerts are derived from the same session state: unattended
 construction, loaded production without a Refine worker, loose materials
 without a Haul order, open graves without a Dig order, questioning-level
-road pressure, and underfilled marked Work districts with an available grave or
-forest tile but no matching Dig or Wood operator. Marked Storage districts with
-loose material and an unfilled Haul slot also receive an actionable alert. Each alert is a touch target that
-selects its source so the player can move from diagnosis to an order without
-searching the map. The district advisory stays quiet until Domain Stewardship
-is unlocked and points to the first usable marked work tile.
+road pressure, blocked worker routes, route gaps between assigned workers and
+marked district slots, and underfilled marked Work districts with an available
+grave or forest tile but no matching Dig or Wood operator. Marked Storage
+districts with loose material and an unfilled Haul slot also receive an
+actionable alert. Each alert is a touch target that selects its source so the
+player can move from diagnosis to an order without searching the map. The
+district advisory stays quiet until Domain Stewardship is unlocked and points
+to the first usable marked work tile.
 
 Domain Stewardship adds a dedicated readout for the settlement: bound workers,
 marked district tiles, ward charges, workforce activity, pressure stage, and

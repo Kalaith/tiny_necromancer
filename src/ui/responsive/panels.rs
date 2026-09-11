@@ -471,6 +471,7 @@ fn draw_compact_domain_panel(
                     | "Patrol coverage"
                     | "Work district idle"
                     | "Storage district idle"
+                    | "District route gap"
             )
         });
     if let Some(alert) = advisory_alert.as_ref() {
@@ -495,6 +496,7 @@ fn compact_advisory_label(title: &str) -> &'static str {
         "Patrol coverage" => "Staff patrol",
         "Work district idle" => "Assign work",
         "Storage district idle" => "Staff storage",
+        "District route gap" => "Clear district route",
         _ => "Inspect route",
     }
 }

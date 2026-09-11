@@ -316,6 +316,37 @@ fn storage_staffing_alert_names_a_carried_load() {
 }
 
 #[test]
+fn district_route_gap_points_to_the_assigned_worker() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![crate::state::WorldState::stockpile_position()],
+    });
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = TilePos::new(2, 2);
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: TilePos::new(3, y),
+            width: 1,
+            height: 1,
+        });
+    }
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "District route gap")
+        .expect("a marked district without a route should be reported");
+
+    assert_eq!(alert.target, Some(Selection::Worker(0)));
+    assert!(alert.detail.contains("Storage"));
+}
+
+#[test]
 fn unreachable_storage_keeps_the_source_material_alert() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

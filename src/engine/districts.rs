@@ -188,6 +188,31 @@ pub fn compact_coverage_summary(session: &GameSession) -> String {
     )
 }
 
+pub fn first_route_gap_worker(session: &GameSession, kind: ZoneKind) -> Option<usize> {
+    let coverage = service_coverage(session, kind);
+    if coverage.reachable >= coverage.needed() {
+        return None;
+    }
+    let targets = district_tiles(session, kind);
+    session
+        .workforce
+        .workers
+        .iter()
+        .enumerate()
+        .find(|(_, worker)| {
+            let serves_target = targets
+                .iter()
+                .copied()
+                .any(|target| worker_serves_tile(session, kind, worker.assignment, target));
+            serves_target
+                && !targets.iter().copied().any(|target| {
+                    worker_serves_tile(session, kind, worker.assignment, target)
+                        && navigation::plan_route(session, worker.position, target).is_ok()
+                })
+        })
+        .map(|(index, _)| index)
+}
+
 pub fn staffing_needs_attention(session: &GameSession) -> bool {
     if !session.research.is_unlocked(Technology::DomainStewardship) {
         return false;
