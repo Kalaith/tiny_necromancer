@@ -71,31 +71,46 @@ pub fn operations_summary(session: &GameSession) -> String {
     let storage_operators = operator_count(session, ZoneKind::Storage);
     let patrol_operators = operator_count(session, ZoneKind::Patrol);
 
+    let suffix = if staffing_needs_attention(session) {
+        " · Needs staff."
+    } else {
+        ""
+    };
     format!(
-        "Staffing (workers/marks): Work {}/{} · Storage {}/{} · Patrol {}/{} post{}",
+        "Staffing (workers/marks): Work {}/{} · Storage {}/{} · Patrol {}/{} post{}{}",
         work_operators,
         work_tiles,
         storage_operators,
         storage_tiles,
         patrol_operators,
         patrol_tiles,
-        if patrol_tiles == 1 { "" } else { "s" }
+        if patrol_tiles == 1 { "" } else { "s" },
+        suffix
     )
 }
 
 pub fn compact_operations_summary(session: &GameSession) -> String {
+    let suffix = if staffing_needs_attention(session) {
+        " · GAP"
+    } else {
+        ""
+    };
     format!(
-        "Staffing: W {}/{} · S {}/{} · P {}/{} posts",
+        "Staffing: W {}/{} · S {}/{} · P {}/{} posts{}",
         operator_count(session, ZoneKind::Work),
         marked_tile_count(session, ZoneKind::Work),
         operator_count(session, ZoneKind::Storage),
         marked_tile_count(session, ZoneKind::Storage),
         operator_count(session, ZoneKind::Patrol),
-        marked_tile_count(session, ZoneKind::Patrol)
+        marked_tile_count(session, ZoneKind::Patrol),
+        suffix
     )
 }
 
 pub fn staffing_needs_attention(session: &GameSession) -> bool {
+    if !session.research.is_unlocked(Technology::DomainStewardship) {
+        return false;
+    }
     [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
         .into_iter()
         .any(|kind| marked_tile_count(session, kind) > 0 && operator_count(session, kind) == 0)

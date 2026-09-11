@@ -89,6 +89,7 @@ fn operations_summary_names_staffing_by_district() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
     let work_tile = session.world.plots[0].position;
+    session.research.completed = vec![Technology::DomainStewardship];
     session.world.zones = vec![
         crate::state::Zone {
             kind: ZoneKind::Work,
@@ -102,15 +103,22 @@ fn operations_summary_names_staffing_by_district() {
 
     assert_eq!(
         operations_summary(&session),
-        "Staffing (workers/marks): Work 1/1 · Storage 0/0 · Patrol 0/1 post"
+        "Staffing (workers/marks): Work 1/1 · Storage 0/0 · Patrol 0/1 post · Needs staff."
     );
     assert_eq!(
         compact_operations_summary(&session),
-        "Staffing: W 1/1 · S 0/0 · P 0/1 posts"
+        "Staffing: W 1/1 · S 0/0 · P 0/1 posts · GAP"
     );
     assert!(staffing_needs_attention(&session));
     let fresh_session = GameSession::new(&data.config);
     assert!(!staffing_needs_attention(&fresh_session));
+
+    let mut locked_session = GameSession::new(&data.config);
+    locked_session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Work,
+        tiles: vec![work_tile],
+    });
+    assert!(!staffing_needs_attention(&locked_session));
 }
 
 #[test]
