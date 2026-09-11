@@ -156,3 +156,26 @@ fn district_ledger_records_effects_and_first_use_notes() {
         .iter()
         .any(|entry| entry.message.contains("first pickup")));
 }
+
+#[test]
+fn district_activity_trail_keeps_the_newest_eight_real_effects() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+
+    record_storage_bonus(&mut session, 0);
+    record_patrol_quieting(&mut session, 0.0);
+    for _ in 0..10 {
+        record_work_cycle(&mut session);
+    }
+
+    assert_eq!(
+        session.progress.district_ledger.recent_activity.len(),
+        RECENT_ACTIVITY_LIMIT
+    );
+    assert!(session
+        .progress
+        .district_ledger
+        .recent_activity
+        .iter()
+        .all(|entry| entry.kind == DistrictActivityKind::WorkCycle));
+}
