@@ -328,11 +328,19 @@ pub(super) fn worker_destination_label(ctx: &UiContext<'_>, worker: &Worker) -> 
                 },
                 |plot| format!("grave {:02}", plot.id + 1),
             ),
-        JobKind::Haul => match worker_route_policy(ctx, worker, ZoneKind::Storage) {
-            RoutePolicy::MarkedFirst => "nearest marked storage tile".to_owned(),
-            RoutePolicy::Nearest => "normal stockpile route".to_owned(),
-            RoutePolicy::MarkedOnly => "marked Storage tile only".to_owned(),
-        },
+        JobKind::Haul => worker.haul_plan.map_or_else(
+            || match worker_route_policy(ctx, worker, ZoneKind::Storage) {
+                RoutePolicy::MarkedFirst => "nearest marked storage tile".to_owned(),
+                RoutePolicy::Nearest => "normal stockpile route".to_owned(),
+                RoutePolicy::MarkedOnly => "marked Storage tile only".to_owned(),
+            },
+            |plan| {
+                format!(
+                    "Storage tile ({}, {})",
+                    plan.destination.x, plan.destination.y
+                )
+            },
+        ),
         JobKind::Guard => match worker_route_policy(ctx, worker, ZoneKind::Patrol) {
             RoutePolicy::MarkedFirst => "nearest marked patrol post".to_owned(),
             RoutePolicy::Nearest => "normal patrol route".to_owned(),
@@ -563,6 +571,17 @@ pub(super) fn worker_activity_detail(worker: &Worker) -> String {
             ResourceKind::Bones => "bones",
             ResourceKind::Wood => "wood",
         };
+        if let Some(plan) = worker.haul_plan {
+            return format!(
+                "Carrying {} {} · source ({}, {}) → drop ({}, {})",
+                worker.carrying,
+                resource,
+                plan.source.x,
+                plan.source.y,
+                plan.destination.x,
+                plan.destination.y
+            );
+        }
         return format!("Carrying {} {} to storage", worker.carrying, resource);
     }
     match worker.status {

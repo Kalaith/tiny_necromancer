@@ -622,6 +622,12 @@ impl Game {
         worker.status = WorkerStatus::Carrying;
         worker.carrying = 8;
         worker.carrying_resource = Some(crate::state::ResourceKind::Bones);
+        worker.haul_plan = Some(crate::state::HaulPlan {
+            resource: crate::state::ResourceKind::Bones,
+            source,
+            destination: crate::state::WorldState::stockpile_position(),
+            storage_policy: RoutePolicy::MarkedFirst,
+        });
         self.session.world.selected = Some(Selection::Worker(0));
     }
 
