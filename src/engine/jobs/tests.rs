@@ -126,6 +126,25 @@ fn harvest_policy_fills_a_marked_work_gap_before_unmarked_haul() {
 }
 
 #[test]
+fn harvest_policy_fills_a_marked_storage_gap_before_unmarked_digging() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.stewardship_policy = crate::state::StewardshipPolicy::Harvest;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![crate::state::WorldState::stockpile_position()],
+    });
+    session.economy.loose_bones = 8;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
+}
+
+#[test]
 fn harvest_policy_keeps_pre_domain_priorities_unchanged() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
