@@ -127,6 +127,37 @@ fn kiln_upgrade_finishes_a_cycle_faster() {
 }
 
 #[test]
+fn a_reinforced_structure_cannot_be_paid_for_twice() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    queue_building(&mut session, &data, BuildingKind::WorkShed).unwrap();
+    advance_construction(&mut session, &data, 10.0);
+    upgrade_building(&mut session, &data, BuildingKind::WorkShed).unwrap();
+    let resources = (
+        session.economy.bones,
+        session.economy.mana,
+        session.economy.wood,
+    );
+
+    let error = upgrade_building(&mut session, &data, BuildingKind::WorkShed).unwrap_err();
+
+    assert_eq!(
+        error,
+        "That structure already bears its strongest reinforcement."
+    );
+    assert_eq!(
+        (
+            session.economy.bones,
+            session.economy.mana,
+            session.economy.wood
+        ),
+        resources
+    );
+}
+
+#[test]
 fn kiln_is_gated_by_logistics_and_loads_its_recipe() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

@@ -58,6 +58,12 @@ fn upgrade_label(ctx: &UiContext<'_>, building: &Building) -> String {
         .buildings
         .get(building.kind.id())
         .expect("validated building recipe");
+    if !upgrade_materials_available(ctx, building) {
+        return format!(
+            "Need B{} M{} W{} to reinforce",
+            def.upgrade_bones_cost, def.upgrade_mana_cost, def.upgrade_wood_cost
+        );
+    }
     format!(
         "Reinforce · B{} M{} W{}",
         def.upgrade_bones_cost, def.upgrade_mana_cost, def.upgrade_wood_cost
@@ -66,13 +72,20 @@ fn upgrade_label(ctx: &UiContext<'_>, building: &Building) -> String {
 
 fn upgrade_enabled(ctx: &UiContext<'_>, building: &Building) -> bool {
     let level = progression::building_level(ctx.session, building.kind);
-    let Some(def) = ctx.data.buildings.get(building.kind.id()) else {
+    let Some(_) = ctx.data.buildings.get(building.kind.id()) else {
         return false;
     };
     building.complete
         && level < progression::MAX_BUILDING_LEVEL
         && ctx.session.phase == GamePhase::Playing
-        && ctx.session.economy.bones >= def.upgrade_bones_cost
+        && upgrade_materials_available(ctx, building)
+}
+
+fn upgrade_materials_available(ctx: &UiContext<'_>, building: &Building) -> bool {
+    let Some(def) = ctx.data.buildings.get(building.kind.id()) else {
+        return false;
+    };
+    ctx.session.economy.bones >= def.upgrade_bones_cost
         && ctx.session.economy.mana >= def.upgrade_mana_cost
         && ctx.session.economy.wood >= def.upgrade_wood_cost
 }
