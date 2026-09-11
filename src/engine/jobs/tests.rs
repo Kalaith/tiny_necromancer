@@ -23,6 +23,25 @@ fn digging_completes_and_produces_loose_bones() {
 }
 
 #[test]
+fn starting_worker_can_gather_wood_before_the_shed_exists() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.begin();
+
+    assign_job(&mut session, JobKind::Wood).unwrap();
+    simulate_for_seconds(&mut session, &data, 10.0);
+
+    assert!(session.economy.loose_wood > 0);
+    let shed_cost = data
+        .buildings
+        .get("work_shed")
+        .expect("validated work shed")
+        .wood_cost;
+    assert!(session.economy.wood < shed_cost);
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Wood);
+}
+
+#[test]
 fn hauling_respects_worker_capacity() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

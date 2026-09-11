@@ -274,6 +274,35 @@ fn draw_grave(
     ) {
         actions.push(UiAction::AssignJob(JobKind::Dig));
     }
+    draw_text_block(
+        "Need shed timber? Gather it, then use Haul.",
+        sheet.x + 16.0,
+        sheet.y + 178.0,
+        sheet.w - 32.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
+    if virtual_button(
+        Rect::new(sheet.x + 16.0, sheet.y + 202.0, sheet.w - 32.0, 44.0),
+        "Gather Wood",
+        ctx.session.phase == GamePhase::Playing,
+        ButtonTone::Secondary,
+        pointer,
+    ) {
+        actions.push(UiAction::AssignJob(JobKind::Wood));
+    }
+    if virtual_button(
+        Rect::new(sheet.x + 16.0, sheet.y + 254.0, sheet.w - 32.0, 44.0),
+        "Haul Loose Material",
+        (ctx.session.economy.loose_bones > 0 || ctx.session.economy.loose_wood > 0)
+            && ctx.session.phase == GamePhase::Playing,
+        ButtonTone::Secondary,
+        pointer,
+    ) {
+        actions.push(UiAction::AssignJob(JobKind::Haul));
+    }
     if virtual_button(
         Rect::new(
             sheet.x + 26.0 + button_width,

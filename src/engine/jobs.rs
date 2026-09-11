@@ -48,7 +48,15 @@ pub fn assign_job(session: &mut GameSession, job: JobKind) -> Result<(), String>
     worker.progress = 0.0;
     worker.status = WorkerStatus::Idle;
     worker.carrying = 0;
-    session.add_feed(format!("{} assigned to {}.", worker_name, job.label()));
+    let message = if job == JobKind::Wood {
+        format!(
+            "{} assigned to Gather Wood. Reassign it to Haul when timber is loose.",
+            worker_name
+        )
+    } else {
+        format!("{} assigned to {}.", worker_name, job.label())
+    };
+    session.add_feed(message);
     Ok(())
 }
 

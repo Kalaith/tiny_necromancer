@@ -10,6 +10,7 @@ fn world_grid_rect_is_large_enough_for_a_touch_first_map() {
 #[test]
 fn action_names_are_visible_and_stable() {
     assert_eq!(JobKind::Dig.label(), "Dig");
+    assert_eq!(JobKind::Wood.label(), "Wood");
     assert_eq!(JobKind::Guard.label(), "Guard");
     assert_eq!(JobKind::Refine.label(), "Refine");
     assert_eq!(UndeadKind::BruteSkeleton.id(), "brute_skeleton");

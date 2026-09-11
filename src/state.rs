@@ -591,7 +591,7 @@ impl GameSession {
                 active_event: None,
                 event_history: Vec::new(),
                 feed: vec![FeedEntry {
-                    message: "The shed is empty, the grave is waiting.".to_owned(),
+                    message: "Need shed wood? Tap Gather Wood, then Haul.".to_owned(),
                     age_seconds: 0.0,
                 }],
                 last_reason: "Quiet cemetery".to_owned(),

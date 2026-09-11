@@ -1,12 +1,14 @@
 //! Status strip and contextual inspector.
 
+mod grave;
+
 use super::buildings;
 use super::components::{compact_virtual_button, pause_control_rect};
 use super::components::{stage_label, status_label, virtual_button};
 use super::production::{draw_kiln_inspector, is_kiln};
 use super::{Panel, UiAction, UiContext};
 use crate::state::{
-    BuildingKind, GamePhase, JobKind, PlotStatus, Selection, Technology, UndeadKind, WorkerStatus,
+    BuildingKind, GamePhase, JobKind, Selection, Technology, UndeadKind, WorkerStatus,
 };
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -196,7 +198,7 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
         dark::TEXT_DIM,
     );
     match selection {
-        Selection::Grave(index) => draw_grave_inspector(ctx, pointer, actions, panel, index),
+        Selection::Grave(index) => grave::draw(ctx, pointer, actions, panel, index),
         Selection::Worker(index) => draw_worker_inspector(ctx, pointer, actions, panel, index),
         Selection::Building(index) => draw_building_inspector(ctx, pointer, actions, panel, index),
         Selection::Ground(tile) => {
@@ -325,101 +327,6 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
                 ));
             }
         }
-    }
-}
-
-fn draw_grave_inspector(
-    ctx: &UiContext<'_>,
-    pointer: Pointer,
-    actions: &mut Vec<UiAction>,
-    panel: Rect,
-    index: usize,
-) {
-    let Some(plot) = ctx.session.world.plots.get(index) else {
-        return;
-    };
-    draw_text_block(
-        &format!("Grave {:02}", index + 1),
-        panel.x + 18.0,
-        panel.y + 54.0,
-        panel.w - 36.0,
-        28.0,
-        24.0,
-        0.0,
-        dark::TEXT_BRIGHT,
-    );
-    let state = match plot.status {
-        PlotStatus::Ready => "Undisturbed",
-        PlotStatus::Digging => "Excavation underway",
-        PlotStatus::Dug => "Open excavation",
-        PlotStatus::Locked => "Outside the clearing",
-    };
-    draw_text_block(
-        state,
-        panel.x + 18.0,
-        panel.y + 94.0,
-        panel.w - 36.0,
-        22.0,
-        15.0,
-        0.0,
-        if plot.status == PlotStatus::Digging {
-            dark::WARNING
-        } else {
-            dark::TEXT
-        },
-    );
-    if plot.status == PlotStatus::Digging {
-        progress_bar(
-            panel.x + 18.0,
-            panel.y + 128.0,
-            panel.w - 36.0,
-            12.0,
-            plot.progress,
-            ctx.data.jobs.get("dig").map_or(8.0, |job| job.work_seconds),
-            dark::WARNING,
-        );
-    }
-    draw_text_block(
-        if plot.status == PlotStatus::Dug {
-            "The earth is yielding bones and the chance of a corpse remnant."
-        } else {
-            "A worker can be assigned here when the shovel is free."
-        },
-        panel.x + 18.0,
-        panel.y + 158.0,
-        panel.w - 36.0,
-        54.0,
-        14.0,
-        4.0,
-        dark::TEXT_DIM,
-    );
-    if virtual_button(
-        Rect::new(panel.x + 18.0, panel.y + 244.0, panel.w - 36.0, 44.0),
-        "Assign selected worker · Dig",
-        plot.status == PlotStatus::Ready && ctx.session.phase == GamePhase::Playing,
-        ButtonTone::Primary,
-        pointer,
-    ) {
-        actions.push(UiAction::AssignJob(JobKind::Dig));
-    }
-    let skeleton_def = ctx
-        .data
-        .undead
-        .get(UndeadKind::Skeleton.id())
-        .expect("validated skeleton recipe");
-    if virtual_button(
-        Rect::new(panel.x + 18.0, panel.y + 300.0, panel.w - 36.0, 44.0),
-        &format!(
-            "Raise skeleton · B{} M{}",
-            skeleton_def.bones_cost, skeleton_def.mana_cost
-        ),
-        plot.status == PlotStatus::Dug
-            && ctx.session.economy.bones >= skeleton_def.bones_cost
-            && ctx.session.economy.mana >= skeleton_def.mana_cost,
-        ButtonTone::Positive,
-        pointer,
-    ) {
-        actions.push(UiAction::Raise(UndeadKind::Skeleton));
     }
 }
 
