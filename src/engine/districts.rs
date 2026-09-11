@@ -117,10 +117,11 @@ pub fn staffing_needs_attention(session: &GameSession) -> bool {
 }
 
 pub fn policy_bias(session: &GameSession, job: JobKind) -> usize {
+    let baseline_bias = session.stewardship_policy.bias(job);
     if session.stewardship_policy != crate::state::StewardshipPolicy::Harvest
         || !session.research.is_unlocked(Technology::DomainStewardship)
     {
-        return session.stewardship_policy.bias(job);
+        return baseline_bias;
     }
 
     let work_gap = marked_tile_count(session, ZoneKind::Work) > 0
@@ -133,10 +134,10 @@ pub fn policy_bias(session: &GameSession, job: JobKind) -> usize {
     if storage_gap && job == JobKind::Haul {
         return 0;
     }
-    if matches!(job, JobKind::Dig | JobKind::Haul | JobKind::Wood) {
-        1
+    if work_gap || storage_gap {
+        baseline_bias.saturating_add(1)
     } else {
-        2
+        baseline_bias
     }
 }
 
