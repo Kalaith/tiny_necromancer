@@ -315,6 +315,52 @@ pub(super) fn worker_priority_route_hint(
         .map(|job| format!("Skip {} · no route", job.label()))
 }
 
+pub(super) fn worker_destination_label(ctx: &UiContext<'_>, worker: &Worker) -> String {
+    match worker.assignment {
+        JobKind::Dig => worker
+            .target_plot
+            .and_then(|plot_id| ctx.session.world.plots.get(plot_id))
+            .map_or_else(
+                || match worker_route_policy(ctx, worker, ZoneKind::Work) {
+                    RoutePolicy::MarkedFirst => "next open grave".to_owned(),
+                    RoutePolicy::Nearest => "nearest open grave".to_owned(),
+                    RoutePolicy::MarkedOnly => "marked Work grave only".to_owned(),
+                },
+                |plot| format!("grave {:02}", plot.id + 1),
+            ),
+        JobKind::Haul => match worker_route_policy(ctx, worker, ZoneKind::Storage) {
+            RoutePolicy::MarkedFirst => "nearest marked storage tile".to_owned(),
+            RoutePolicy::Nearest => "normal stockpile route".to_owned(),
+            RoutePolicy::MarkedOnly => "marked Storage tile only".to_owned(),
+        },
+        JobKind::Guard => match worker_route_policy(ctx, worker, ZoneKind::Patrol) {
+            RoutePolicy::MarkedFirst => "nearest marked patrol post".to_owned(),
+            RoutePolicy::Nearest => "normal patrol route".to_owned(),
+            RoutePolicy::MarkedOnly => "marked Patrol post only".to_owned(),
+        },
+        JobKind::Wood => match worker_route_policy(ctx, worker, ZoneKind::Work) {
+            RoutePolicy::MarkedFirst => "nearest marked forest tile".to_owned(),
+            RoutePolicy::Nearest => "nearest forest tile".to_owned(),
+            RoutePolicy::MarkedOnly => "marked Work forest only".to_owned(),
+        },
+        JobKind::Build => "unfinished structure".to_owned(),
+        JobKind::Refine => "Ossuary Kiln".to_owned(),
+    }
+}
+
+fn worker_route_policy(ctx: &UiContext<'_>, worker: &Worker, kind: ZoneKind) -> RoutePolicy {
+    if worker.priority_mode
+        && ctx
+            .session
+            .research
+            .is_unlocked(crate::state::Technology::DomainStewardship)
+    {
+        ctx.session.world.route_policies.for_kind(kind)
+    } else {
+        RoutePolicy::MarkedFirst
+    }
+}
+
 pub(super) fn worker_route_summary(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
     let destination = jobs::destination_for_worker(ctx.session, worker)?;
     let summary = match navigation::plan_route(ctx.session, worker.position, destination) {

@@ -488,20 +488,7 @@ fn draw_worker_inspector(
             dark::TEXT_DIM
         },
     );
-    let destination = match worker.assignment {
-        JobKind::Dig => worker
-            .target_plot
-            .and_then(|plot_id| ctx.session.world.plots.get(plot_id))
-            .map_or_else(
-                || "next open grave".to_owned(),
-                |plot| format!("grave {:02}", plot.id + 1),
-            ),
-        JobKind::Haul => "nearest marked storage tile".to_owned(),
-        JobKind::Guard => "nearest marked patrol post".to_owned(),
-        JobKind::Wood => "nearest marked forest tile".to_owned(),
-        JobKind::Build => "unfinished structure".to_owned(),
-        JobKind::Refine => "Ossuary Kiln".to_owned(),
-    };
+    let destination = super::world_feedback::worker_destination_label(ctx, worker);
     let route_summary = super::world_feedback::worker_route_summary(ctx, worker);
     let destination_detail = route_summary.map_or(destination.clone(), |summary| {
         format!("{destination} · {summary}")
