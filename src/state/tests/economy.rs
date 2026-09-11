@@ -42,3 +42,29 @@ fn old_scalar_loose_material_becomes_one_compatibility_pile() {
         }]
     );
 }
+
+#[test]
+fn old_scalar_save_infers_a_missing_bone_source_from_dug_ground() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let source = session.world.plots[0].position;
+    session.world.plots[0].status = super::super::PlotStatus::Dug;
+    session.economy.loose_bones = 8;
+    session.economy.loose_bones_source = None;
+    let mut value = serde_json::to_value(session.to_save(&data.config.version)).unwrap();
+    value
+        .get_mut("economy")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("economy object")
+        .remove("loose_bones_piles");
+
+    let restored = GameSession::from_save(serde_json::from_value(value).unwrap());
+
+    assert_eq!(
+        restored.economy.loose_piles(ResourceKind::Bones),
+        vec![LooseResourcePile {
+            position: source,
+            amount: 8
+        }]
+    );
+}

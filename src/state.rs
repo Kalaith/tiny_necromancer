@@ -626,6 +626,17 @@ impl GameSession {
                 worker.haul_plan = None;
             }
         }
+        if save.economy.loose_bones > 0 && save.economy.loose_bones_source.is_none() {
+            save.economy.loose_bones_source = save
+                .world
+                .plots
+                .iter()
+                .find(|plot| plot.status == PlotStatus::Dug)
+                .map(|plot| plot.position);
+        }
+        if save.economy.loose_wood > 0 && save.economy.loose_wood_source.is_none() {
+            save.economy.loose_wood_source = save.world.forest_tiles.first().copied();
+        }
         save.economy.normalize_loose_piles();
         save.workforce.normalize_priorities();
         Self {
