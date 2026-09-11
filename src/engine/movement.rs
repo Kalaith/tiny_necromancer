@@ -219,12 +219,14 @@ pub fn drop_worker_cargo(session: &mut GameSession, index: usize) {
     }
     match resource.unwrap_or(ResourceKind::Bones) {
         ResourceKind::Bones => {
-            session.economy.loose_bones += amount;
-            session.economy.loose_bones_source = Some(worker.position);
+            session
+                .economy
+                .add_loose(ResourceKind::Bones, worker.position, amount);
         }
         ResourceKind::Wood => {
-            session.economy.loose_wood += amount;
-            session.economy.loose_wood_source = Some(worker.position);
+            session
+                .economy
+                .add_loose(ResourceKind::Wood, worker.position, amount);
         }
     }
     worker.carrying = 0;

@@ -11,38 +11,21 @@ use macroquad_toolkit::grid::TilePos;
 use macroquad_toolkit::prelude::*;
 
 pub(super) fn draw_loose_resource_feedback(ctx: &UiContext<'_>, view: &GridView) {
-    if ctx.session.economy.loose_bones > 0 {
-        let source = ctx.session.economy.loose_bones_source.or_else(|| {
-            ctx.session
-                .world
-                .plots
-                .iter()
-                .find(|plot| plot.status == PlotStatus::Dug)
-                .map(|plot| plot.position)
-        });
-        if let Some(source) = source {
-            draw_resource_pile(
-                view.tile_rect(source).center(),
-                "B",
-                ctx.session.economy.loose_bones,
-                Color::new(0.82, 0.82, 0.72, 1.0),
-            );
-        }
+    for pile in ctx.session.economy.loose_piles(ResourceKind::Bones) {
+        draw_resource_pile(
+            view.tile_rect(pile.position).center(),
+            "B",
+            pile.amount,
+            Color::new(0.82, 0.82, 0.72, 1.0),
+        );
     }
-    if ctx.session.economy.loose_wood > 0 {
-        if let Some(source) = ctx
-            .session
-            .economy
-            .loose_wood_source
-            .or_else(|| ctx.session.world.forest_tiles.first().copied())
-        {
-            draw_resource_pile(
-                view.tile_rect(source).center() + vec2(0.0, 7.0),
-                "W",
-                ctx.session.economy.loose_wood,
-                Color::new(0.70, 0.45, 0.20, 1.0),
-            );
-        }
+    for pile in ctx.session.economy.loose_piles(ResourceKind::Wood) {
+        draw_resource_pile(
+            view.tile_rect(pile.position).center() + vec2(0.0, 7.0),
+            "W",
+            pile.amount,
+            Color::new(0.70, 0.45, 0.20, 1.0),
+        );
     }
 }
 

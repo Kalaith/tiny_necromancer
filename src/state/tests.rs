@@ -1,5 +1,7 @@
 use super::*;
 
+mod economy;
+
 #[test]
 fn fresh_session_starts_with_one_usable_plot_and_skeleton() {
     let data = crate::data::GameData::load().unwrap();

@@ -6,10 +6,12 @@ use macroquad_toolkit::rng::SeededRng;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+mod economy;
 mod research;
 mod route_policy;
 mod stewardship;
 mod workforce;
+pub use economy::EconomyState;
 pub use research::ResearchState;
 pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
 pub use stewardship::StewardshipPolicy;
@@ -391,24 +393,6 @@ pub struct Corpse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EconomyState {
-    pub bones: i32,
-    pub mana: i32,
-    pub mana_fraction: f32,
-    pub wood: i32,
-    pub shovels: i32,
-    pub loose_bones: i32,
-    pub loose_wood: i32,
-    #[serde(default)]
-    pub ward_charges: i32,
-    #[serde(default)]
-    pub loose_bones_source: Option<TilePos>,
-    #[serde(default)]
-    pub loose_wood_source: Option<TilePos>,
-    pub corpses: Vec<Corpse>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FeedEntry {
     pub message: String,
     pub age_seconds: f32,
@@ -573,6 +557,8 @@ impl GameSession {
                 ward_charges: 0,
                 loose_bones_source: None,
                 loose_wood_source: None,
+                loose_bones_piles: Vec::new(),
+                loose_wood_piles: Vec::new(),
                 corpses: Vec::new(),
             },
             pressure: PressureState {
@@ -640,6 +626,7 @@ impl GameSession {
                 worker.haul_plan = None;
             }
         }
+        save.economy.normalize_loose_piles();
         save.workforce.normalize_priorities();
         Self {
             phase: save.phase,

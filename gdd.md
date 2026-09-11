@@ -84,13 +84,15 @@ tile clears it, so an accidental mark can be corrected without restarting the
 colony. The Orders board exposes every repeat duty, its active automated worker
 count, and touch-sized Up/Down controls. Older saves retain their authored
 order and receive any newly introduced duty at the end of the list.
-Loose bones and wood retain a source tile. A hauler walks to that source, picks
-up a capacity-limited bundle, visibly carries it to Storage, and only then
-credits the stockpile. Ossuary Logistics commits that source and its chosen
-Storage drop point into the hauler's route, so marked Work output remains tied
-to a deliberate cross-district delivery. A changed Storage policy or blocked
-drop point replans the carried bundle without losing it. This keeps world
-feedback and resource totals aligned.
+Loose bones and wood retain source piles. A hauler walks to one exact pile,
+picks up a capacity-limited bundle, visibly carries it to Storage, and only
+then credits the stockpile. Piles from separate graves or forest tiles remain
+independent, so a worker can choose the nearest real source instead of chasing
+one overwritten global marker. Ossuary Logistics commits that source and its
+chosen Storage drop point into the hauler's route, so marked Work output remains
+tied to a deliberate cross-district delivery. A changed Storage policy or
+blocked drop point replans the carried bundle without losing it. This keeps
+world feedback and resource totals aligned.
 
 ### 5.3 Suspicion and events
 

@@ -66,6 +66,7 @@ impl Game {
             }
             "worker-walking" => self.prepare_capture_worker_walking(),
             "worker-haul-planned" => self.prepare_capture_worker_haul_planned(),
+            "multi-source" => self.prepare_capture_multi_source(),
             "worker-carrying" => self.prepare_capture_worker_carrying(),
             "worker-working" => self.prepare_capture_worker_working(),
             "necromancer-walking" => self.prepare_capture_necromancer_walking(),
@@ -647,6 +648,22 @@ impl Game {
             destination,
             storage_policy: RoutePolicy::MarkedFirst,
         });
+        self.session.world.selected = Some(Selection::Worker(0));
+    }
+
+    fn prepare_capture_multi_source(&mut self) {
+        let near_source = self.session.world.plots[0].position;
+        let far_source = TilePos::new(4, 6);
+        self.session
+            .economy
+            .add_loose(crate::state::ResourceKind::Bones, near_source, 8);
+        self.session
+            .economy
+            .add_loose(crate::state::ResourceKind::Bones, far_source, 8);
+        let worker = &mut self.session.workforce.workers[0];
+        worker.position = TilePos::new(4, 4);
+        worker.assignment = JobKind::Guard;
+        worker.status = WorkerStatus::Hiding;
         self.session.world.selected = Some(Selection::Worker(0));
     }
 

@@ -249,3 +249,42 @@ fn removed_storage_drop_replans_a_walking_and_carried_bundle() {
         first_drop
     );
 }
+
+#[test]
+fn hauler_selects_the_nearest_of_multiple_resource_piles() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let near_source = session.world.plots[0].position;
+    let far_source = session.world.forest_tiles[0];
+    session
+        .economy
+        .add_loose(crate::state::ResourceKind::Bones, near_source, 8);
+    session
+        .economy
+        .add_loose(crate::state::ResourceKind::Bones, far_source, 8);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = near_source;
+
+    simulate(&mut session, &data, 0.0);
+
+    let worker = &session.workforce.workers[0];
+    assert_eq!(
+        worker
+            .haul_plan
+            .expect("haul should choose a source")
+            .source,
+        near_source
+    );
+    assert_eq!(
+        session
+            .economy
+            .loose_amount_at(crate::state::ResourceKind::Bones, near_source),
+        0
+    );
+    assert_eq!(
+        session
+            .economy
+            .loose_amount_at(crate::state::ResourceKind::Bones, far_source),
+        8
+    );
+}

@@ -41,6 +41,7 @@ param(
         "production",
         "worker-walking",
         "worker-haul-planned",
+        "multi-source",
         "worker-carrying",
         "worker-working",
         "necromancer-walking",

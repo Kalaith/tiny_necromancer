@@ -422,28 +422,17 @@ fn simulate_haul(
         let storage_bonus =
             districts::haul_capacity_bonus(session, &data.config.district_rules, plan.destination);
         let capacity = base_capacity + storage_bonus;
-        let amount = match plan.resource {
-            ResourceKind::Bones => session.economy.loose_bones.min(capacity),
-            ResourceKind::Wood => session.economy.loose_wood.min(capacity),
-        };
+        let amount = session
+            .economy
+            .loose_amount_at(plan.resource, plan.source)
+            .min(capacity);
         if amount <= 0 {
             return;
         }
         districts::record_storage_bonus(session, (amount - base_capacity).max(0));
-        match plan.resource {
-            ResourceKind::Bones => {
-                session.economy.loose_bones -= amount;
-                if session.economy.loose_bones == 0 {
-                    session.economy.loose_bones_source = None;
-                }
-            }
-            ResourceKind::Wood => {
-                session.economy.loose_wood -= amount;
-                if session.economy.loose_wood == 0 {
-                    session.economy.loose_wood_source = None;
-                }
-            }
-        }
+        session
+            .economy
+            .take_loose(plan.resource, plan.source, amount);
         let worker = &mut session.workforce.workers[index];
         worker.carrying = amount;
         worker.carrying_resource = Some(plan.resource);
@@ -532,8 +521,9 @@ fn simulate_wood(
         }
     };
     if completed {
-        session.economy.loose_wood += job.output_amount;
-        session.economy.loose_wood_source = Some(work_position);
+        session
+            .economy
+            .add_loose(ResourceKind::Wood, work_position, job.output_amount);
         if district_speed > 1.0 {
             districts::record_work_cycle(session);
         }

@@ -67,10 +67,11 @@ pub(super) fn simulate(
         plot.status = PlotStatus::Dug;
         plot.progress = job.work_seconds;
     }
-    session.economy.loose_bones += job.output_amount;
-    if session.economy.loose_bones_source.is_none() {
-        session.economy.loose_bones_source = Some(plot_position);
-    }
+    session.economy.add_loose(
+        crate::state::ResourceKind::Bones,
+        plot_position,
+        job.output_amount,
+    );
     if district_speed > 1.0 {
         districts::record_work_cycle(session);
     }
