@@ -94,11 +94,11 @@ pub fn execute_trade(session: &mut GameSession, data: &GameData) -> Result<(), S
         TradeOfferKind::QuietBargain => session.economy.ward_charges += 1,
     }
     session.progress.market.completed_trades += 1;
+    suspicion::adjust(session, 2.0, "a discreet night market exchange");
     session.add_feed(format!(
         "Night market exchange: {} for {}.",
         offer.cost, offer.reward
     ));
-    suspicion::adjust(session, 2.0, "a discreet night market exchange");
     Ok(())
 }
 

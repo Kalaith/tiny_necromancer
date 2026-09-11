@@ -55,6 +55,9 @@ fn carved_timber_exchange_respects_storage_and_pays_reward() {
     assert_eq!(session.economy.bones, 12);
     assert_eq!(session.economy.wood, 32);
     assert_eq!(session.progress.market.completed_trades, 1);
+    assert!(session.pressure.feed[0]
+        .message
+        .contains("Night market exchange: 18 bones for 12 wood"));
 }
 
 #[test]

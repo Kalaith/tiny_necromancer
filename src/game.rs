@@ -442,8 +442,15 @@ impl Game {
                 self.notify_result(result);
             }
             UiAction::ExecuteTrade => {
+                let offer = trade::current_offer(&self.session);
                 let result = trade::execute_trade(&mut self.session, &self.data);
-                self.notify_result(result);
+                match result {
+                    Ok(()) => self.notifications.success(format!(
+                        "Exchange complete: {} for {}.",
+                        offer.cost, offer.reward
+                    )),
+                    Err(error) => self.notifications.warning(error),
+                }
             }
             UiAction::UseWardCharge => {
                 let result = progression::use_ward_charge(&mut self.session);
