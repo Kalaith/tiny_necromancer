@@ -350,7 +350,13 @@ Focus tests on:
 - Avoid complex setups  
 - If a test is hard to write, the code is probably too tangled.
 
-### 11.3 Test Placement
+### 11.3 Feature Test Budget
+- Each major feature has a hard limit of five `#[test]` cases in its focused test suite.
+- The existing focused test-module boundaries define the budget: a cohesive responsibility such as core jobs, logistics, production supply, stewardship, districts, alerts, progression, trade, state, or UI layout has its own five-test budget.
+- Splitting, renaming, or duplicating a suite does not create another budget. When new behavior needs coverage, replace or consolidate a lower-value test, or use table-driven assertions inside an existing test.
+- Before committing, count the `#[test]` functions in every affected feature suite and confirm none exceeds five.
+
+### 11.4 Test Placement
 Unit tests live in the crate, next to the code they cover, but always in a separate child file. Never embed a test module body in an implementation file.
 
 Declare a child module from the implementation file and place its body in the corresponding child source:
