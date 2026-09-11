@@ -473,6 +473,50 @@ fn marked_storage_slots_split_two_haulers_across_drop_points() {
 }
 
 #[test]
+fn storage_slots_skip_a_sealed_preferred_drop_point() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_storage = macroquad_toolkit::grid::TilePos::new(5, 1);
+    let sealed_storage = macroquad_toolkit::grid::TilePos::new(6, 6);
+    let alternate_storage = macroquad_toolkit::grid::TilePos::new(5, 5);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![first_storage, sealed_storage, alternate_storage],
+    });
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].carrying = 1;
+    session.workforce.workers[0].position = first_storage;
+    let mut second_worker = session.workforce.workers[0].clone();
+    second_worker.id = session.workforce.next_worker_id;
+    session.workforce.next_worker_id += 1;
+    session.workforce.workers.push(second_worker);
+    for position in [
+        macroquad_toolkit::grid::TilePos::new(5, 6),
+        macroquad_toolkit::grid::TilePos::new(7, 6),
+        macroquad_toolkit::grid::TilePos::new(6, 5),
+        macroquad_toolkit::grid::TilePos::new(6, 7),
+    ] {
+        session.world.buildings.push(crate::state::Building {
+            kind: crate::state::BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position,
+            width: 1,
+            height: 1,
+        });
+    }
+
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        Some(first_storage)
+    );
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[1]),
+        Some(alternate_storage)
+    );
+}
+
+#[test]
 fn idle_dig_preview_uses_a_reachable_grave() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
