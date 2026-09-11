@@ -262,3 +262,45 @@ fn work_district_skips_an_unreachable_grave_for_the_next_reachable_target() {
 
     assert_eq!(alert.target, Some(Selection::Grave(2)));
 }
+
+#[test]
+fn dig_operator_does_not_hide_a_forest_only_work_advisory() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.workforce.workers[0].assignment = JobKind::Dig;
+    for plot in &mut session.world.plots {
+        plot.status = crate::state::PlotStatus::Locked;
+    }
+    let forest_tile = session.world.forest_tiles[2];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![forest_tile],
+    });
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Work district idle")
+        .expect("forest work should still need a Wood operator");
+
+    assert_eq!(alert.target, Some(Selection::Ground(forest_tile)));
+}
+
+#[test]
+fn wood_operator_does_not_hide_a_grave_only_work_advisory() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.workforce.workers[0].assignment = JobKind::Wood;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.plots[0].position],
+    });
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Work district idle")
+        .expect("grave work should still need a Dig operator");
+
+    assert_eq!(alert.target, Some(Selection::Grave(0)));
+}

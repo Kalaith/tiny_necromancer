@@ -126,15 +126,19 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
         .zones
         .iter()
         .any(|zone| zone.kind == crate::state::ZoneKind::Work && !zone.tiles.is_empty());
-    if !has_work_zone
-        || session
-            .workforce
-            .workers
-            .iter()
-            .any(|worker| matches!(worker.assignment, JobKind::Dig | JobKind::Wood))
-    {
+    if !has_work_zone {
         return;
     }
+    let has_dig_operator = session
+        .workforce
+        .workers
+        .iter()
+        .any(|worker| worker.assignment == JobKind::Dig);
+    let has_wood_operator = session
+        .workforce
+        .workers
+        .iter()
+        .any(|worker| worker.assignment == JobKind::Wood);
     let grave_target = session
         .world
         .plots
@@ -159,7 +163,19 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
         })
         .copied()
         .map(Selection::Ground);
-    let Some(target) = grave_target.or(forest_target) else {
+    let target = if !has_dig_operator {
+        grave_target
+    } else {
+        None
+    }
+    .or({
+        if !has_wood_operator {
+            forest_target
+        } else {
+            None
+        }
+    });
+    let Some(target) = target else {
         return;
     };
     let detail = match target {
