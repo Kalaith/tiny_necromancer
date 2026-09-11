@@ -251,3 +251,24 @@ fn automated_worker_keeps_its_duty_when_every_route_is_blocked() {
 
     assert_eq!(session.workforce.workers[0].assignment, JobKind::Wood);
 }
+
+#[test]
+fn automated_worker_keeps_priority_order_among_reachable_duties() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Guard;
+    session.workforce.priorities = vec![
+        JobKind::Wood,
+        JobKind::Haul,
+        JobKind::Guard,
+        JobKind::Dig,
+        JobKind::Build,
+        JobKind::Refine,
+    ];
+    session.economy.loose_bones = 8;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Wood);
+}
