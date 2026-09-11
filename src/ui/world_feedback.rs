@@ -312,10 +312,14 @@ pub(super) fn worker_destination_label(ctx: &UiContext<'_>, worker: &Worker) -> 
                 |plot| format!("grave {:02}", plot.id + 1),
             ),
         JobKind::Haul => worker.haul_plan.map_or_else(
-            || match worker_route_policy(ctx, worker, ZoneKind::Storage) {
-                RoutePolicy::MarkedFirst => "nearest marked storage tile".to_owned(),
-                RoutePolicy::Nearest => "normal stockpile route".to_owned(),
-                RoutePolicy::MarkedOnly => "marked Storage tile only".to_owned(),
+            || {
+                haul_source_label(ctx, worker).unwrap_or_else(|| {
+                    match worker_route_policy(ctx, worker, ZoneKind::Storage) {
+                        RoutePolicy::MarkedFirst => "nearest marked storage tile".to_owned(),
+                        RoutePolicy::Nearest => "normal stockpile route".to_owned(),
+                        RoutePolicy::MarkedOnly => "marked Storage tile only".to_owned(),
+                    }
+                })
             },
             |plan| {
                 if worker.carrying > 0 {
@@ -344,6 +348,25 @@ pub(super) fn worker_destination_label(ctx: &UiContext<'_>, worker: &Worker) -> 
         JobKind::Build => "unfinished structure".to_owned(),
         JobKind::Refine => "Ossuary Kiln".to_owned(),
     }
+}
+
+fn haul_source_label(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
+    if worker.carrying > 0 {
+        return None;
+    }
+    let resource = if ctx.session.economy.loose_bones > 0 {
+        ResourceKind::Bones
+    } else if ctx.session.economy.loose_wood > 0 {
+        ResourceKind::Wood
+    } else {
+        return None;
+    };
+    let source = jobs::destination_for_worker(ctx.session, worker)?;
+    let label = match resource {
+        ResourceKind::Bones => "bones",
+        ResourceKind::Wood => "wood",
+    };
+    Some(format!("{} pile ({}, {})", label, source.x, source.y))
 }
 
 fn worker_route_policy(ctx: &UiContext<'_>, worker: &Worker, kind: ZoneKind) -> RoutePolicy {
@@ -455,7 +478,10 @@ pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> String
             if worker.carrying > 0 {
                 "Carrying a bundle to storage".to_owned()
             } else if ctx.session.economy.loose_bones > 0 || ctx.session.economy.loose_wood > 0 {
-                "Waiting for a route to loose material".to_owned()
+                haul_source_label(ctx, worker).map_or_else(
+                    || "Waiting for a route to loose material".to_owned(),
+                    |source| format!("Waiting for route to {}", source),
+                )
             } else {
                 "No loose material".to_owned()
             }
