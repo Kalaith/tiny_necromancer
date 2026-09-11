@@ -22,14 +22,16 @@ pub struct TickReport {
 pub fn simulate_tick(session: &mut GameSession, data: &GameData, dt: f32) -> TickReport {
     let was_victorious = session.phase == crate::state::GamePhase::Victory;
     session.progress.elapsed_seconds += dt;
-    trade::advance_market(session, dt);
+    let mut report = TickReport::default();
+    if let Some(message) = trade::advance_market(session, dt) {
+        report.messages.push(message);
+    }
     session.tick_feed(dt);
     session.economy.mana_fraction += data.config.mana_regen_per_second * dt;
     while session.economy.mana_fraction >= 1.0 && session.economy.mana < data.config.max_mana {
         session.economy.mana_fraction -= 1.0;
         session.economy.mana += 1;
     }
-    let mut report = TickReport::default();
     if let Some(message) = movement::simulate_necromancer(session) {
         report.messages.push(message);
     }

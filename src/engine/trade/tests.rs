@@ -19,9 +19,13 @@ fn lantern_session(data: &GameData) -> GameSession {
 fn market_rotates_and_wraps_after_elapsed_time() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = lantern_session(&data);
-    advance_market(&mut session, 30.0);
+    let message = advance_market(&mut session, 30.0);
     assert_eq!(session.progress.market.offer_index, 1);
     assert!((session.progress.market.refresh_seconds - 30.0).abs() < 0.001);
+    assert_eq!(
+        message.as_deref(),
+        Some("Night market offer changed: Lantern draught.")
+    );
     advance_market(&mut session, 60.0);
     assert_eq!(session.progress.market.offer_index, 0);
 }

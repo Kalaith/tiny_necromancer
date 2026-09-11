@@ -56,16 +56,24 @@ pub fn current_offer(session: &GameSession) -> TradeOffer {
     OFFERS[session.progress.market.offer_index % OFFERS.len()]
 }
 
-pub fn advance_market(session: &mut GameSession, dt: f32) {
+pub fn advance_market(session: &mut GameSession, dt: f32) -> Option<String> {
     if !dt.is_finite() || dt <= 0.0 {
-        return;
+        return None;
     }
+    let mut rotated = false;
     session.progress.market.refresh_seconds -= dt;
     while session.progress.market.refresh_seconds <= 0.0 {
         session.progress.market.offer_index =
             (session.progress.market.offer_index + 1) % OFFERS.len();
         session.progress.market.refresh_seconds += MarketState::default().refresh_seconds;
+        rotated = true;
     }
+    rotated.then(|| {
+        format!(
+            "Night market offer changed: {}.",
+            current_offer(session).title
+        )
+    })
 }
 
 pub fn execute_trade(session: &mut GameSession, data: &GameData) -> Result<(), String> {
