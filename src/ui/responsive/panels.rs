@@ -379,8 +379,13 @@ fn draw_compact_domain_panel(
         0.0,
         dark::ACCENT,
     );
+    let staffing_summary = if sheet.w < 520.0 {
+        districts::compact_operations_summary(ctx.session)
+    } else {
+        districts::operations_summary(ctx.session)
+    };
     draw_text_block(
-        &districts::operations_summary(ctx.session),
+        &staffing_summary,
         sheet.x + 16.0,
         sheet.y + 192.0,
         sheet.w - 32.0,

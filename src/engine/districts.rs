@@ -83,6 +83,18 @@ pub fn operations_summary(session: &GameSession) -> String {
     )
 }
 
+pub fn compact_operations_summary(session: &GameSession) -> String {
+    format!(
+        "Staffing: W {}/{} · S {}/{} · P {}/{} posts",
+        operator_count(session, ZoneKind::Work),
+        marked_tile_count(session, ZoneKind::Work),
+        operator_count(session, ZoneKind::Storage),
+        marked_tile_count(session, ZoneKind::Storage),
+        operator_count(session, ZoneKind::Patrol),
+        marked_tile_count(session, ZoneKind::Patrol)
+    )
+}
+
 pub fn tile_summary(
     session: &GameSession,
     config: &DistrictRules,

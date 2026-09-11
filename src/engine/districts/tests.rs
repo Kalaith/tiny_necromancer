@@ -104,6 +104,10 @@ fn operations_summary_names_staffing_by_district() {
         operations_summary(&session),
         "Staffing (workers/marks): Work 1/1 · Storage 0/0 · Patrol 0/1 post"
     );
+    assert_eq!(
+        compact_operations_summary(&session),
+        "Staffing: W 1/1 · S 0/0 · P 0/1 posts"
+    );
 }
 
 #[test]
