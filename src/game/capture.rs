@@ -65,6 +65,7 @@ impl Game {
                 self.session.pressure.active_event = Some("rumour".to_owned());
             }
             "worker-walking" => self.prepare_capture_worker_walking(),
+            "worker-haul-planned" => self.prepare_capture_worker_haul_planned(),
             "worker-carrying" => self.prepare_capture_worker_carrying(),
             "worker-working" => self.prepare_capture_worker_working(),
             "necromancer-walking" => self.prepare_capture_necromancer_walking(),
@@ -626,6 +627,24 @@ impl Game {
             resource: crate::state::ResourceKind::Bones,
             source,
             destination: crate::state::WorldState::stockpile_position(),
+            storage_policy: RoutePolicy::MarkedFirst,
+        });
+        self.session.world.selected = Some(Selection::Worker(0));
+    }
+
+    fn prepare_capture_worker_haul_planned(&mut self) {
+        let source = self.session.world.plots[0].position;
+        let destination = crate::state::WorldState::stockpile_position();
+        self.session.economy.loose_bones = 8;
+        self.session.economy.loose_bones_source = Some(source);
+        let worker = &mut self.session.workforce.workers[0];
+        worker.position = destination;
+        worker.assignment = JobKind::Haul;
+        worker.status = WorkerStatus::Walking;
+        worker.haul_plan = Some(crate::state::HaulPlan {
+            resource: crate::state::ResourceKind::Bones,
+            source,
+            destination,
             storage_policy: RoutePolicy::MarkedFirst,
         });
         self.session.world.selected = Some(Selection::Worker(0));

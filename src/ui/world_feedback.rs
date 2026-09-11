@@ -335,10 +335,17 @@ pub(super) fn worker_destination_label(ctx: &UiContext<'_>, worker: &Worker) -> 
                 RoutePolicy::MarkedOnly => "marked Storage tile only".to_owned(),
             },
             |plan| {
-                format!(
-                    "Storage tile ({}, {})",
-                    plan.destination.x, plan.destination.y
-                )
+                if worker.carrying > 0 {
+                    format!(
+                        "Storage tile ({}, {})",
+                        plan.destination.x, plan.destination.y
+                    )
+                } else {
+                    format!(
+                        "source ({}, {}) → Storage ({}, {})",
+                        plan.source.x, plan.source.y, plan.destination.x, plan.destination.y
+                    )
+                }
             },
         ),
         JobKind::Guard => match worker_route_policy(ctx, worker, ZoneKind::Patrol) {
@@ -583,6 +590,19 @@ pub(super) fn worker_activity_detail(worker: &Worker) -> String {
             );
         }
         return format!("Carrying {} {} to storage", worker.carrying, resource);
+    }
+    if worker.assignment == JobKind::Haul {
+        if let Some(plan) = worker.haul_plan {
+            let approach = if worker.status == WorkerStatus::Walking {
+                "Walking to"
+            } else {
+                "Waiting for route to"
+            };
+            return format!(
+                "{} source ({}, {}) · drop ({}, {})",
+                approach, plan.source.x, plan.source.y, plan.destination.x, plan.destination.y
+            );
+        }
     }
     match worker.status {
         WorkerStatus::Idle => "Idle · awaiting a useful order".to_owned(),

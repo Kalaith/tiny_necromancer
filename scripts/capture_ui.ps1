@@ -40,6 +40,7 @@ param(
         "notes",
         "production",
         "worker-walking",
+        "worker-haul-planned",
         "worker-carrying",
         "worker-working",
         "necromancer-walking",
