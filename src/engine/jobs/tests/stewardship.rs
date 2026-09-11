@@ -1,5 +1,8 @@
 use super::super::simulate;
-use crate::state::{GameSession, JobKind, StewardshipPolicy, Technology, WorldState};
+use crate::state::{
+    Building, BuildingKind, GameSession, JobKind, StewardshipPolicy, Technology, WorldState,
+};
+use macroquad_toolkit::grid::TilePos;
 
 #[test]
 fn harvest_policy_prefers_material_work_over_guarding() {
@@ -175,6 +178,42 @@ fn harvest_policy_keeps_pre_domain_priorities_unchanged() {
     session.economy.loose_bones = 8;
     session.workforce.workers[0].priority_mode = true;
     session.workforce.workers[0].assignment = JobKind::Guard;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
+}
+
+#[test]
+fn automated_worker_falls_back_from_a_blocked_marked_forest() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Wood;
+    session.workforce.priorities = vec![
+        JobKind::Wood,
+        JobKind::Haul,
+        JobKind::Guard,
+        JobKind::Dig,
+        JobKind::Build,
+        JobKind::Refine,
+    ];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.forest_tiles[0]],
+    });
+    session.economy.loose_bones = 8;
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: TilePos::new(1, y),
+            width: 1,
+            height: 1,
+        });
+    }
 
     simulate(&mut session, &data, 0.0);
 

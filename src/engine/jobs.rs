@@ -155,7 +155,7 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
         let automatic = session.workforce.workers[index].priority_mode;
         let previous_job = session.workforce.workers[index].assignment;
         let job = if automatic {
-            choose_priority(session, data)
+            choose_priority(session, data, index)
         } else {
             previous_job
         };
@@ -267,7 +267,7 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
     messages
 }
 
-fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
+fn choose_priority(session: &GameSession, data: &GameData, worker_index: usize) -> JobKind {
     let mut available_jobs = Vec::new();
     let patrol_gap = {
         let coverage = patrol_coverage(session);
@@ -311,7 +311,7 @@ fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
                 .any(|building| !building.complete),
             JobKind::Refine => session.progress.production.is_some(),
         };
-        if available {
+        if available && has_reachable_destination(session, worker_index, *priority) {
             available_jobs.push(*priority);
         }
     }
@@ -319,6 +319,19 @@ fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
         .into_iter()
         .min_by_key(|job| districts::policy_bias(session, *job))
         .unwrap_or(JobKind::Guard)
+}
+
+fn has_reachable_destination(session: &GameSession, worker_index: usize, job: JobKind) -> bool {
+    let Some(current_worker) = session.workforce.workers.get(worker_index) else {
+        return false;
+    };
+    let mut worker = current_worker.clone();
+    worker.assignment = job;
+    worker.target_plot = None;
+    let Some(destination) = destination_for_worker(session, &worker) else {
+        return false;
+    };
+    navigation::plan_route(session, worker.position, destination).is_ok()
 }
 
 fn simulate_haul(

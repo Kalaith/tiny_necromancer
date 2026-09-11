@@ -124,7 +124,10 @@ patrol posts, and responds at Rumour pressure, and Harvest brings Dig, Haul, and
 Wood forward when those orders are available. After Domain Stewardship, Harvest
 also fills an unstaffed marked Work or Storage district before generic material
 work. The policy affects only automated workers; direct orders remain authoritative,
-and pre-domain saves keep their original priority behavior.
+and pre-domain saves keep their original priority behavior. Automated workers
+also skip an available priority whose destination has no route, then fall back to
+the next reachable duty; a direct order still stays in force and reports its
+blocked route to the player.
 
 After Domain Stewardship, marked districts also carry small operational rules:
 Work tiles speed Dig and Wood work, Storage tiles increase a hauler's bundle
