@@ -427,17 +427,47 @@ fn collect_material_alert(session: &GameSession, alerts: &mut Vec<OperationalAle
     {
         return;
     }
-    let source = session
+    let bone_piles = session
         .economy
-        .loose_bones_source
-        .or(session.economy.loose_wood_source)
+        .loose_piles(crate::state::ResourceKind::Bones);
+    let wood_piles = session
+        .economy
+        .loose_piles(crate::state::ResourceKind::Wood);
+    let source = bone_piles
+        .first()
+        .or_else(|| wood_piles.first())
+        .map(|pile| pile.position)
         .unwrap_or_else(crate::state::WorldState::stockpile_position);
+    let bone_detail = if bone_piles.len() > 1 {
+        format!(
+            "{} loose bones across {} piles need a Haul order.",
+            session.economy.loose_bones,
+            bone_piles.len()
+        )
+    } else {
+        format!(
+            "{} loose bones need a Haul order.",
+            session.economy.loose_bones
+        )
+    };
+    let wood_detail = if wood_piles.len() > 1 {
+        format!(
+            "{} loose wood across {} piles need a Haul order.",
+            session.economy.loose_wood,
+            wood_piles.len()
+        )
+    } else {
+        format!(
+            "{} loose wood need a Haul order.",
+            session.economy.loose_wood
+        )
+    };
     let detail = match (session.economy.loose_bones, session.economy.loose_wood) {
         (bones, wood) if bones > 0 && wood > 0 => {
             format!("{bones} bones and {wood} wood need a Haul order.")
         }
-        (bones, _) if bones > 0 => format!("{bones} loose bones need a Haul order."),
-        (_, wood) => format!("{wood} loose wood need a Haul order."),
+        (bones, _) if bones > 0 => bone_detail,
+        (_, _) => wood_detail,
     };
     alerts.push(OperationalAlert::new(
         AlertSeverity::Warning,

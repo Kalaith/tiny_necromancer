@@ -55,6 +55,31 @@ fn loose_material_without_a_hauler_points_to_its_source() {
 }
 
 #[test]
+fn multi_source_material_alert_counts_piles_and_targets_the_first_pile() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first = TilePos::new(2, 2);
+    let second = TilePos::new(0, 0);
+    session
+        .economy
+        .add_loose(crate::state::ResourceKind::Bones, first, 8);
+    session
+        .economy
+        .add_loose(crate::state::ResourceKind::Bones, second, 8);
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Materials waiting")
+        .expect("multi-source material should be reported");
+
+    assert_eq!(
+        alert.detail,
+        "16 loose bones across 2 piles need a Haul order."
+    );
+    assert_eq!(alert.target, Some(Selection::Ground(first)));
+}
+
+#[test]
 fn construction_without_a_builder_points_to_the_scaffold() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
