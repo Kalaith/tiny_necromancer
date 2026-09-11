@@ -135,22 +135,13 @@ pub fn move_priority(
 pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<String> {
     let mut messages = Vec::new();
     let worker_count = session.workforce.workers.len();
-    let shed_bonus = if session.has_building(crate::state::BuildingKind::WorkShed) {
-        data.buildings
-            .get(crate::state::BuildingKind::WorkShed.id())
-            .expect("validated work shed")
-            .speed_multiplier
-    } else {
-        1.0
-    };
-    let lantern_bonus = if session.has_building(crate::state::BuildingKind::GraveLantern) {
-        data.buildings
-            .get(crate::state::BuildingKind::GraveLantern.id())
-            .expect("validated grave lantern")
-            .suspicion_multiplier
-    } else {
-        1.0
-    };
+    let shed_bonus =
+        progression::building_speed_multiplier(session, data, crate::state::BuildingKind::WorkShed);
+    let lantern_bonus = progression::building_suspicion_multiplier(
+        session,
+        data,
+        crate::state::BuildingKind::GraveLantern,
+    );
     let mut guards = 0;
     let mut guard_quieting = 0.0;
     for index in 0..worker_count {

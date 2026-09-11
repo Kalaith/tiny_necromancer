@@ -12,6 +12,7 @@ use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::{Pointer, VirtualUi};
 
 pub mod animation;
+mod buildings;
 mod components;
 mod domain;
 mod hud;
@@ -109,6 +110,7 @@ pub enum UiAction {
     StartResearch(Technology),
     StartProduction(BuildingKind),
     CancelProduction(BuildingKind),
+    UpgradeBuilding(BuildingKind),
     UseWardCharge,
     MovePriority(JobKind, i32),
     ToggleDomainOverlay(DomainOverlay),

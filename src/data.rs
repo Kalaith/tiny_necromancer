@@ -94,6 +94,12 @@ pub struct BuildingDef {
     pub suspicion_multiplier: f32,
     pub suspicion_delta: f32,
     pub effect_text: String,
+    pub upgrade_bones_cost: i32,
+    pub upgrade_mana_cost: i32,
+    pub upgrade_wood_cost: i32,
+    pub upgrade_speed_multiplier: f32,
+    pub upgrade_suspicion_multiplier: f32,
+    pub upgrade_effect_text: String,
     #[serde(default)]
     pub production: Option<ProductionDef>,
 }
@@ -256,9 +262,15 @@ impl GameData {
             if building.bones_cost < 0
                 || building.mana_cost < 0
                 || building.wood_cost < 0
+                || building.upgrade_bones_cost < 0
+                || building.upgrade_mana_cost < 0
+                || building.upgrade_wood_cost < 0
                 || building.build_seconds <= 0.0
                 || building.speed_multiplier <= 0.0
                 || building.suspicion_multiplier <= 0.0
+                || building.upgrade_speed_multiplier < 1.0
+                || building.upgrade_suspicion_multiplier <= 0.0
+                || building.upgrade_effect_text.is_empty()
             {
                 return Err(format!(
                     "buildings.json: impossible cost or time for '{id}'"

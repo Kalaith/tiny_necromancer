@@ -1,5 +1,6 @@
 //! Status strip and contextual inspector.
 
+use super::buildings;
 use super::components::{compact_virtual_button, pause_control_rect};
 use super::components::{stage_label, status_label, virtual_button};
 use super::production::{draw_kiln_inspector, is_kiln};
@@ -695,6 +696,7 @@ fn draw_building_inspector(
         0.0,
         dark::TEXT_DIM,
     );
+    buildings::draw_desktop_upgrade(ctx, pointer, actions, panel, building);
     if building.kind == BuildingKind::WorkShed
         && building.complete
         && virtual_button(

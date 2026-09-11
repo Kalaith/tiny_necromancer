@@ -1,5 +1,6 @@
 //! Selection actions presented inside the compact command sheet.
 
+use super::super::buildings;
 use super::super::components::{compact_virtual_button, virtual_button};
 use super::super::{UiAction, UiContext};
 use crate::state::{
@@ -314,11 +315,12 @@ fn draw_building(
         0.0,
         dark::TEXT_BRIGHT,
     );
+    buildings::draw_compact_upgrade(ctx, pointer, actions, sheet, building);
     match building.kind {
         BuildingKind::OssuaryKiln => draw_kiln(ctx, pointer, actions, sheet),
         BuildingKind::WorkShed => {
             if virtual_button(
-                Rect::new(sheet.x + 16.0, sheet.y + 120.0, sheet.w - 32.0, 48.0),
+                Rect::new(sheet.x + 16.0, sheet.y + 174.0, sheet.w - 32.0, 48.0),
                 "Study Binding Routines",
                 building.complete && ctx.session.research.can_start(Technology::BindingRoutines),
                 ButtonTone::Positive,
@@ -331,7 +333,7 @@ fn draw_building(
             draw_text_block(
                 "The lantern softens suspicion around every grave.",
                 sheet.x + 16.0,
-                sheet.y + 122.0,
+                sheet.y + 174.0,
                 sheet.w - 32.0,
                 30.0,
                 14.0,
@@ -375,7 +377,7 @@ fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>,
             input_status
         ),
         sheet.x + 16.0,
-        sheet.y + 104.0,
+        sheet.y + 152.0,
         sheet.w - 32.0,
         32.0,
         11.0,
@@ -387,7 +389,7 @@ fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>,
         },
     );
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 140.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 188.0, sheet.w - 32.0, 44.0),
         if active {
             "Queue ward cycle"
         } else if ctx.session.economy.bones >= recipe.bones_cost
@@ -408,7 +410,7 @@ fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>,
         actions.push(UiAction::StartProduction(BuildingKind::OssuaryKiln));
     }
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 186.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 234.0, sheet.w - 32.0, 44.0),
         if queued > 0 {
             "Cancel reserved cycle"
         } else {
@@ -421,7 +423,7 @@ fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>,
         actions.push(UiAction::CancelProduction(BuildingKind::OssuaryKiln));
     }
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 232.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 280.0, sheet.w - 32.0, 44.0),
         "Spend ward charge",
         ctx.session.economy.ward_charges > 0 && ctx.session.phase == GamePhase::Playing,
         ButtonTone::Secondary,

@@ -692,8 +692,8 @@ impl Game {
     }
 
     fn prepare_capture_kiln(&mut self) {
-        self.session.economy.bones = 120;
-        self.session.economy.wood = 90;
+        self.session.economy.bones = 48;
+        self.session.economy.wood = 36;
         self.session.research.completed = vec![
             Technology::BindingRoutines,
             Technology::Gravecraft,

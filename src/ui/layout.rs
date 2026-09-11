@@ -35,7 +35,7 @@ impl UiLayout {
         let preferred_sheet_height = if management {
             height * 0.62
         } else {
-            height * 0.46
+            height * 0.54
         };
         let sheet_height = preferred_sheet_height
             .clamp(272.0, 390.0)

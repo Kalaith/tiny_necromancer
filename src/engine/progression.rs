@@ -8,6 +8,46 @@ use crate::state::{
 use macroquad_toolkit::grid::TilePos;
 
 pub const MAX_PRODUCTION_QUEUE: usize = 3;
+pub const MAX_BUILDING_LEVEL: u8 = 2;
+
+pub fn building_level(session: &GameSession, kind: BuildingKind) -> u8 {
+    session
+        .progress
+        .building_upgrades
+        .tier(kind)
+        .min(MAX_BUILDING_LEVEL - 1)
+        + 1
+}
+
+pub fn building_speed_multiplier(
+    session: &GameSession,
+    data: &GameData,
+    kind: BuildingKind,
+) -> f32 {
+    let Some(def) = data.buildings.get(kind.id()) else {
+        return 1.0;
+    };
+    if !session.has_building(kind) {
+        return 1.0;
+    }
+    let upgrades = i32::from(building_level(session, kind) - 1);
+    def.speed_multiplier * def.upgrade_speed_multiplier.powi(upgrades)
+}
+
+pub fn building_suspicion_multiplier(
+    session: &GameSession,
+    data: &GameData,
+    kind: BuildingKind,
+) -> f32 {
+    let Some(def) = data.buildings.get(kind.id()) else {
+        return 1.0;
+    };
+    if !session.has_building(kind) {
+        return 1.0;
+    }
+    let upgrades = i32::from(building_level(session, kind) - 1);
+    def.suspicion_multiplier * def.upgrade_suspicion_multiplier.powi(upgrades)
+}
 
 pub fn production_input_need(session: &GameSession, resource: crate::state::ResourceKind) -> i32 {
     let Some(order) = session.progress.production.as_ref() else {
@@ -143,14 +183,7 @@ pub fn advance_construction(session: &mut GameSession, data: &GameData, dt: f32)
         .buildings
         .get(kind.id())
         .expect("validated building recipe");
-    let shed_bonus = if session.has_building(BuildingKind::WorkShed) {
-        data.buildings
-            .get(BuildingKind::WorkShed.id())
-            .expect("validated work shed")
-            .speed_multiplier
-    } else {
-        1.0
-    };
+    let shed_bonus = building_speed_multiplier(session, data, BuildingKind::WorkShed);
     session.world.buildings[index].progress += dt * shed_bonus;
     if session.world.buildings[index].progress >= def.build_seconds {
         session.world.buildings[index].progress = def.build_seconds;
@@ -258,6 +291,53 @@ pub fn start_production(
     Ok(())
 }
 
+pub fn upgrade_building(
+    session: &mut GameSession,
+    data: &GameData,
+    kind: BuildingKind,
+) -> Result<(), String> {
+    if !session
+        .world
+        .buildings
+        .iter()
+        .find(|building| building.kind == kind && building.complete)
+        .is_some()
+    {
+        return Err("Complete that structure before reinforcing it.".to_owned());
+    }
+    let level = building_level(session, kind);
+    if level >= MAX_BUILDING_LEVEL {
+        return Err("That structure already bears its strongest reinforcement.".to_owned());
+    }
+    let def = data
+        .buildings
+        .get(kind.id())
+        .expect("validated building recipe");
+    if session.economy.bones < def.upgrade_bones_cost
+        || session.economy.mana < def.upgrade_mana_cost
+        || session.economy.wood < def.upgrade_wood_cost
+    {
+        return Err(format!(
+            "Need {} bones, {} mana, and {} wood to reinforce it.",
+            def.upgrade_bones_cost, def.upgrade_mana_cost, def.upgrade_wood_cost
+        ));
+    }
+    session.economy.bones -= def.upgrade_bones_cost;
+    session.economy.mana -= def.upgrade_mana_cost;
+    session.economy.wood -= def.upgrade_wood_cost;
+    assert!(session.progress.building_upgrades.upgrade(kind));
+    session.add_feed(format!(
+        "{} reinforced to level {}: {}",
+        def.name, MAX_BUILDING_LEVEL, def.upgrade_effect_text
+    ));
+    suspicion::adjust(
+        session,
+        def.suspicion_delta * 0.5,
+        "reinforcing a settlement structure",
+    );
+    Ok(())
+}
+
 pub fn cancel_production(
     session: &mut GameSession,
     data: &GameData,
@@ -299,7 +379,9 @@ pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -
         .and_then(|building| building.production.as_ref())
         .expect("validated production recipe");
     order.progress += dt;
-    if order.progress < recipe.seconds {
+    let cycle_seconds =
+        recipe.seconds / building_speed_multiplier(session, data, order.building).max(f32::EPSILON);
+    if order.progress < cycle_seconds {
         session.progress.production = Some(order);
         return None;
     }

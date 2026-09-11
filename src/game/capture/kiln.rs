@@ -9,9 +9,9 @@ use macroquad_toolkit::grid::TilePos;
 
 impl Game {
     pub(super) fn prepare_capture_production(&mut self) {
-        self.session.economy.bones = 120;
+        self.session.economy.bones = 48;
         self.session.economy.mana = 60;
-        self.session.economy.wood = 90;
+        self.session.economy.wood = 36;
         self.session.economy.ward_charges = 2;
         self.session.research.completed = vec![
             Technology::BindingRoutines,

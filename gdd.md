@@ -293,7 +293,9 @@ alerts, toggleable zone, route, and pressure overlays, capacity-aware staffing
 demand, route-aware district coverage, and small bonuses for marked district
 rules. Responsive layouts now
 preserve those interactions at smaller viewport sizes with a reduced world area
-and touch-sized bottom sheet.
+and touch-sized bottom sheet. Completed structures can be reinforced once with
+explicit material costs and stronger Work Shed, Grave Lantern, and Ossuary Kiln
+effects.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.

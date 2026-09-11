@@ -437,6 +437,10 @@ impl Game {
                     Err(error) => self.notifications.warning(error),
                 }
             }
+            UiAction::UpgradeBuilding(kind) => {
+                let result = progression::upgrade_building(&mut self.session, &self.data, kind);
+                self.notify_result(result);
+            }
             UiAction::UseWardCharge => {
                 let result = progression::use_ward_charge(&mut self.session);
                 self.notify_result(result);

@@ -6,11 +6,13 @@ use macroquad_toolkit::rng::SeededRng;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+mod building_upgrades;
 mod economy;
 mod research;
 mod route_policy;
 mod stewardship;
 mod workforce;
+pub use building_upgrades::BuildingUpgrades;
 pub use economy::EconomyState;
 pub use research::ResearchState;
 pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
@@ -419,6 +421,8 @@ pub struct ProgressState {
     #[serde(default)]
     pub production_queue: usize,
     #[serde(default)]
+    pub building_upgrades: BuildingUpgrades,
+    #[serde(default)]
     pub district_ledger: DistrictLedger,
 }
 
@@ -584,6 +588,7 @@ impl GameSession {
                 first_building_started: false,
                 production: None,
                 production_queue: 0,
+                building_upgrades: BuildingUpgrades::default(),
                 district_ledger: DistrictLedger::default(),
             },
             research: ResearchState::default(),

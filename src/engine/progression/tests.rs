@@ -74,6 +74,59 @@ fn shed_construction_adds_the_improved_shovel() {
 }
 
 #[test]
+fn work_shed_upgrade_spends_materials_and_improves_throughput() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    queue_building(&mut session, &data, BuildingKind::WorkShed).unwrap();
+    advance_construction(&mut session, &data, 10.0);
+
+    upgrade_building(&mut session, &data, BuildingKind::WorkShed).unwrap();
+
+    assert_eq!(building_level(&session, BuildingKind::WorkShed), 2);
+    assert_eq!(session.economy.bones, 82);
+    assert_eq!(session.economy.wood, 58);
+    assert!(
+        (building_speed_multiplier(&session, &data, BuildingKind::WorkShed) - 1.38).abs() < 0.001
+    );
+}
+
+#[test]
+fn lantern_upgrade_makes_guarding_quieter() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.mana = 100;
+    session.economy.wood = 100;
+    queue_building(&mut session, &data, BuildingKind::GraveLantern).unwrap();
+    advance_construction(&mut session, &data, 12.0);
+    let before = building_suspicion_multiplier(&session, &data, BuildingKind::GraveLantern);
+
+    upgrade_building(&mut session, &data, BuildingKind::GraveLantern).unwrap();
+
+    assert!(building_suspicion_multiplier(&session, &data, BuildingKind::GraveLantern) < before);
+}
+
+#[test]
+fn kiln_upgrade_finishes_a_cycle_faster() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    queue_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_construction(&mut session, &data, 14.0);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    upgrade_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+
+    advance_production(&mut session, &data, 6.5);
+
+    assert_eq!(session.economy.ward_charges, 1);
+    assert_eq!(building_level(&session, BuildingKind::OssuaryKiln), 2);
+}
+
+#[test]
 fn kiln_is_gated_by_logistics_and_loads_its_recipe() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

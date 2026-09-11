@@ -13,6 +13,10 @@ fn authored_data_loads_and_has_required_content() {
         .get("ossuary_kiln")
         .is_some_and(|building| building.production.is_some()));
     assert!(data
+        .buildings
+        .iter()
+        .all(|(_, building)| !building.upgrade_effect_text.is_empty()));
+    assert!(data
         .event_for_stage(SuspicionStage::Investigation)
         .is_some());
     assert_eq!(data.config.district_rules.work_speed_multiplier, 1.15);
