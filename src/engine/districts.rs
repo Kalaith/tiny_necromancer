@@ -61,6 +61,55 @@ pub fn rule_summary(session: &GameSession, config: &DistrictRules) -> String {
     }
 }
 
+pub fn tile_summary(
+    session: &GameSession,
+    config: &DistrictRules,
+    tile: TilePos,
+) -> Option<String> {
+    let kind = [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
+        .into_iter()
+        .find(|kind| session.world.zone_contains(*kind, tile))?;
+    let tile_count = session
+        .world
+        .zones
+        .iter()
+        .filter(|zone| zone.kind == kind)
+        .map(|zone| zone.tiles.len())
+        .sum::<usize>();
+    let detail = if !session.research.is_unlocked(Technology::DomainStewardship) {
+        "Domain Stewardship will activate its local rule."
+    } else {
+        match kind {
+            ZoneKind::Work => "Dig and Wood work faster here.",
+            ZoneKind::Storage => "Haul bundles are larger here.",
+            ZoneKind::Patrol => "Guards quiet suspicion more effectively here.",
+        }
+    };
+    Some(format!(
+        "{} district · {} marked tile{} · {}",
+        kind.label(),
+        tile_count,
+        if tile_count == 1 { "" } else { "s" },
+        if session.research.is_unlocked(Technology::DomainStewardship) {
+            match kind {
+                ZoneKind::Work => format!(
+                    "+{:.0}% Dig/Wood speed here.",
+                    (config.work_speed_multiplier - 1.0) * 100.0
+                ),
+                ZoneKind::Storage => {
+                    format!("+{} Haul capacity here.", config.storage_capacity_bonus)
+                }
+                ZoneKind::Patrol => format!(
+                    "+{:.0}% Guard mitigation here.",
+                    (config.patrol_mitigation_multiplier - 1.0) * 100.0
+                ),
+            }
+        } else {
+            detail.to_owned()
+        }
+    ))
+}
+
 pub fn ledger_summary(session: &GameSession) -> String {
     let ledger = &session.progress.district_ledger;
     if ledger.work_cycles == 0

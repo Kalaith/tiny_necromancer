@@ -202,16 +202,43 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
                 0.0,
                 dark::TEXT,
             );
-            draw_text_block(
-                "Select an actor or structure for contextual orders.",
-                panel.x + 18.0,
-                panel.y + 132.0,
-                panel.w - 36.0,
-                48.0,
-                14.0,
-                4.0,
-                dark::TEXT_DIM,
-            );
+            if let Some(summary) = crate::engine::districts::tile_summary(
+                ctx.session,
+                &ctx.data.config.district_rules,
+                tile,
+            ) {
+                draw_text_block(
+                    &summary,
+                    panel.x + 18.0,
+                    panel.y + 132.0,
+                    panel.w - 36.0,
+                    64.0,
+                    14.0,
+                    4.0,
+                    dark::ACCENT,
+                );
+                draw_text_block(
+                    "Select an actor or structure for contextual orders.",
+                    panel.x + 18.0,
+                    panel.y + 204.0,
+                    panel.w - 36.0,
+                    48.0,
+                    14.0,
+                    4.0,
+                    dark::TEXT_DIM,
+                );
+            } else {
+                draw_text_block(
+                    "Select an actor or structure for contextual orders.",
+                    panel.x + 18.0,
+                    panel.y + 132.0,
+                    panel.w - 36.0,
+                    48.0,
+                    14.0,
+                    4.0,
+                    dark::TEXT_DIM,
+                );
+            }
         }
         Selection::Necromancer => {
             draw_text_block(

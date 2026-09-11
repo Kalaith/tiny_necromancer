@@ -85,6 +85,45 @@ fn rule_summary_names_only_marked_districts() {
 }
 
 #[test]
+fn marked_tile_summary_explains_the_local_domain_rule() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let tile = session.world.plots[0].position;
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Work,
+        tiles: vec![tile],
+    });
+
+    assert_eq!(
+        tile_summary(&session, &data.config.district_rules, tile),
+        Some(format!(
+            "Work district · 1 marked tile · +{:.0}% Dig/Wood speed here.",
+            (data.config.district_rules.work_speed_multiplier - 1.0) * 100.0
+        ))
+    );
+}
+
+#[test]
+fn marked_tile_summary_names_domain_as_the_next_unlock() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let tile = WorldState::stockpile_position();
+    session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Storage,
+        tiles: vec![tile],
+    });
+
+    assert_eq!(
+        tile_summary(&session, &data.config.district_rules, tile),
+        Some(
+            "Storage district · 1 marked tile · Domain Stewardship will activate its local rule."
+                .to_owned()
+        )
+    );
+}
+
+#[test]
 fn empty_districts_keep_original_job_values() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

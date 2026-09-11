@@ -128,6 +128,11 @@ than blessing every worker of that job. Empty districts and pre-domain saves
 keep the original behavior, so the system remains additive rather than making
 zone painting mandatory.
 
+Selecting a marked tile opens a local district readout in the inspector. It
+names the district, counts its marked tiles, and explains the rule active on
+that tile after Domain Stewardship. Before that research, the same readout
+teaches that the mark is waiting for the domain unlock.
+
 The Domain readout keeps a save-persistent ledger of accelerated Work cycles,
 extra Storage capacity actually used, and additional Patrol quieting. The first
 successful use of each active rule also becomes a Field Notes entry, giving the
@@ -195,6 +200,10 @@ mark** or **Tap to clear** copy. The event modal blocks the world and presents
 only choice buttons. Pause, save, load, recovery, and replay actions are also
 visible controls. Desktop right-drag and wheel camera controls supplement the
 touch path.
+
+Marked ground also explains its local district rule in the desktop inspector
+and compact bottom sheet, so a player can verify why a tile matters without
+opening the full Domain panel.
 
 The History target opens a tall Field Notes Archive with the seven most recent
 entries, newest-first age labels, and a visible Close target. It is available
