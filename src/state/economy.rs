@@ -50,6 +50,8 @@ impl EconomyState {
                 amount: self.loose_wood,
             });
         }
+        Self::compact_piles(&mut self.loose_bones_piles);
+        Self::compact_piles(&mut self.loose_wood_piles);
         self.refresh_metadata(ResourceKind::Bones);
         self.refresh_metadata(ResourceKind::Wood);
     }
@@ -128,6 +130,24 @@ impl EconomyState {
             ResourceKind::Bones => &mut self.loose_bones_piles,
             ResourceKind::Wood => &mut self.loose_wood_piles,
         }
+    }
+
+    fn compact_piles(piles: &mut Vec<LooseResourcePile>) {
+        let mut compacted = Vec::with_capacity(piles.len());
+        for pile in piles.drain(..) {
+            if pile.amount <= 0 {
+                continue;
+            }
+            if let Some(existing) = compacted
+                .iter_mut()
+                .find(|existing: &&mut LooseResourcePile| existing.position == pile.position)
+            {
+                existing.amount += pile.amount;
+            } else {
+                compacted.push(pile);
+            }
+        }
+        *piles = compacted;
     }
 
     fn refresh_metadata(&mut self, resource: ResourceKind) {

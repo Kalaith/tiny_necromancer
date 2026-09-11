@@ -68,3 +68,38 @@ fn old_scalar_save_infers_a_missing_bone_source_from_dug_ground() {
         }]
     );
 }
+
+#[test]
+fn normalization_compacts_duplicate_and_empty_source_piles() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut economy = GameSession::new(&data.config).economy;
+    let first = TilePos::new(2, 2);
+    let second = TilePos::new(0, 0);
+    economy.loose_wood_piles = vec![
+        LooseResourcePile {
+            position: first,
+            amount: 3,
+        },
+        LooseResourcePile {
+            position: first,
+            amount: 2,
+        },
+        LooseResourcePile {
+            position: second,
+            amount: 0,
+        },
+    ];
+    economy.loose_wood = 99;
+
+    economy.normalize_loose_piles();
+
+    assert_eq!(
+        economy.loose_piles(ResourceKind::Wood),
+        vec![LooseResourcePile {
+            position: first,
+            amount: 5
+        }]
+    );
+    assert_eq!(economy.loose_wood, 5);
+    assert_eq!(economy.loose_wood_source, Some(first));
+}
