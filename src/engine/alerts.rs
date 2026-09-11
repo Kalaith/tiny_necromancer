@@ -388,6 +388,23 @@ fn collect_production_alert(session: &GameSession, alerts: &mut Vec<OperationalA
     let Some(order) = session.progress.production.as_ref() else {
         return;
     };
+    if order.bones_remaining > 0 || order.wood_remaining > 0 {
+        let target = session
+            .world
+            .buildings
+            .iter()
+            .position(|building| building.kind == order.building);
+        alerts.push(OperationalAlert::new(
+            AlertSeverity::Warning,
+            "Kiln inputs waiting",
+            format!(
+                "{} bones and {} wood needed · assign Haul.",
+                order.bones_remaining, order.wood_remaining
+            ),
+            target.map(Selection::Building),
+        ));
+        return;
+    }
     if session
         .workforce
         .workers

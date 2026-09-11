@@ -15,7 +15,7 @@ pub use economy::EconomyState;
 pub use research::ResearchState;
 pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
 pub use stewardship::StewardshipPolicy;
-pub use workforce::{HaulPlan, Worker, WorkforceState};
+pub use workforce::{HaulDestination, HaulPlan, Worker, WorkforceState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GamePhase {
@@ -452,6 +452,10 @@ pub struct DistrictActivity {
 pub struct ProductionOrder {
     pub building: BuildingKind,
     pub progress: f32,
+    #[serde(default)]
+    pub bones_remaining: i32,
+    #[serde(default)]
+    pub wood_remaining: i32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

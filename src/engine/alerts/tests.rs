@@ -9,6 +9,8 @@ fn loaded_production_without_a_refiner_becomes_actionable() {
     session.progress.production = Some(ProductionOrder {
         building: BuildingKind::OssuaryKiln,
         progress: 1.0,
+        bones_remaining: 0,
+        wood_remaining: 0,
     });
     session.world.buildings.push(Building {
         kind: BuildingKind::OssuaryKiln,
@@ -33,11 +35,40 @@ fn assigned_refiner_clears_the_kiln_alert() {
     session.progress.production = Some(ProductionOrder {
         building: BuildingKind::OssuaryKiln,
         progress: 1.0,
+        bones_remaining: 0,
+        wood_remaining: 0,
     });
     session.workforce.workers[0].assignment = JobKind::Refine;
     assert!(!collect(&session, &data)
         .iter()
         .any(|alert| alert.title == "Kiln unattended"));
+}
+
+#[test]
+fn missing_kiln_inputs_point_to_the_kiln_before_refining() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.production = Some(ProductionOrder {
+        building: BuildingKind::OssuaryKiln,
+        progress: 0.0,
+        bones_remaining: 12,
+        wood_remaining: 6,
+    });
+    session.world.buildings.push(Building {
+        kind: BuildingKind::OssuaryKiln,
+        progress: 14.0,
+        complete: true,
+        position: TilePos::new(6, 4),
+        width: 2,
+        height: 1,
+    });
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Kiln inputs waiting")
+        .expect("missing kiln inputs should be actionable");
+
+    assert_eq!(alert.detail, "12 bones and 6 wood needed · assign Haul.");
+    assert_eq!(alert.target, Some(Selection::Building(0)));
 }
 
 #[test]

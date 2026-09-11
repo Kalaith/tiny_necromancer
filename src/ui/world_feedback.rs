@@ -4,7 +4,8 @@ use super::components::GridView;
 use super::UiContext;
 use crate::engine::{districts, jobs, navigation};
 use crate::state::{
-    JobKind, PlotStatus, ResourceKind, RoutePolicy, Selection, Worker, WorkerStatus, ZoneKind,
+    HaulDestination, JobKind, PlotStatus, ResourceKind, RoutePolicy, Selection, Worker,
+    WorkerStatus, WorldState, ZoneKind,
 };
 use macroquad::prelude::*;
 use macroquad_toolkit::grid::TilePos;
@@ -322,14 +323,18 @@ pub(super) fn worker_destination_label(ctx: &UiContext<'_>, worker: &Worker) -> 
                 })
             },
             |plan| {
+                let destination_kind = match plan.destination_kind {
+                    HaulDestination::Storage => "Storage",
+                    HaulDestination::Kiln => "Ossuary Kiln",
+                };
                 if worker.carrying > 0 {
                     format!(
-                        "Storage tile ({}, {})",
+                        "{destination_kind} ({}, {})",
                         plan.destination.x, plan.destination.y
                     )
                 } else {
                     format!(
-                        "source ({}, {}) → Storage ({}, {})",
+                        "source ({}, {}) → {destination_kind} ({}, {})",
                         plan.source.x, plan.source.y, plan.destination.x, plan.destination.y
                     )
                 }
@@ -353,6 +358,30 @@ pub(super) fn worker_destination_label(ctx: &UiContext<'_>, worker: &Worker) -> 
 fn haul_source_label(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
     if worker.carrying > 0 {
         return None;
+    }
+    let kiln_resource =
+        if crate::engine::progression::production_input_need(ctx.session, ResourceKind::Bones) > 0
+            && ctx.session.economy.bones > 0
+        {
+            Some(ResourceKind::Bones)
+        } else if crate::engine::progression::production_input_need(ctx.session, ResourceKind::Wood)
+            > 0
+            && ctx.session.economy.wood > 0
+        {
+            Some(ResourceKind::Wood)
+        } else {
+            None
+        };
+    if let Some(resource) = kiln_resource {
+        let source = WorldState::stockpile_position();
+        let label = match resource {
+            ResourceKind::Bones => "bones",
+            ResourceKind::Wood => "wood",
+        };
+        return Some(format!(
+            "{label} stockpile ({}, {}) → Ossuary Kiln",
+            source.x, source.y
+        ));
     }
     let resource = if ctx.session.economy.loose_bones > 0 {
         ResourceKind::Bones
@@ -476,14 +505,33 @@ pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> String
         }
         JobKind::Haul => {
             if worker.carrying > 0 {
-                "Carrying a bundle to storage".to_owned()
-            } else if ctx.session.economy.loose_bones > 0 || ctx.session.economy.loose_wood > 0 {
+                if worker
+                    .haul_plan
+                    .is_some_and(|plan| plan.destination_kind == HaulDestination::Kiln)
+                {
+                    "Carrying a bundle to the Ossuary Kiln".to_owned()
+                } else {
+                    "Carrying a bundle to storage".to_owned()
+                }
+            } else if ctx.session.economy.loose_bones > 0
+                || ctx.session.economy.loose_wood > 0
+                || (crate::engine::progression::production_input_need(
+                    ctx.session,
+                    ResourceKind::Bones,
+                ) > 0
+                    && ctx.session.economy.bones > 0)
+                || (crate::engine::progression::production_input_need(
+                    ctx.session,
+                    ResourceKind::Wood,
+                ) > 0
+                    && ctx.session.economy.wood > 0)
+            {
                 haul_source_label(ctx, worker).map_or_else(
                     || "Waiting for a route to loose material".to_owned(),
                     |source| format!("Waiting for route to {}", source),
                 )
             } else {
-                "No loose material".to_owned()
+                "No loose material or kiln input".to_owned()
             }
         }
         JobKind::Guard => "Waiting for a patrol route".to_owned(),
@@ -588,8 +636,12 @@ pub(super) fn worker_activity_detail(worker: &Worker) -> String {
             ResourceKind::Wood => "wood",
         };
         if let Some(plan) = worker.haul_plan {
+            let destination = match plan.destination_kind {
+                HaulDestination::Storage => "drop",
+                HaulDestination::Kiln => "kiln",
+            };
             return format!(
-                "Carrying {} {} · source ({}, {}) → drop ({}, {})",
+                "Carrying {} {} · source ({}, {}) → {destination} ({}, {})",
                 worker.carrying,
                 resource,
                 plan.source.x,
@@ -607,8 +659,12 @@ pub(super) fn worker_activity_detail(worker: &Worker) -> String {
             } else {
                 "Waiting for route to"
             };
+            let destination = match plan.destination_kind {
+                HaulDestination::Storage => "drop",
+                HaulDestination::Kiln => "kiln",
+            };
             return format!(
-                "{} source ({}, {}) · drop ({}, {})",
+                "{} source ({}, {}) · {destination} ({}, {})",
                 approach, plan.source.x, plan.source.y, plan.destination.x, plan.destination.y
             );
         }

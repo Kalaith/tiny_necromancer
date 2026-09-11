@@ -1,10 +1,10 @@
 //! Route-aware destinations for workers and marked district coverage.
 
 use super::PatrolCoverage;
-use crate::engine::navigation;
+use crate::engine::{navigation, progression};
 use crate::state::{
-    Building, BuildingKind, GameSession, JobKind, PlotStatus, RoutePolicy, Technology, Worker,
-    WorldState, ZoneKind,
+    Building, BuildingKind, GameSession, HaulDestination, JobKind, PlotStatus, ResourceKind,
+    RoutePolicy, Technology, Worker, WorldState, ZoneKind,
 };
 use macroquad_toolkit::grid::TilePos;
 
@@ -18,7 +18,7 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
                     .map(|plan| plan.destination)
                     .or_else(|| storage_destination(session, worker.position, worker.id))
             } else if let Some(plan) = worker.haul_plan {
-                let available = session.economy.loose_amount_at(plan.resource, plan.source);
+                let available = haul_plan_source_amount(session, plan);
                 (available > 0)
                     .then_some(plan.source)
                     .or_else(|| haul_source_destination(session, worker))
@@ -54,6 +54,9 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
 }
 
 fn haul_source_destination(session: &GameSession, worker: &Worker) -> Option<TilePos> {
+    if production_supply_resource(session).is_some() {
+        return Some(WorldState::stockpile_position());
+    }
     if session.economy.loose_bones > 0 {
         let piles = session
             .economy
@@ -99,6 +102,30 @@ fn haul_source_destination(session: &GameSession, worker: &Worker) -> Option<Til
         )
     } else {
         None
+    }
+}
+
+fn production_supply_resource(session: &GameSession) -> Option<ResourceKind> {
+    if progression::production_input_need(session, ResourceKind::Bones) > 0
+        && session.economy.bones > 0
+    {
+        Some(ResourceKind::Bones)
+    } else if progression::production_input_need(session, ResourceKind::Wood) > 0
+        && session.economy.wood > 0
+    {
+        Some(ResourceKind::Wood)
+    } else {
+        None
+    }
+}
+
+fn haul_plan_source_amount(session: &GameSession, plan: crate::state::HaulPlan) -> i32 {
+    match plan.destination_kind {
+        HaulDestination::Storage => session.economy.loose_amount_at(plan.resource, plan.source),
+        HaulDestination::Kiln => match plan.resource {
+            ResourceKind::Bones => session.economy.bones,
+            ResourceKind::Wood => session.economy.wood,
+        },
     }
 }
 
@@ -287,14 +314,20 @@ fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -
         .filter(|worker| {
             worker.assignment == JobKind::Haul
                 && worker.id != worker_id
-                && (worker.carrying > 0 || worker.haul_plan.is_some())
+                && storage_reservation_active(worker)
                 && storage_slot(session, worker.id) < current_slot
         })
         .filter_map(|worker| {
             worker
                 .haul_plan
-                .map(|plan| plan.destination)
-                .or_else(|| storage_destination(session, worker.position, worker.id))
+                .and_then(|plan| {
+                    (plan.destination_kind == HaulDestination::Storage).then_some(plan.destination)
+                })
+                .or_else(|| {
+                    (worker.carrying > 0 && worker.haul_plan.is_none())
+                        .then(|| storage_destination(session, worker.position, worker.id))
+                        .flatten()
+                })
         })
         .collect::<Vec<_>>();
     if !occupied.contains(&preferred) && navigation::plan_route(session, origin, preferred).is_ok()
@@ -340,6 +373,13 @@ pub(super) fn storage_destination_is_current(
     }
 }
 
+fn storage_reservation_active(worker: &Worker) -> bool {
+    worker
+        .haul_plan
+        .is_some_and(|plan| plan.destination_kind == HaulDestination::Storage)
+        || (worker.carrying > 0 && worker.haul_plan.is_none())
+}
+
 fn assignment_slot(session: &GameSession, job: JobKind, worker_id: u32) -> usize {
     roster_slot(session, job, worker_id)
 }
@@ -357,8 +397,7 @@ fn storage_slot(session: &GameSession, worker_id: u32) -> usize {
         .iter()
         .filter(|worker| {
             worker.id == worker_id
-                || (worker.assignment == JobKind::Haul
-                    && (worker.carrying > 0 || worker.haul_plan.is_some()))
+                || (worker.assignment == JobKind::Haul && storage_reservation_active(worker))
         })
         .count()
         .saturating_sub(1)

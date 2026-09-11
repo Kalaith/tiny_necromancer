@@ -4,9 +4,9 @@ use super::Game;
 use crate::data::SuspicionStage;
 use crate::engine::corpses;
 use crate::state::{
-    BuildingKind, DistrictActivity, DistrictActivityKind, GamePhase, GameSession, JobKind,
-    ProductionOrder, RoutePolicy, Selection, StewardshipPolicy, Technology, UndeadKind,
-    WorkerStatus, Zone, ZoneKind,
+    BuildingKind, DistrictActivity, DistrictActivityKind, GamePhase, GameSession, HaulDestination,
+    JobKind, ProductionOrder, RoutePolicy, Selection, StewardshipPolicy, Technology, UndeadKind,
+    WorkerStatus, WorldState, Zone, ZoneKind,
 };
 use crate::ui::{self, DomainOverlays, Panel};
 use macroquad::prelude::*;
@@ -54,6 +54,7 @@ impl Game {
             "district-route-gap" => self.prepare_capture_district_route_gap(),
             "notes" => self.prepare_capture_notes(),
             "production" => self.prepare_capture_production(),
+            "kiln-supply" => self.prepare_capture_kiln_supply(),
             "placement" => {
                 self.panel = Panel::Build;
                 self.placement = Some(BuildingKind::WorkShed);
@@ -597,12 +598,54 @@ impl Game {
         self.session.progress.production = Some(ProductionOrder {
             building: BuildingKind::OssuaryKiln,
             progress: 4.0,
+            bones_remaining: 0,
+            wood_remaining: 0,
         });
         self.session.progress.production_queue = 1;
         self.session.workforce.workers[0].assignment = JobKind::Guard;
         self.session.workforce.workers[0].status = WorkerStatus::Hiding;
         self.session.workforce.workers[0].position = TilePos::new(5, 4);
         self.session.world.selected = Some(Selection::Building(1));
+    }
+
+    fn prepare_capture_kiln_supply(&mut self) {
+        self.session.research.completed = vec![
+            Technology::BindingRoutines,
+            Technology::Gravecraft,
+            Technology::OssuaryLogistics,
+        ];
+        self.session.economy.bones = 8;
+        self.session.economy.wood = 6;
+        let position = TilePos::new(6, 4);
+        self.session.world.buildings = vec![crate::state::Building {
+            kind: BuildingKind::OssuaryKiln,
+            progress: 14.0,
+            complete: true,
+            position,
+            width: 2,
+            height: 1,
+        }];
+        self.session.progress.production = Some(ProductionOrder {
+            building: BuildingKind::OssuaryKiln,
+            progress: 0.0,
+            bones_remaining: 12,
+            wood_remaining: 6,
+        });
+        let source = WorldState::stockpile_position();
+        let destination = crate::engine::progression::production_destination(&self.session)
+            .expect("capture kiln should have a work position");
+        let worker = &mut self.session.workforce.workers[0];
+        worker.position = source;
+        worker.assignment = JobKind::Haul;
+        worker.status = WorkerStatus::Walking;
+        worker.haul_plan = Some(crate::state::HaulPlan {
+            resource: crate::state::ResourceKind::Bones,
+            source,
+            destination,
+            storage_policy: RoutePolicy::MarkedFirst,
+            destination_kind: HaulDestination::Kiln,
+        });
+        self.session.world.selected = Some(Selection::Worker(0));
     }
 
     fn prepare_capture_worker_walking(&mut self) {
@@ -629,6 +672,7 @@ impl Game {
             source,
             destination: crate::state::WorldState::stockpile_position(),
             storage_policy: RoutePolicy::MarkedFirst,
+            destination_kind: crate::state::HaulDestination::Storage,
         });
         self.session.world.selected = Some(Selection::Worker(0));
     }
@@ -647,6 +691,7 @@ impl Game {
             source,
             destination,
             storage_policy: RoutePolicy::MarkedFirst,
+            destination_kind: crate::state::HaulDestination::Storage,
         });
         self.session.world.selected = Some(Selection::Worker(0));
     }
@@ -726,6 +771,8 @@ impl Game {
         self.session.progress.production = Some(ProductionOrder {
             building: BuildingKind::OssuaryKiln,
             progress: 3.0,
+            bones_remaining: 0,
+            wood_remaining: 0,
         });
         let worker = &mut self.session.workforce.workers[0];
         worker.position = TilePos::new(5, 4);

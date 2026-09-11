@@ -4,12 +4,23 @@ use super::{JobKind, ResourceKind, RoutePolicy, UndeadKind, WorkerStatus};
 use macroquad_toolkit::grid::TilePos;
 use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum HaulDestination {
+    #[default]
+    #[serde(rename = "storage")]
+    Storage,
+    #[serde(rename = "kiln")]
+    Kiln,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HaulPlan {
     pub resource: ResourceKind,
     pub source: TilePos,
     pub destination: TilePos,
     pub storage_policy: RoutePolicy,
+    #[serde(default)]
+    pub destination_kind: HaulDestination,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -39,6 +39,7 @@ param(
         "district-route-gap",
         "notes",
         "production",
+        "kiln-supply",
         "worker-walking",
         "worker-haul-planned",
         "multi-source",

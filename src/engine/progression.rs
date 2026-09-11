@@ -9,6 +9,41 @@ use macroquad_toolkit::grid::TilePos;
 
 pub const MAX_PRODUCTION_QUEUE: usize = 3;
 
+pub fn production_input_need(session: &GameSession, resource: crate::state::ResourceKind) -> i32 {
+    let Some(order) = session.progress.production.as_ref() else {
+        return 0;
+    };
+    match resource {
+        crate::state::ResourceKind::Bones => order.bones_remaining,
+        crate::state::ResourceKind::Wood => order.wood_remaining,
+    }
+}
+
+pub fn production_destination(session: &GameSession) -> Option<TilePos> {
+    session
+        .world
+        .buildings
+        .iter()
+        .find(|building| building.kind == BuildingKind::OssuaryKiln && building.complete)
+        .map(Building::work_position)
+}
+
+pub fn deliver_production_input(
+    session: &mut GameSession,
+    resource: crate::state::ResourceKind,
+    amount: i32,
+) -> i32 {
+    let delivered = amount.min(production_input_need(session, resource)).max(0);
+    let Some(order) = session.progress.production.as_mut() else {
+        return 0;
+    };
+    match resource {
+        crate::state::ResourceKind::Bones => order.bones_remaining -= delivered,
+        crate::state::ResourceKind::Wood => order.wood_remaining -= delivered,
+    }
+    delivered
+}
+
 pub fn queue_building(
     session: &mut GameSession,
     data: &GameData,
@@ -184,28 +219,41 @@ pub fn start_production(
         .get(kind.id())
         .and_then(|building| building.production.as_ref())
         .ok_or_else(|| "That structure has no production recipe.".to_owned())?;
-    if session.progress.production.is_some()
-        && session.progress.production_queue >= MAX_PRODUCTION_QUEUE
-    {
+    let active = session.progress.production.is_some();
+    if active && session.progress.production_queue >= MAX_PRODUCTION_QUEUE {
         return Err("The kiln's ward queue is full.".to_owned());
     }
-    if session.economy.bones < recipe.bones_cost || session.economy.wood < recipe.wood_cost {
-        return Err(format!(
-            "Need {} bones and {} wood to load the kiln.",
-            recipe.bones_cost, recipe.wood_cost
-        ));
-    }
-    session.economy.bones -= recipe.bones_cost;
-    session.economy.wood -= recipe.wood_cost;
-    if session.progress.production.is_some() {
+    if active {
+        if session.economy.bones < recipe.bones_cost || session.economy.wood < recipe.wood_cost {
+            return Err(format!(
+                "Need {} bones and {} wood to reserve a kiln cycle.",
+                recipe.bones_cost, recipe.wood_cost
+            ));
+        }
+        session.economy.bones -= recipe.bones_cost;
+        session.economy.wood -= recipe.wood_cost;
         session.progress.production_queue += 1;
         session.add_feed("Another ward cycle is reserved in the kiln.");
     } else {
+        let bones_available = session.economy.bones.min(recipe.bones_cost);
+        let wood_available = session.economy.wood.min(recipe.wood_cost);
+        session.economy.bones -= bones_available;
+        session.economy.wood -= wood_available;
+        let bones_remaining = recipe.bones_cost - bones_available;
+        let wood_remaining = recipe.wood_cost - wood_available;
         session.progress.production = Some(ProductionOrder {
             building: kind,
             progress: 0.0,
+            bones_remaining,
+            wood_remaining,
         });
-        session.add_feed("The Ossuary Kiln is loaded; assign a worker to Refine Wards.");
+        if bones_remaining == 0 && wood_remaining == 0 {
+            session.add_feed("The Ossuary Kiln is loaded; assign a worker to Refine Wards.");
+        } else {
+            session.add_feed(format!(
+                "The Ossuary Kiln needs {bones_remaining} bones and {wood_remaining} wood; assign Haul."
+            ));
+        }
     }
     Ok(())
 }
@@ -241,6 +289,10 @@ pub fn cancel_production(
 
 pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -> Option<String> {
     let mut order = session.progress.production.clone()?;
+    if order.bones_remaining > 0 || order.wood_remaining > 0 {
+        session.progress.production = Some(order);
+        return None;
+    }
     let recipe = data
         .buildings
         .get(order.building.id())
@@ -258,6 +310,8 @@ pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -
         session.progress.production = Some(ProductionOrder {
             building: order.building,
             progress: 0.0,
+            bones_remaining: 0,
+            wood_remaining: 0,
         });
     } else {
         session.progress.production = None;

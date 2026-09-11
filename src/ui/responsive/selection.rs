@@ -372,13 +372,18 @@ fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>,
         Rect::new(sheet.x + 16.0, sheet.y + 130.0, sheet.w - 32.0, 44.0),
         if active {
             "Queue ward cycle"
-        } else {
+        } else if ctx.session.economy.bones >= recipe.bones_cost
+            && ctx.session.economy.wood >= recipe.wood_cost
+        {
             "Load kiln"
+        } else {
+            "Request kiln supply"
         },
         ctx.session.phase == GamePhase::Playing
-            && queued < crate::engine::progression::MAX_PRODUCTION_QUEUE
-            && ctx.session.economy.bones >= recipe.bones_cost
-            && ctx.session.economy.wood >= recipe.wood_cost,
+            && (!active || queued < crate::engine::progression::MAX_PRODUCTION_QUEUE)
+            && (!active
+                || (ctx.session.economy.bones >= recipe.bones_cost
+                    && ctx.session.economy.wood >= recipe.wood_cost)),
         ButtonTone::Positive,
         pointer,
     ) {

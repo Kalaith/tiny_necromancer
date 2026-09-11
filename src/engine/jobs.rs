@@ -3,8 +3,8 @@
 use crate::data::GameData;
 use crate::engine::{districts, movement, navigation, progression, suspicion};
 use crate::state::{
-    BuildingKind, GameSession, JobKind, PlotStatus, ResourceKind, RoutePolicy, WorkerStatus,
-    WorldState, ZoneKind,
+    BuildingKind, GameSession, HaulDestination, JobKind, PlotStatus, ResourceKind, RoutePolicy,
+    WorkerStatus, WorldState, ZoneKind,
 };
 use macroquad_toolkit::grid::TilePos;
 
@@ -356,6 +356,10 @@ fn priority_available(session: &GameSession, data: &GameData, priority: JobKind)
         JobKind::Haul => {
             session.economy.loose_bones > 0
                 || session.economy.loose_wood > 0
+                || progression::production_input_need(session, ResourceKind::Bones) > 0
+                    && session.economy.bones > 0
+                || progression::production_input_need(session, ResourceKind::Wood) > 0
+                    && session.economy.wood > 0
                 || session
                     .workforce
                     .workers
@@ -419,13 +423,25 @@ fn simulate_haul(
         if move_worker_to(session, index, plan.source) != WorkerMoveResult::Arrived {
             return;
         }
-        let storage_bonus =
-            districts::haul_capacity_bonus(session, &data.config.district_rules, plan.destination);
+        let storage_bonus = if plan.destination_kind == HaulDestination::Storage {
+            districts::haul_capacity_bonus(session, &data.config.district_rules, plan.destination)
+        } else {
+            0
+        };
         let capacity = base_capacity + storage_bonus;
-        let amount = session
-            .economy
-            .loose_amount_at(plan.resource, plan.source)
-            .min(capacity);
+        let source_amount = match plan.destination_kind {
+            HaulDestination::Storage => session.economy.loose_amount_at(plan.resource, plan.source),
+            HaulDestination::Kiln => match plan.resource {
+                ResourceKind::Bones => session.economy.bones,
+                ResourceKind::Wood => session.economy.wood,
+            },
+        };
+        let production_need = if plan.destination_kind == HaulDestination::Kiln {
+            progression::production_input_need(session, plan.resource)
+        } else {
+            i32::MAX
+        };
+        let amount = source_amount.min(capacity).min(production_need);
         if amount <= 0 {
             session.workforce.workers[index].haul_plan = None;
             session.workforce.workers[index].status = WorkerStatus::Idle;
@@ -433,9 +449,17 @@ fn simulate_haul(
             return;
         }
         districts::record_storage_bonus(session, (amount - base_capacity).max(0));
-        session
-            .economy
-            .take_loose(plan.resource, plan.source, amount);
+        match plan.destination_kind {
+            HaulDestination::Storage => {
+                session
+                    .economy
+                    .take_loose(plan.resource, plan.source, amount);
+            }
+            HaulDestination::Kiln => match plan.resource {
+                ResourceKind::Bones => session.economy.bones -= amount,
+                ResourceKind::Wood => session.economy.wood -= amount,
+            },
+        }
         let worker = &mut session.workforce.workers[index];
         worker.carrying = amount;
         worker.carrying_resource = Some(plan.resource);
@@ -444,8 +468,7 @@ fn simulate_haul(
         worker.progress = 0.0;
         return;
     }
-    let Some((storage_position, replanned)) = logistics::destination_for_cargo(session, index)
-    else {
+    let Some((destination, replanned)) = logistics::destination_for_cargo(session, index) else {
         session.workforce.workers[index].status = WorkerStatus::Idle;
         return;
     };
@@ -455,16 +478,21 @@ fn simulate_haul(
             ResourceKind::Bones => "bones",
             ResourceKind::Wood => "wood",
         };
-        let policy = worker
-            .haul_plan
-            .map(|plan| plan.storage_policy.label())
-            .unwrap_or("current");
+        let destination_detail = worker.haul_plan.map_or_else(
+            || "current Storage".to_owned(),
+            |plan| match plan.destination_kind {
+                HaulDestination::Storage => {
+                    format!("{} Storage", plan.storage_policy.label())
+                }
+                HaulDestination::Kiln => "the Ossuary Kiln".to_owned(),
+            },
+        );
         messages.push(format!(
-            "{} replanned its {} bundle for {} Storage.",
-            worker.name, resource, policy
+            "{} replanned its {} bundle for {destination_detail}.",
+            worker.name, resource
         ));
     }
-    if move_worker_to(session, index, storage_position) != WorkerMoveResult::Arrived {
+    if move_worker_to(session, index, destination) != WorkerMoveResult::Arrived {
         return;
     }
     let worker = &mut session.workforce.workers[index];
@@ -476,18 +504,35 @@ fn simulate_haul(
     worker.progress = 0.0;
     let resource = worker.carrying_resource.unwrap_or(ResourceKind::Bones);
     let amount = worker.carrying;
+    let destination_kind = worker
+        .haul_plan
+        .map(|plan| plan.destination_kind)
+        .unwrap_or(HaulDestination::Storage);
     worker.carrying = 0;
     worker.carrying_resource = None;
     worker.haul_plan = None;
     worker.status = WorkerStatus::Idle;
-    match resource {
-        ResourceKind::Bones => {
-            session.economy.bones += amount;
-            messages.push(format!("Hauled {amount} bones into the stockpile."));
+    if destination_kind == HaulDestination::Kiln {
+        let delivered = progression::deliver_production_input(session, resource, amount);
+        if delivered > 0 {
+            let label = match resource {
+                ResourceKind::Bones => "bones",
+                ResourceKind::Wood => "wood",
+            };
+            messages.push(format!(
+                "Delivered {delivered} {label} to the Ossuary Kiln."
+            ));
         }
-        ResourceKind::Wood => {
-            session.economy.wood += amount;
-            messages.push(format!("Hauled {amount} wood into the stockpile."));
+    } else {
+        match resource {
+            ResourceKind::Bones => {
+                session.economy.bones += amount;
+                messages.push(format!("Hauled {amount} bones into the stockpile."));
+            }
+            ResourceKind::Wood => {
+                session.economy.wood += amount;
+                messages.push(format!("Hauled {amount} wood into the stockpile."));
+            }
         }
     }
 }
@@ -557,6 +602,13 @@ fn simulate_refine(
         return;
     };
     if session.progress.production.is_none() {
+        session.workforce.workers[index].status = WorkerStatus::Idle;
+        session.workforce.workers[index].progress = 0.0;
+        return;
+    }
+    if progression::production_input_need(session, ResourceKind::Bones) > 0
+        || progression::production_input_need(session, ResourceKind::Wood) > 0
+    {
         session.workforce.workers[index].status = WorkerStatus::Idle;
         session.workforce.workers[index].progress = 0.0;
         return;

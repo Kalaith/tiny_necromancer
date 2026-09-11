@@ -38,16 +38,24 @@ pub(super) fn draw_kiln_inspector(
         } else {
             "Ward queue full".to_owned()
         }
-    } else {
+    } else if ctx.session.economy.bones >= recipe.bones_cost
+        && ctx.session.economy.wood >= recipe.wood_cost
+    {
         format!("Load kiln · B{} W{}", recipe.bones_cost, recipe.wood_cost)
+    } else {
+        format!(
+            "Request kiln supply · B{} W{}",
+            recipe.bones_cost, recipe.wood_cost
+        )
     };
     if virtual_button(
         Rect::new(panel.x + 18.0, panel.y + 232.0, panel.w - 36.0, 44.0),
         &label,
         ctx.session.phase == GamePhase::Playing
-            && queued < crate::engine::progression::MAX_PRODUCTION_QUEUE
-            && ctx.session.economy.bones >= recipe.bones_cost
-            && ctx.session.economy.wood >= recipe.wood_cost,
+            && (!active || queued < crate::engine::progression::MAX_PRODUCTION_QUEUE)
+            && (!active
+                || (ctx.session.economy.bones >= recipe.bones_cost
+                    && ctx.session.economy.wood >= recipe.wood_cost)),
         ButtonTone::Positive,
         pointer,
     ) {

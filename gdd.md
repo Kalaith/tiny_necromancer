@@ -200,6 +200,13 @@ longer production run. A reserved follow-up cycle can be cancelled from the
 kiln inspector; its recipe materials return immediately while the active cycle
 keeps its progress.
 
+If the first cycle is requested before its full recipe is in storage, the kiln
+keeps the request open and records each missing input. The existing stock is
+committed immediately, while Haul workers can carry later bones or wood from
+the stockpile directly to the kiln. Refine workers wait without advancing until
+both input counts reach zero; the kiln inspector and operational alerts name the
+shortfall and the required Haul order.
+
 ## 7. UI and interaction flow
 
 The main menu shows the game identity and visible **New Game** / **Continue**

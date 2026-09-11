@@ -310,6 +310,7 @@ fn empty_reserved_source_releases_a_hauler_to_the_next_pile() {
         source: first_source,
         destination: WorldState::stockpile_position(),
         storage_policy: RoutePolicy::MarkedFirst,
+        destination_kind: crate::state::HaulDestination::Storage,
     });
     session.workforce.next_worker_id += 1;
     session.workforce.workers.push(second_worker);
