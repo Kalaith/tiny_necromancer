@@ -58,48 +58,10 @@ fn haul_source_destination(session: &GameSession, worker: &Worker) -> Option<Til
         return Some(WorldState::stockpile_position());
     }
     if session.economy.loose_bones > 0 {
-        let piles = session
-            .economy
-            .loose_piles(crate::state::ResourceKind::Bones)
-            .into_iter()
-            .map(|pile| pile.position)
-            .collect::<Vec<_>>();
-        let fallbacks = if session.economy.loose_bones_piles.is_empty() {
-            session
-                .world
-                .plots
-                .iter()
-                .filter(|plot| plot.status == PlotStatus::Dug)
-                .map(|plot| plot.position)
-                .collect::<Vec<_>>()
-        } else {
-            Vec::new()
-        };
-        preferred_source_or_reachable_alternative(
-            session,
-            worker.position,
-            session.economy.loose_bones_source,
-            piles.into_iter().chain(fallbacks).collect(),
-        )
-        .or(Some(WorldState::stockpile_position()))
+        loose_source_for_resource(session, worker, ResourceKind::Bones)
+            .or(Some(WorldState::stockpile_position()))
     } else if session.economy.loose_wood > 0 {
-        let piles = session
-            .economy
-            .loose_piles(crate::state::ResourceKind::Wood)
-            .into_iter()
-            .map(|pile| pile.position)
-            .collect::<Vec<_>>();
-        let fallbacks = if session.economy.loose_wood_piles.is_empty() {
-            session.world.forest_tiles.clone()
-        } else {
-            Vec::new()
-        };
-        preferred_source_or_reachable_alternative(
-            session,
-            worker.position,
-            session.economy.loose_wood_source,
-            piles.into_iter().chain(fallbacks).collect(),
-        )
+        loose_source_for_resource(session, worker, ResourceKind::Wood)
     } else {
         None
     }
@@ -119,13 +81,65 @@ fn production_supply_resource(session: &GameSession) -> Option<ResourceKind> {
     }
 }
 
+pub(super) fn loose_source_for_resource(
+    session: &GameSession,
+    worker: &Worker,
+    resource: ResourceKind,
+) -> Option<TilePos> {
+    let (source, piles, fallbacks) = match resource {
+        ResourceKind::Bones => (
+            session.economy.loose_bones_source,
+            session
+                .economy
+                .loose_piles(ResourceKind::Bones)
+                .into_iter()
+                .map(|pile| pile.position)
+                .collect::<Vec<_>>(),
+            if session.economy.loose_bones_piles.is_empty() {
+                session
+                    .world
+                    .plots
+                    .iter()
+                    .filter(|plot| plot.status == PlotStatus::Dug)
+                    .map(|plot| plot.position)
+                    .collect::<Vec<_>>()
+            } else {
+                Vec::new()
+            },
+        ),
+        ResourceKind::Wood => (
+            session.economy.loose_wood_source,
+            session
+                .economy
+                .loose_piles(ResourceKind::Wood)
+                .into_iter()
+                .map(|pile| pile.position)
+                .collect::<Vec<_>>(),
+            if session.economy.loose_wood_piles.is_empty() {
+                session.world.forest_tiles.clone()
+            } else {
+                Vec::new()
+            },
+        ),
+    };
+    preferred_source_or_reachable_alternative(
+        session,
+        worker.position,
+        source,
+        piles.into_iter().chain(fallbacks).collect(),
+    )
+}
+
 fn haul_plan_source_amount(session: &GameSession, plan: crate::state::HaulPlan) -> i32 {
     match plan.destination_kind {
         HaulDestination::Storage => session.economy.loose_amount_at(plan.resource, plan.source),
-        HaulDestination::Kiln => match plan.resource {
-            ResourceKind::Bones => session.economy.bones,
-            ResourceKind::Wood => session.economy.wood,
-        },
+        HaulDestination::Kiln if plan.source == WorldState::stockpile_position() => {
+            match plan.resource {
+                ResourceKind::Bones => session.economy.bones,
+                ResourceKind::Wood => session.economy.wood,
+            }
+        }
+        HaulDestination::Kiln => session.economy.loose_amount_at(plan.resource, plan.source),
     }
 }
 

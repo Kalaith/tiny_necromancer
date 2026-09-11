@@ -131,3 +131,42 @@ fn automated_refiner_switches_to_kiln_supply_when_inputs_are_stockpiled() {
         HaulDestination::Kiln
     );
 }
+
+#[test]
+fn loose_material_can_feed_the_waiting_kiln_without_a_storage_detour() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = session_with_empty_kiln(&data);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    let source = session.world.plots[0].position;
+    session
+        .economy
+        .add_loose(crate::state::ResourceKind::Bones, source, 8);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = source;
+
+    simulate(&mut session, &data, 0.0);
+
+    let plan = session.workforce.workers[0]
+        .haul_plan
+        .expect("loose input should create a kiln plan");
+    assert_eq!(plan.destination_kind, HaulDestination::Kiln);
+    assert_eq!(plan.source, source);
+    assert_eq!(session.workforce.workers[0].carrying, 8);
+    assert_eq!(
+        session
+            .economy
+            .loose_amount_at(crate::state::ResourceKind::Bones, source),
+        0
+    );
+
+    for _ in 0..40 {
+        simulate(&mut session, &data, 1.0);
+        if production_input_need(&session, crate::state::ResourceKind::Bones) == 4 {
+            break;
+        }
+    }
+    assert_eq!(
+        production_input_need(&session, crate::state::ResourceKind::Bones),
+        4
+    );
+}

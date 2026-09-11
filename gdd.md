@@ -205,7 +205,9 @@ keeps the request open and records each missing input. The existing stock is
 committed immediately, while Haul workers can carry later bones or wood from
 the stockpile directly to the kiln. Refine workers wait without advancing until
 both input counts reach zero; the kiln inspector and operational alerts name the
-shortfall and the required Haul order.
+shortfall and the required Haul order. When storage is empty but a loose source
+already exists, the same route can feed the kiln directly without a needless
+storage detour.
 
 ## 7. UI and interaction flow
 

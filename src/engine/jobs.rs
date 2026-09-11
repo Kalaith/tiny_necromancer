@@ -432,8 +432,13 @@ fn simulate_haul(
         let source_amount = match plan.destination_kind {
             HaulDestination::Storage => session.economy.loose_amount_at(plan.resource, plan.source),
             HaulDestination::Kiln => match plan.resource {
-                ResourceKind::Bones => session.economy.bones,
-                ResourceKind::Wood => session.economy.wood,
+                ResourceKind::Bones if plan.source == WorldState::stockpile_position() => {
+                    session.economy.bones
+                }
+                ResourceKind::Wood if plan.source == WorldState::stockpile_position() => {
+                    session.economy.wood
+                }
+                _ => session.economy.loose_amount_at(plan.resource, plan.source),
             },
         };
         let production_need = if plan.destination_kind == HaulDestination::Kiln {
@@ -456,8 +461,17 @@ fn simulate_haul(
                     .take_loose(plan.resource, plan.source, amount);
             }
             HaulDestination::Kiln => match plan.resource {
-                ResourceKind::Bones => session.economy.bones -= amount,
-                ResourceKind::Wood => session.economy.wood -= amount,
+                ResourceKind::Bones if plan.source == WorldState::stockpile_position() => {
+                    session.economy.bones -= amount
+                }
+                ResourceKind::Wood if plan.source == WorldState::stockpile_position() => {
+                    session.economy.wood -= amount
+                }
+                _ => {
+                    session
+                        .economy
+                        .take_loose(plan.resource, plan.source, amount);
+                }
             },
         }
         let worker = &mut session.workforce.workers[index];
