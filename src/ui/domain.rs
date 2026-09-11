@@ -337,7 +337,11 @@ fn draw_stewardship_readout(
         18.0,
         11.0,
         0.0,
-        dark::TEXT_DIM,
+        if districts::route_coverage_needs_attention(ctx.session) {
+            dark::WARNING
+        } else {
+            dark::TEXT_DIM
+        },
     );
 
     let operational = alerts::collect(ctx.session, ctx.data);

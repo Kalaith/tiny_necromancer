@@ -411,7 +411,11 @@ fn draw_compact_domain_panel(
         18.0,
         11.0,
         0.0,
-        dark::TEXT_DIM,
+        if districts::route_coverage_needs_attention(ctx.session) {
+            dark::WARNING
+        } else {
+            dark::TEXT_DIM
+        },
     );
     let (clear_routes, total_routes) = super::super::world_feedback::route_counts(ctx);
     let patrol_coverage = crate::engine::jobs::patrol_coverage(ctx.session);

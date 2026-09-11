@@ -213,6 +213,15 @@ pub fn first_route_gap_worker(session: &GameSession, kind: ZoneKind) -> Option<u
         .map(|(index, _)| index)
 }
 
+pub fn route_coverage_needs_attention(session: &GameSession) -> bool {
+    [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
+        .into_iter()
+        .any(|kind| {
+            let coverage = service_coverage(session, kind);
+            coverage.reachable < coverage.needed()
+        })
+}
+
 pub fn staffing_needs_attention(session: &GameSession) -> bool {
     if !session.research.is_unlocked(Technology::DomainStewardship) {
         return false;

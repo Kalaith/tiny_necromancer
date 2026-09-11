@@ -212,6 +212,7 @@ fn service_coverage_separates_assignment_from_route_access() {
             reachable: 0,
         }
     );
+    assert!(route_coverage_needs_attention(&session));
 }
 
 #[test]
@@ -235,6 +236,7 @@ fn coverage_summary_ignores_extra_workers_when_naming_route_need() {
         compact_coverage_summary(&session),
         "Routes: W 0/0 · S 1/1 · P 0/0"
     );
+    assert!(!route_coverage_needs_attention(&session));
 }
 
 #[test]
