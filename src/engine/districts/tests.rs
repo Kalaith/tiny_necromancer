@@ -1,5 +1,5 @@
 use super::*;
-use crate::state::WorldState;
+use crate::state::{StewardshipPolicy, WorldState};
 
 #[test]
 fn district_rules_wait_for_domain_stewardship() {
@@ -148,6 +148,29 @@ fn staffing_gap_scales_with_marked_slots() {
     assert_eq!(operator_count(&session, ZoneKind::Work), 1);
     assert_eq!(staffing_gap(&session, ZoneKind::Work), 1);
     assert!(staffing_needs_attention(&session));
+}
+
+#[test]
+fn work_staffing_matches_workers_to_the_marked_role() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.stewardship_policy = StewardshipPolicy::Harvest;
+    let forest_tile = session.world.forest_tiles[2];
+    session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Work,
+        tiles: vec![forest_tile],
+    });
+    session.workforce.workers[0].assignment = JobKind::Dig;
+
+    assert_eq!(operator_count(&session, ZoneKind::Work), 0);
+    assert_eq!(staffing_gap(&session, ZoneKind::Work), 1);
+    assert!(policy_bias(&session, JobKind::Wood) < policy_bias(&session, JobKind::Dig));
+
+    session.workforce.workers[0].assignment = JobKind::Wood;
+
+    assert_eq!(operator_count(&session, ZoneKind::Work), 1);
+    assert_eq!(staffing_gap(&session, ZoneKind::Work), 0);
 }
 
 #[test]

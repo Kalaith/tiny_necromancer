@@ -2,7 +2,7 @@
 
 use crate::data::DistrictRules;
 use crate::state::{
-    DistrictActivity, DistrictActivityKind, GameSession, JobKind, Technology, ZoneKind,
+    DistrictActivity, DistrictActivityKind, GameSession, JobKind, PlotStatus, Technology, ZoneKind,
 };
 use macroquad_toolkit::grid::TilePos;
 
@@ -129,9 +129,16 @@ pub fn policy_bias(session: &GameSession, job: JobKind) -> usize {
         return baseline_bias;
     }
 
+    let work_staffing = work_staffing(session);
     let work_gap = staffing_gap(session, ZoneKind::Work) > 0;
     let storage_gap = staffing_gap(session, ZoneKind::Storage) > 0;
-    if work_gap && matches!(job, JobKind::Dig | JobKind::Wood) {
+    if work_staffing.dig_gap > 0 && job == JobKind::Dig {
+        return 0;
+    }
+    if work_staffing.wood_gap > 0 && job == JobKind::Wood {
+        return 0;
+    }
+    if work_staffing.flexible_gap > 0 && matches!(job, JobKind::Dig | JobKind::Wood) {
         return 0;
     }
     if storage_gap && job == JobKind::Haul {
@@ -343,16 +350,11 @@ pub fn marked_tile_count(session: &GameSession, kind: ZoneKind) -> usize {
 }
 
 pub fn operator_count(session: &GameSession, kind: ZoneKind) -> usize {
-    session
-        .workforce
-        .workers
-        .iter()
-        .filter(|worker| match kind {
-            ZoneKind::Work => matches!(worker.assignment, JobKind::Dig | JobKind::Wood),
-            ZoneKind::Storage => worker.assignment == JobKind::Haul,
-            ZoneKind::Patrol => worker.assignment == JobKind::Guard,
-        })
-        .count()
+    if kind == ZoneKind::Work && marked_tile_count(session, kind) > 0 {
+        work_staffing(session).staffed
+    } else {
+        assigned_operator_count(session, kind)
+    }
 }
 
 pub fn staffing_gap(session: &GameSession, kind: ZoneKind) -> usize {
@@ -373,6 +375,77 @@ fn rule_active(session: &GameSession, kind: ZoneKind) -> bool {
             .zones
             .iter()
             .any(|zone| zone.kind == kind && !zone.tiles.is_empty())
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct WorkStaffing {
+    staffed: usize,
+    dig_gap: usize,
+    wood_gap: usize,
+    flexible_gap: usize,
+}
+
+fn work_staffing(session: &GameSession) -> WorkStaffing {
+    let mut dig_slots = 0;
+    let mut wood_slots = 0;
+    let mut flexible_slots = 0;
+    for zone in session
+        .world
+        .zones
+        .iter()
+        .filter(|zone| zone.kind == ZoneKind::Work)
+    {
+        for tile in &zone.tiles {
+            if session.world.plots.iter().any(|plot| {
+                plot.position == *tile
+                    && matches!(plot.status, PlotStatus::Ready | PlotStatus::Digging)
+            }) {
+                dig_slots += 1;
+            } else if session.world.forest_tiles.contains(tile) {
+                wood_slots += 1;
+            } else {
+                flexible_slots += 1;
+            }
+        }
+    }
+
+    let dig_operators = job_operator_count(session, JobKind::Dig);
+    let wood_operators = job_operator_count(session, JobKind::Wood);
+    let staffed_dig = dig_slots.min(dig_operators);
+    let staffed_wood = wood_slots.min(wood_operators);
+    let flexible_operators = dig_operators
+        .saturating_sub(staffed_dig)
+        .saturating_add(wood_operators.saturating_sub(staffed_wood));
+    let staffed_flexible = flexible_slots.min(flexible_operators);
+
+    WorkStaffing {
+        staffed: staffed_dig + staffed_wood + staffed_flexible,
+        dig_gap: dig_slots.saturating_sub(staffed_dig),
+        wood_gap: wood_slots.saturating_sub(staffed_wood),
+        flexible_gap: flexible_slots.saturating_sub(staffed_flexible),
+    }
+}
+
+fn assigned_operator_count(session: &GameSession, kind: ZoneKind) -> usize {
+    session
+        .workforce
+        .workers
+        .iter()
+        .filter(|worker| match kind {
+            ZoneKind::Work => matches!(worker.assignment, JobKind::Dig | JobKind::Wood),
+            ZoneKind::Storage => worker.assignment == JobKind::Haul,
+            ZoneKind::Patrol => worker.assignment == JobKind::Guard,
+        })
+        .count()
+}
+
+fn job_operator_count(session: &GameSession, job: JobKind) -> usize {
+    session
+        .workforce
+        .workers
+        .iter()
+        .filter(|worker| worker.assignment == job)
+        .count()
 }
 
 #[cfg(test)]
