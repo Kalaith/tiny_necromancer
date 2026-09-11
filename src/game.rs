@@ -478,14 +478,16 @@ impl Game {
                 {
                     let policy = self.session.world.route_policies.cycle(kind);
                     self.session.add_feed(format!(
-                        "{} route policy: {}.",
+                        "{} route policy: {} · {}.",
                         kind.label(),
-                        policy.label()
+                        policy.label(),
+                        policy.description()
                     ));
                     self.notifications.info(format!(
-                        "{} routes now use {}.",
+                        "{} routes: {} · {}.",
                         kind.label(),
-                        policy.label()
+                        policy.label(),
+                        policy.description()
                     ));
                 }
             }

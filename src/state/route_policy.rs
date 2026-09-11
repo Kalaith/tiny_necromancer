@@ -20,6 +20,14 @@ impl RoutePolicy {
         }
     }
 
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::MarkedFirst => "marked tiles first, then the normal route",
+            Self::Nearest => "the nearest normal route, ignoring marks",
+            Self::MarkedOnly => "marked tiles only; wait without a marked route",
+        }
+    }
+
     pub fn next(self) -> Self {
         match self {
             Self::MarkedFirst => Self::Nearest,
