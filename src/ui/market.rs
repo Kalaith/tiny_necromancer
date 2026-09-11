@@ -370,7 +370,15 @@ pub(super) fn draw_compact_market_panel(
 
 fn trade_status_label(ctx: &UiContext<'_>, ready: bool) -> String {
     if ready {
-        "Offer ready · the broker leaves when the timer turns.".to_owned()
+        ctx.session.progress.market.contract.as_ref().map_or_else(
+            || "Offer ready · the broker leaves when the timer turns.".to_owned(),
+            |contract| {
+                format!(
+                    "Request active · fulfill before {:.0}s for bonus favor.",
+                    contract.remaining_seconds
+                )
+            },
+        )
     } else if ctx.session.phase != crate::state::GamePhase::Playing {
         "Resume the cemetery before making an exchange.".to_owned()
     } else {
