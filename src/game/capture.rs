@@ -40,6 +40,7 @@ impl Game {
             "work-gap" => self.prepare_capture_work_gap(),
             "work-overlap" => self.prepare_capture_work_overlap(),
             "work-locked" => self.prepare_capture_work_locked(),
+            "work-overlap-locked" => self.prepare_capture_work_overlap_locked(),
             "work-domain" => self.prepare_capture_work_domain(),
             "route-blocked" => self.prepare_capture_route_blocked(),
             "route-domain" => self.prepare_capture_route_domain(),
@@ -310,6 +311,14 @@ impl Game {
 
     fn prepare_capture_work_locked(&mut self) {
         self.prepare_capture_work_gap();
+        self.session
+            .research
+            .completed
+            .retain(|technology| *technology != Technology::DomainStewardship);
+    }
+
+    fn prepare_capture_work_overlap_locked(&mut self) {
+        self.prepare_capture_work_overlap();
         self.session
             .research
             .completed

@@ -151,6 +151,31 @@ fn marked_tile_summary_keeps_overlapping_district_marks_visible() {
 }
 
 #[test]
+fn locked_overlapping_tile_summary_avoids_repeated_unlock_copy() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let tile = session.world.plots[0].position;
+    session.world.zones = vec![
+        crate::state::Zone {
+            kind: ZoneKind::Work,
+            tiles: vec![tile],
+        },
+        crate::state::Zone {
+            kind: ZoneKind::Storage,
+            tiles: vec![tile],
+        },
+    ];
+
+    assert_eq!(
+        tile_summary(&session, &data.config.district_rules, tile),
+        Some(
+            "Work district + Storage district · Domain Stewardship will activate their local rules."
+                .to_owned()
+        )
+    );
+}
+
+#[test]
 fn empty_districts_keep_original_job_values() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

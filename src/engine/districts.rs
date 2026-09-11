@@ -75,6 +75,16 @@ pub fn tile_summary(
     }
 
     let domain_unlocked = session.research.is_unlocked(Technology::DomainStewardship);
+    if !domain_unlocked && kinds.len() > 1 {
+        let labels = kinds
+            .iter()
+            .map(|kind| format!("{} district", kind.label()))
+            .collect::<Vec<_>>();
+        return Some(format!(
+            "{} · Domain Stewardship will activate their local rules.",
+            labels.join(" + ")
+        ));
+    }
     let summaries = kinds
         .into_iter()
         .map(|kind| {

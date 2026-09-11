@@ -25,6 +25,7 @@ param(
         "work-gap",
         "work-overlap",
         "work-locked",
+        "work-overlap-locked",
         "work-domain",
         "route-blocked",
         "route-domain",
