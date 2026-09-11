@@ -27,7 +27,7 @@ pub(super) fn plan_haul(session: &GameSession, worker_index: usize) -> Option<Ha
 pub(super) fn destination_for_cargo(
     session: &mut GameSession,
     worker_index: usize,
-) -> Option<TilePos> {
+) -> Option<(TilePos, bool)> {
     let worker = session.workforce.workers.get(worker_index)?;
     let resource = worker.carrying_resource.unwrap_or(ResourceKind::Bones);
     let current_policy = targets::storage_route_policy(session, worker.id);
@@ -36,14 +36,14 @@ pub(super) fn destination_for_cargo(
             && plan.storage_policy == current_policy
             && navigation::plan_route(session, worker.position, plan.destination).is_ok()
         {
-            return Some(plan.destination);
+            return Some((plan.destination, false));
         }
     }
 
     let worker_id = worker.id;
     let worker_position = worker.position;
-    let previous_source = worker
-        .haul_plan
+    let previous_plan = worker.haul_plan;
+    let previous_source = previous_plan
         .map(|plan| plan.source)
         .unwrap_or(worker_position);
     let destination = targets::storage_destination_for(session, worker_position, worker_id);
@@ -57,5 +57,8 @@ pub(super) fn destination_for_cargo(
         destination,
         storage_policy: current_policy,
     });
-    Some(destination)
+    let replanned = previous_plan.is_none_or(|plan| {
+        plan.destination != destination || plan.storage_policy != current_policy
+    });
+    Some((destination, replanned))
 }

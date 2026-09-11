@@ -451,10 +451,26 @@ fn simulate_haul(
         worker.progress = 0.0;
         return;
     }
-    let Some(storage_position) = logistics::destination_for_cargo(session, index) else {
+    let Some((storage_position, replanned)) = logistics::destination_for_cargo(session, index)
+    else {
         session.workforce.workers[index].status = WorkerStatus::Idle;
         return;
     };
+    if replanned {
+        let worker = &session.workforce.workers[index];
+        let resource = match worker.carrying_resource.unwrap_or(ResourceKind::Bones) {
+            ResourceKind::Bones => "bones",
+            ResourceKind::Wood => "wood",
+        };
+        let policy = worker
+            .haul_plan
+            .map(|plan| plan.storage_policy.label())
+            .unwrap_or("current");
+        messages.push(format!(
+            "{} replanned its {} bundle for {} Storage.",
+            worker.name, resource, policy
+        ));
+    }
     if move_worker_to(session, index, storage_position) != WorkerMoveResult::Arrived {
         return;
     }

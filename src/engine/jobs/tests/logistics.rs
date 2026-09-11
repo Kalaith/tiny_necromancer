@@ -97,3 +97,29 @@ fn changed_storage_policy_replans_a_carried_bundle_without_dropping_it() {
     assert_eq!(plan.destination, WorldState::stockpile_position());
     assert_eq!(plan.storage_policy, RoutePolicy::Nearest);
 }
+
+#[test]
+fn storage_policy_replan_emits_one_delivery_notice() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![TilePos::new(5, 1)],
+    });
+    session.economy.loose_bones = 8;
+    session.economy.loose_bones_source = Some(session.world.plots[0].position);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].position = session.world.plots[0].position;
+
+    simulate(&mut session, &data, 0.0);
+    session.world.route_policies.storage = RoutePolicy::Nearest;
+    let messages = simulate(&mut session, &data, 0.0);
+
+    assert_eq!(
+        messages,
+        vec!["Rattlebones replanned its bones bundle for Nearest Storage.".to_owned()]
+    );
+    assert!(simulate(&mut session, &data, 0.0).is_empty());
+}
