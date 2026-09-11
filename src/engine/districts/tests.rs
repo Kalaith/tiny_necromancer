@@ -215,6 +215,29 @@ fn service_coverage_separates_assignment_from_route_access() {
 }
 
 #[test]
+fn coverage_summary_ignores_extra_workers_when_naming_route_need() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Storage,
+        tiles: vec![WorldState::stockpile_position()],
+    });
+    for worker in &mut session.workforce.workers {
+        worker.assignment = JobKind::Haul;
+    }
+
+    assert_eq!(
+        coverage_summary(&session),
+        "Route coverage (reachable/needed): Work 0/0 · Storage 1/1 · Patrol 0/0"
+    );
+    assert_eq!(
+        compact_coverage_summary(&session),
+        "Routes: W 0/0 · S 1/1 · P 0/0"
+    );
+}
+
+#[test]
 fn marked_tile_summary_explains_the_local_domain_rule() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

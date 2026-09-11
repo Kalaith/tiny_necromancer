@@ -120,6 +120,12 @@ pub struct DistrictCoverage {
     pub reachable: usize,
 }
 
+impl DistrictCoverage {
+    pub fn needed(self) -> usize {
+        self.marked.min(self.assigned)
+    }
+}
+
 pub fn service_coverage(session: &GameSession, kind: ZoneKind) -> DistrictCoverage {
     let targets = district_tiles(session, kind);
     if targets.is_empty() {
@@ -157,13 +163,13 @@ pub fn coverage_summary(session: &GameSession) -> String {
     let storage = service_coverage(session, ZoneKind::Storage);
     let patrol = service_coverage(session, ZoneKind::Patrol);
     format!(
-        "Route coverage (reachable/assigned): Work {}/{} · Storage {}/{} · Patrol {}/{}",
+        "Route coverage (reachable/needed): Work {}/{} · Storage {}/{} · Patrol {}/{}",
         work.reachable,
-        work.assigned,
+        work.needed(),
         storage.reachable,
-        storage.assigned,
+        storage.needed(),
         patrol.reachable,
-        patrol.assigned
+        patrol.needed()
     )
 }
 
@@ -174,11 +180,11 @@ pub fn compact_coverage_summary(session: &GameSession) -> String {
     format!(
         "Routes: W {}/{} · S {}/{} · P {}/{}",
         work.reachable,
-        work.assigned,
+        work.needed(),
         storage.reachable,
-        storage.assigned,
+        storage.needed(),
         patrol.reachable,
-        patrol.assigned
+        patrol.needed()
     )
 }
 
