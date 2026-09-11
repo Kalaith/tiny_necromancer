@@ -148,13 +148,20 @@ fn draw_worker(
     let Some(worker) = ctx.session.workforce.workers.get(index) else {
         return;
     };
+    let route_gap_hint = crate::engine::districts::route_gap_district(ctx.session, index)
+        .map_or_else(String::new, |kind| format!(" · {} route gap", kind.label()));
     draw_text_block(
-        &format!("{} · {}", worker.name, worker.assignment.label()),
+        &format!(
+            "{} · {}{}",
+            worker.name,
+            worker.assignment.label(),
+            route_gap_hint
+        ),
         sheet.x + 16.0,
         sheet.y + 84.0,
         sheet.w - 32.0,
         22.0,
-        16.0,
+        14.0,
         0.0,
         dark::TEXT_BRIGHT,
     );

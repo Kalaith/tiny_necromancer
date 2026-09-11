@@ -213,6 +213,8 @@ fn service_coverage_separates_assignment_from_route_access() {
         }
     );
     assert!(route_coverage_needs_attention(&session));
+    assert_eq!(route_gap_district(&session, 0), Some(ZoneKind::Storage));
+    assert_eq!(route_gap_district(&session, 99), None);
 }
 
 #[test]

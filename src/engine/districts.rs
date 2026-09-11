@@ -222,6 +222,15 @@ pub fn route_coverage_needs_attention(session: &GameSession) -> bool {
         })
 }
 
+pub fn route_gap_district(session: &GameSession, worker_index: usize) -> Option<ZoneKind> {
+    if worker_index >= session.workforce.workers.len() {
+        return None;
+    }
+    [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
+        .into_iter()
+        .find(|kind| first_route_gap_worker(session, *kind) == Some(worker_index))
+}
+
 pub fn staffing_needs_attention(session: &GameSession) -> bool {
     if !session.research.is_unlocked(Technology::DomainStewardship) {
         return false;
