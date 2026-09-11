@@ -123,3 +123,72 @@ fn storage_policy_replan_emits_one_delivery_notice() {
     );
     assert!(simulate(&mut session, &data, 0.0).is_empty());
 }
+
+#[test]
+fn hauler_commits_a_drop_before_reaching_the_source() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let source = session.world.plots[0].position;
+    let drop = TilePos::new(5, 1);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![drop],
+    });
+    session.economy.loose_bones = 8;
+    session.economy.loose_bones_source = Some(source);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = WorldState::stockpile_position();
+
+    simulate(&mut session, &data, 0.0);
+
+    let worker = &session.workforce.workers[0];
+    let plan = worker
+        .haul_plan
+        .expect("the source walk should carry a committed plan");
+    assert_eq!(worker.carrying, 0);
+    assert_eq!(plan.source, source);
+    assert_eq!(plan.destination, drop);
+    assert_eq!(destination_for_worker(&session, worker), Some(source));
+}
+
+#[test]
+fn pending_haul_plans_reserve_distinct_marked_storage_drops() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_drop = TilePos::new(5, 1);
+    let second_drop = TilePos::new(6, 5);
+    let source = session.world.plots[0].position;
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![first_drop, second_drop],
+    });
+    session.economy.loose_bones = 16;
+    session.economy.loose_bones_source = Some(source);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = WorldState::stockpile_position();
+    let mut second_worker = session.workforce.workers[0].clone();
+    second_worker.id = session.workforce.next_worker_id;
+    second_worker.position = source;
+    session.workforce.next_worker_id += 1;
+    session.workforce.workers.push(second_worker);
+
+    simulate(&mut session, &data, 0.0);
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(
+        session.workforce.workers[0]
+            .haul_plan
+            .expect("first worker should reserve a drop")
+            .destination,
+        first_drop
+    );
+    assert_eq!(
+        session.workforce.workers[1]
+            .haul_plan
+            .expect("second worker should reserve another drop")
+            .destination,
+        second_drop
+    );
+}

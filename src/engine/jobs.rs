@@ -415,6 +415,7 @@ fn simulate_haul(
             session.workforce.workers[index].haul_plan = None;
             return;
         };
+        session.workforce.workers[index].haul_plan = Some(plan);
         if move_worker_to(session, index, plan.source) != WorkerMoveResult::Arrived {
             return;
         }

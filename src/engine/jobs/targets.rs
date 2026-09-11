@@ -17,6 +17,12 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
                     .haul_plan
                     .map(|plan| plan.destination)
                     .or_else(|| storage_destination(session, worker.position, worker.id))
+            } else if let Some(plan) = worker.haul_plan {
+                let available = match plan.resource {
+                    crate::state::ResourceKind::Bones => session.economy.loose_bones,
+                    crate::state::ResourceKind::Wood => session.economy.loose_wood,
+                };
+                (available > 0).then_some(plan.source)
             } else if session.economy.loose_bones > 0 {
                 let dug = session
                     .world
@@ -254,10 +260,15 @@ fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -
         .filter(|worker| {
             worker.assignment == JobKind::Haul
                 && worker.id != worker_id
-                && worker.carrying > 0
+                && (worker.carrying > 0 || worker.haul_plan.is_some())
                 && storage_slot(session, worker.id) < current_slot
         })
-        .filter_map(|worker| storage_destination(session, worker.position, worker.id))
+        .filter_map(|worker| {
+            worker
+                .haul_plan
+                .map(|plan| plan.destination)
+                .or_else(|| storage_destination(session, worker.position, worker.id))
+        })
         .collect::<Vec<_>>();
     if !occupied.contains(&preferred) && navigation::plan_route(session, origin, preferred).is_ok()
     {
@@ -301,7 +312,9 @@ fn storage_slot(session: &GameSession, worker_id: u32) -> usize {
     session.workforce.workers[..=worker_index]
         .iter()
         .filter(|worker| {
-            worker.id == worker_id || (worker.assignment == JobKind::Haul && worker.carrying > 0)
+            worker.id == worker_id
+                || (worker.assignment == JobKind::Haul
+                    && (worker.carrying > 0 || worker.haul_plan.is_some()))
         })
         .count()
         .saturating_sub(1)

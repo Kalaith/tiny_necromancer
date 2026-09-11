@@ -14,6 +14,15 @@ pub(super) fn plan_haul(session: &GameSession, worker_index: usize) -> Option<Ha
     } else {
         return None;
     };
+    if let Some(plan) = worker.haul_plan {
+        if plan.resource == resource
+            && plan.storage_policy == targets::storage_route_policy(session, worker.id)
+            && navigation::plan_route(session, worker.position, plan.source).is_ok()
+            && navigation::plan_route(session, plan.source, plan.destination).is_ok()
+        {
+            return Some(plan);
+        }
+    }
     let source = destination_for_worker(session, worker)?;
     let destination = targets::storage_destination_for(session, source, worker.id)?;
     Some(HaulPlan {
