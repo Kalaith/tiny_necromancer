@@ -447,6 +447,32 @@ fn storage_routing_aggregates_tiles_from_multiple_marked_districts() {
 }
 
 #[test]
+fn marked_storage_slots_split_two_haulers_across_drop_points() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_storage = macroquad_toolkit::grid::TilePos::new(5, 1);
+    let second_storage = macroquad_toolkit::grid::TilePos::new(6, 5);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![first_storage, second_storage],
+    });
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].carrying = 1;
+    session.workforce.workers[0].position = first_storage;
+    let mut second_worker = session.workforce.workers[0].clone();
+    second_worker.id = session.workforce.next_worker_id;
+    second_worker.position = first_storage;
+    session.workforce.next_worker_id += 1;
+    session.workforce.workers.push(second_worker);
+
+    let first_destination = destination_for_worker(&session, &session.workforce.workers[0]);
+    let second_destination = destination_for_worker(&session, &session.workforce.workers[1]);
+
+    assert_eq!(first_destination, Some(first_storage));
+    assert_eq!(second_destination, Some(second_storage));
+}
+
+#[test]
 fn idle_dig_preview_uses_a_reachable_grave() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

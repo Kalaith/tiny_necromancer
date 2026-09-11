@@ -38,6 +38,7 @@ impl Game {
             "domain" => self.prepare_capture_domain(),
             "harvest-domain" => self.prepare_capture_harvest_domain(),
             "storage-domain" => self.prepare_capture_storage_domain(),
+            "storage-slots" => self.prepare_capture_storage_slots(),
             "patrol-gap" => self.prepare_capture_patrol_gap(),
             "work-gap" => self.prepare_capture_work_gap(),
             "work-overlap" => self.prepare_capture_work_overlap(),
@@ -293,6 +294,33 @@ impl Game {
             worker.status = WorkerStatus::Idle;
         }
         self.session.world.selected = Some(Selection::Ground(TilePos::new(6, 5)));
+    }
+
+    fn prepare_capture_storage_slots(&mut self) {
+        self.prepare_capture_colony();
+        self.panel = Panel::Domain;
+        self.zone_mode = None;
+        self.domain_overlays.routes = true;
+        self.session.pressure.suspicion = 0.0;
+        self.session.pressure.stage = SuspicionStage::Calm;
+        self.session.world.zones = vec![Zone {
+            kind: ZoneKind::Storage,
+            tiles: vec![TilePos::new(5, 1), TilePos::new(6, 5)],
+        }];
+        for worker in &mut self.session.workforce.workers {
+            worker.assignment = JobKind::Refine;
+            worker.status = WorkerStatus::Idle;
+            worker.carrying = 0;
+        }
+        for (index, position) in [(0, TilePos::new(2, 2)), (1, TilePos::new(7, 6))] {
+            if let Some(worker) = self.session.workforce.workers.get_mut(index) {
+                worker.assignment = JobKind::Haul;
+                worker.status = WorkerStatus::Carrying;
+                worker.carrying = 4;
+                worker.position = position;
+            }
+        }
+        self.session.world.selected = Some(Selection::Worker(0));
     }
 
     fn prepare_capture_patrol_gap(&mut self) {

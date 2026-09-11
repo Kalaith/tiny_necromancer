@@ -362,7 +362,7 @@ fn simulate_haul(
         let storage_bonus = districts::haul_capacity_bonus(
             session,
             &data.config.district_rules,
-            targets::storage_destination_for(session, source),
+            targets::storage_destination_for(session, source, session.workforce.workers[index].id),
         );
         let capacity = base_capacity + storage_bonus;
         let amount = match resource {

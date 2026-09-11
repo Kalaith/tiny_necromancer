@@ -12,7 +12,7 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
         JobKind::Dig => dig_destination(session, worker),
         JobKind::Haul => {
             if worker.carrying > 0 {
-                Some(storage_destination(session, worker.position))
+                Some(storage_destination(session, worker.position, worker.id))
             } else if session.economy.loose_bones > 0 {
                 let dug = session
                     .world
@@ -204,19 +204,61 @@ fn structure_destination(
     nearest_reachable_or_nearest(session, origin, candidates)
 }
 
-fn storage_destination(session: &GameSession, origin: TilePos) -> TilePos {
+fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> TilePos {
     let fallback = session.world.storage_position();
-    let candidates = zone_tiles(session, ZoneKind::Storage);
+    let candidates = unique_tiles(zone_tiles(session, ZoneKind::Storage));
     let candidates = if candidates.is_empty() {
         vec![fallback]
     } else {
         candidates
     };
-    nearest_reachable_or_nearest(session, origin, candidates).unwrap_or(fallback)
+    let current_slot = storage_slot(session, worker_id);
+    let preferred = if current_slot == 0 {
+        nearest_reachable_or_nearest(session, origin, candidates.clone()).unwrap_or(fallback)
+    } else {
+        candidates[current_slot % candidates.len()]
+    };
+    let occupied = session
+        .workforce
+        .workers
+        .iter()
+        .filter(|worker| {
+            worker.assignment == JobKind::Haul
+                && worker.id != worker_id
+                && storage_slot(session, worker.id) < current_slot
+        })
+        .map(|worker| storage_destination(session, worker.position, worker.id))
+        .collect::<Vec<_>>();
+    if !occupied.contains(&preferred) && navigation::plan_route(session, origin, preferred).is_ok()
+    {
+        return preferred;
+    }
+    let unoccupied = candidates
+        .iter()
+        .copied()
+        .filter(|candidate| !occupied.contains(candidate))
+        .collect::<Vec<_>>();
+    nearest_reachable_or_nearest(session, origin, unoccupied)
+        .or_else(|| nearest_reachable_or_nearest(session, origin, candidates.clone()))
+        .unwrap_or(fallback)
 }
 
-pub(super) fn storage_destination_for(session: &GameSession, origin: TilePos) -> TilePos {
-    storage_destination(session, origin)
+pub(super) fn storage_destination_for(
+    session: &GameSession,
+    origin: TilePos,
+    worker_id: u32,
+) -> TilePos {
+    storage_destination(session, origin, worker_id)
+}
+
+fn storage_slot(session: &GameSession, worker_id: u32) -> usize {
+    session
+        .workforce
+        .workers
+        .iter()
+        .filter(|worker| worker.assignment == JobKind::Haul)
+        .position(|worker| worker.id == worker_id)
+        .unwrap_or(worker_id as usize)
 }
 
 fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> TilePos {

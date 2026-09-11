@@ -23,6 +23,7 @@ param(
         "domain",
         "harvest-domain",
         "storage-domain",
+        "storage-slots",
         "patrol-gap",
         "work-gap",
         "work-overlap",

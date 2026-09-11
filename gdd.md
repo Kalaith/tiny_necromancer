@@ -75,10 +75,11 @@ in `undead.json`.
 
 Painted Work areas guide digging and wood gathering toward the nearest eligible
 grave or forest tile, Storage areas choose the hauler's drop points, and Patrol
-areas choose the nearest guard post. Haulers use the
-nearest marked Storage tile from their current position, which keeps larger
-stockpile districts practical. An empty area keeps the original fallback
-target so marking a zone is never required to continue a job. Tapping a marked
+areas choose the nearest guard post. Each marked district tile is a concurrent
+service slot: Haulers choose distinct marked drop points in roster order when
+routes permit, while the first hauler keeps the nearest reachable behavior that
+works for a small stockpile. An empty area keeps the original fallback target so
+marking a zone is never required to continue a job. Tapping a marked
 tile clears it, so an accidental mark can be corrected without restarting the
 colony. The Orders board exposes every repeat duty, its active automated worker
 count, and touch-sized Up/Down controls. Older saves retain their authored
