@@ -64,21 +64,35 @@ pub(super) fn draw_domain_panel(
 }
 
 fn draw_summary_cards(ctx: &UiContext<'_>, rect: Rect) {
+    let district_detail = if ctx
+        .session
+        .progress
+        .district_ledger
+        .recent_activity
+        .is_empty()
+    {
+        "marked tiles".to_owned()
+    } else {
+        format!(
+            "tiles · {} effects",
+            ctx.session.progress.district_ledger.recent_activity.len()
+        )
+    };
     let cards = [
         (
             "UNDEAD",
             ctx.session.active_undead().to_string(),
-            "bound workers",
+            "bound workers".to_owned(),
         ),
         (
             "DISTRICT 01",
             zone_tile_count(ctx).to_string(),
-            "marked tiles",
+            district_detail,
         ),
         (
             "WARD CHARGES",
             ctx.session.economy.ward_charges.to_string(),
-            "ready to spend",
+            "ready to spend".to_owned(),
         ),
     ];
     for (index, (label, value, detail)) in cards.into_iter().enumerate() {
@@ -114,7 +128,7 @@ fn draw_summary_cards(ctx: &UiContext<'_>, rect: Rect) {
             dark::TEXT_BRIGHT,
         );
         draw_text_block(
-            detail,
+            &detail,
             card.x + 78.0,
             card.y + 34.0,
             card.w - 90.0,
