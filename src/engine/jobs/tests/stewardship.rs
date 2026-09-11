@@ -219,3 +219,35 @@ fn automated_worker_falls_back_from_a_blocked_marked_forest() {
 
     assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
 }
+
+#[test]
+fn automated_worker_keeps_its_duty_when_every_route_is_blocked() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.progress.unlocked_plots = data.config.victory_plots;
+    for plot in &mut session.world.plots {
+        plot.status = crate::state::PlotStatus::Locked;
+    }
+    session.economy.wood = data.config.worker_wood_reserve;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Wood;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.forest_tiles[0]],
+    });
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: TilePos::new(1, y),
+            width: 1,
+            height: 1,
+        });
+    }
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Wood);
+}

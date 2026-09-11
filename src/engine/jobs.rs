@@ -318,7 +318,7 @@ fn choose_priority(session: &GameSession, data: &GameData, worker_index: usize) 
     available_jobs
         .into_iter()
         .min_by_key(|job| districts::policy_bias(session, *job))
-        .unwrap_or(JobKind::Guard)
+        .unwrap_or(session.workforce.workers[worker_index].assignment)
 }
 
 fn has_reachable_destination(session: &GameSession, worker_index: usize, job: JobKind) -> bool {
