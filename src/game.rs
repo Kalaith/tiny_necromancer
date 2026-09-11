@@ -444,20 +444,32 @@ impl Game {
             UiAction::ExecuteTrade => {
                 let offer = trade::current_offer(&self.session);
                 let previous_standing = self.session.progress.market.standing_label();
+                let contract_bonus = self
+                    .session
+                    .progress
+                    .market
+                    .contract
+                    .as_ref()
+                    .map(|contract| contract.bonus_favor);
                 let result = trade::execute_trade(&mut self.session, &self.data);
                 match result {
                     Ok(()) => {
                         let current_standing = self.session.progress.market.standing_label();
-                        if current_standing != previous_standing {
-                            self.notifications.success(format!(
-                                "Exchange complete: {} for {}. Standing: {}.",
-                                offer.cost, offer.reward, current_standing
-                            ));
+                        let receipt = if let Some(bonus) = contract_bonus {
+                            format!(
+                                "Request fulfilled: {} for {} · +{} favor.",
+                                offer.cost,
+                                offer.reward,
+                                1 + bonus
+                            )
                         } else {
-                            self.notifications.success(format!(
-                                "Exchange complete: {} for {}.",
-                                offer.cost, offer.reward
-                            ));
+                            format!("Exchange complete: {} for {}.", offer.cost, offer.reward)
+                        };
+                        if current_standing != previous_standing {
+                            self.notifications
+                                .success(format!("{receipt} Standing: {current_standing}."));
+                        } else {
+                            self.notifications.success(receipt);
                         }
                     }
                     Err(error) => self.notifications.warning(error),
