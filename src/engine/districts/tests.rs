@@ -103,13 +103,14 @@ fn operations_summary_names_staffing_by_district() {
 
     assert_eq!(
         operations_summary(&session),
-        "Staffing (workers/marks): Work 1/1 · Storage 0/0 · Patrol 0/1 post · Needs staff."
+        "Staffing (workers/marks): Work 1/1 · Storage 0/0 · Patrol 0/1 post · Needs staff (1 slot)."
     );
     assert_eq!(
         compact_operations_summary(&session),
-        "Staffing: W 1/1 · S 0/0 · P 0/1 posts · GAP"
+        "Staffing: W 1/1 · S 0/0 · P 0/1 posts · GAP 1"
     );
     assert!(staffing_needs_attention(&session));
+    assert_eq!(total_staffing_gap(&session), 1);
     let fresh_session = GameSession::new(&data.config);
     assert!(!staffing_needs_attention(&fresh_session));
     assert_eq!(

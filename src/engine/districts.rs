@@ -71,10 +71,14 @@ pub fn operations_summary(session: &GameSession) -> String {
     let storage_operators = operator_count(session, ZoneKind::Storage);
     let patrol_operators = operator_count(session, ZoneKind::Patrol);
 
-    let suffix = if staffing_needs_attention(session) {
-        " · Needs staff."
+    let total_gap = total_staffing_gap(session);
+    let suffix = if total_gap > 0 {
+        format!(
+            " · Needs staff ({total_gap} slot{}).",
+            if total_gap == 1 { "" } else { "s" }
+        )
     } else {
-        " · Ready."
+        " · Ready.".to_owned()
     };
     format!(
         "Staffing (workers/marks): Work {}/{} · Storage {}/{} · Patrol {}/{} post{}{}",
@@ -90,10 +94,11 @@ pub fn operations_summary(session: &GameSession) -> String {
 }
 
 pub fn compact_operations_summary(session: &GameSession) -> String {
-    let suffix = if staffing_needs_attention(session) {
-        " · GAP"
+    let total_gap = total_staffing_gap(session);
+    let suffix = if total_gap > 0 {
+        format!(" · GAP {total_gap}")
     } else {
-        " · OK"
+        " · OK".to_owned()
     };
     format!(
         "Staffing: W {}/{} · S {}/{} · P {}/{} posts{}",
@@ -352,6 +357,13 @@ pub fn operator_count(session: &GameSession, kind: ZoneKind) -> usize {
 
 pub fn staffing_gap(session: &GameSession, kind: ZoneKind) -> usize {
     marked_tile_count(session, kind).saturating_sub(operator_count(session, kind))
+}
+
+pub fn total_staffing_gap(session: &GameSession) -> usize {
+    [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
+        .into_iter()
+        .map(|kind| staffing_gap(session, kind))
+        .sum()
 }
 
 fn rule_active(session: &GameSession, kind: ZoneKind) -> bool {
