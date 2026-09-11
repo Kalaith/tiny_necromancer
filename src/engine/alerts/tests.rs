@@ -177,7 +177,10 @@ fn idle_work_district_points_to_a_marked_grave() {
         .expect("idle work district should be reported");
 
     assert_eq!(alert.severity, AlertSeverity::Info);
-    assert_eq!(alert.detail, "Marked Work has a ready grave · assign Dig.");
+    assert_eq!(
+        alert.detail,
+        "0/1 marked Work tiles staffed · Marked Work has a ready grave · assign Dig."
+    );
     assert_eq!(alert.target, Some(Selection::Grave(0)));
 }
 
@@ -203,7 +206,7 @@ fn idle_work_district_points_to_a_marked_forest_tile() {
 
     assert_eq!(
         alert.detail,
-        "Marked Work reaches the forest edge · assign Wood."
+        "0/1 marked Work tiles staffed · Marked Work reaches the forest edge · assign Wood."
     );
     assert_eq!(alert.target, Some(Selection::Ground(forest_tile)));
 }
@@ -222,6 +225,47 @@ fn assigned_dig_operator_clears_the_work_district_alert() {
     assert!(!collect(&session, &data)
         .iter()
         .any(|alert| alert.title == "Work district idle"));
+}
+
+#[test]
+fn understaffed_storage_district_points_to_a_marked_drop_point() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    let storage_tile = crate::state::WorldState::stockpile_position();
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![storage_tile],
+    });
+    session.economy.loose_bones = 8;
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Storage district idle")
+        .expect("understaffed storage should be reported");
+
+    assert_eq!(
+        alert.detail,
+        "0/1 marked Storage tiles staffed · loose material is waiting · assign Haul."
+    );
+    assert_eq!(alert.target, Some(Selection::Ground(storage_tile)));
+}
+
+#[test]
+fn assigned_hauler_clears_the_storage_district_alert() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![crate::state::WorldState::stockpile_position()],
+    });
+    session.economy.loose_bones = 8;
+    session.workforce.workers[0].assignment = JobKind::Haul;
+
+    assert!(!collect(&session, &data)
+        .iter()
+        .any(|alert| alert.title == "Storage district idle"));
 }
 
 #[test]

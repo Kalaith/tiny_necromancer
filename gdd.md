@@ -98,8 +98,9 @@ the player taps a choice.
 Operational alerts are derived from the same session state: unattended
 construction, loaded production without a Refine worker, loose materials
 without a Haul order, open graves without a Dig order, questioning-level
-road pressure, and idle marked Work districts with an available grave or
-forest tile but no Dig or Wood operator. Each alert is a touch target that
+road pressure, and underfilled marked Work districts with an available grave or
+forest tile but no matching Dig or Wood operator. Marked Storage districts with
+loose material and an unfilled Haul slot also receive an actionable alert. Each alert is a touch target that
 selects its source so the player can move from diagnosis to an order without
 searching the map. The district advisory stays quiet until Domain Stewardship
 is unlocked and points to the first usable marked work tile.
@@ -144,9 +145,10 @@ with their measured contribution and elapsed time, so the Field Notes archive
 can show a compact chronology alongside the totals. Older saves receive an
 empty activity trail without losing their existing ledger values.
 The Domain readout also reports current staffing by district: Work operators,
-Storage haulers, and Patrol guards compared with the number of marked patrol
-posts, with each ratio showing assigned workers against marked tiles or posts,
-so a player can see coverage pressure before opening a separate board.
+Storage haulers, and Patrol guards compared with the number of marked tiles or
+posts. Each marked tile is a concurrent staffing slot, so an underfilled
+district stays visible until its demand is met; a player can see coverage
+pressure before opening a separate board.
 
 ### 5.4 Determinism and saves
 
@@ -166,9 +168,9 @@ building types, four research technologies, three corpse qualities, and three
 zone types. A single sprite sheet supplies the necromancer, worker, and
 building silhouettes; missing textures fall back to an obvious placeholder.
 
-The kiln's first specialized production loop is playable, while district
-policy, larger populations, trade, farms, housing, and additional biomes remain
-deliberately deferred from the current victory slice.
+The kiln's first specialized production loop is playable, while larger
+populations, trade, farms, housing, and additional biomes remain deliberately
+deferred from the current victory slice.
 
 The Ossuary Kiln loads one ward-charge cycle at a time and accepts up to three
 reserved follow-up cycles. Reserved materials are removed when the cycle is
@@ -223,8 +225,9 @@ located from the readout, while **Quiet ward** remains a visible response when
 charges and suspicion make it applicable. A touch-sized policy control cycles
 between Balanced, Secure, and Harvest and states each policy's effect.
 The readout pairs its rule and ledger lines with a compact staffing summary for
-Work, Storage, and Patrol, keeping district needs visible beside the policy and
-pressure controls.
+Work, Storage, and Patrol, keeping each district's current demand visible beside
+the policy and pressure controls. Underfilled Storage becomes a locateable
+**Staff storage** action when loose material is waiting.
 
 ## 8. Toolkit mapping
 
@@ -248,9 +251,10 @@ Storage, and Patrol zones choose nearby destinations, actors interpolate between
 simulation tiles, and procedural animation makes digging, hauling, gathering,
 construction, guarding, refining, walking, and ritual focus readable. Domain
 Stewardship now surfaces a compact district overview, actionable operational
-alerts, toggleable zone, route, and pressure overlays, and small bonuses for
-marked district rules. Responsive layouts now preserve those interactions at
-smaller viewport sizes with a reduced world area and touch-sized bottom sheet.
+alerts, toggleable zone, route, and pressure overlays, capacity-aware staffing
+demand, and small bonuses for marked district rules. Responsive layouts now
+preserve those interactions at smaller viewport sizes with a reduced world area
+and touch-sized bottom sheet.
 
 The detailed presentation decisions and review checklist live in
 `docs/visual-direction-and-ui-plan.md`.

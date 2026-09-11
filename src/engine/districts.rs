@@ -113,7 +113,7 @@ pub fn staffing_needs_attention(session: &GameSession) -> bool {
     }
     [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
         .into_iter()
-        .any(|kind| marked_tile_count(session, kind) > 0 && operator_count(session, kind) == 0)
+        .any(|kind| staffing_gap(session, kind) > 0)
 }
 
 pub fn policy_bias(session: &GameSession, job: JobKind) -> usize {
@@ -124,10 +124,8 @@ pub fn policy_bias(session: &GameSession, job: JobKind) -> usize {
         return baseline_bias;
     }
 
-    let work_gap = marked_tile_count(session, ZoneKind::Work) > 0
-        && operator_count(session, ZoneKind::Work) == 0;
-    let storage_gap = marked_tile_count(session, ZoneKind::Storage) > 0
-        && operator_count(session, ZoneKind::Storage) == 0;
+    let work_gap = staffing_gap(session, ZoneKind::Work) > 0;
+    let storage_gap = staffing_gap(session, ZoneKind::Storage) > 0;
     if work_gap && matches!(job, JobKind::Dig | JobKind::Wood) {
         return 0;
     }
@@ -329,7 +327,7 @@ fn activity_label(entry: &DistrictActivity) -> String {
     }
 }
 
-fn marked_tile_count(session: &GameSession, kind: ZoneKind) -> usize {
+pub fn marked_tile_count(session: &GameSession, kind: ZoneKind) -> usize {
     session
         .world
         .zones
@@ -339,7 +337,7 @@ fn marked_tile_count(session: &GameSession, kind: ZoneKind) -> usize {
         .sum()
 }
 
-fn operator_count(session: &GameSession, kind: ZoneKind) -> usize {
+pub fn operator_count(session: &GameSession, kind: ZoneKind) -> usize {
     session
         .workforce
         .workers
@@ -350,6 +348,10 @@ fn operator_count(session: &GameSession, kind: ZoneKind) -> usize {
             ZoneKind::Patrol => worker.assignment == JobKind::Guard,
         })
         .count()
+}
+
+pub fn staffing_gap(session: &GameSession, kind: ZoneKind) -> usize {
+    marked_tile_count(session, kind).saturating_sub(operator_count(session, kind))
 }
 
 fn rule_active(session: &GameSession, kind: ZoneKind) -> bool {

@@ -1,8 +1,8 @@
 //! Derived operational alerts that point the player toward real blockers.
 
 use crate::data::{GameData, SuspicionStage};
-use crate::engine::{jobs, navigation};
-use crate::state::{GameSession, JobKind, PlotStatus, Selection, Technology};
+use crate::engine::{districts, jobs, navigation};
+use crate::state::{GameSession, JobKind, PlotStatus, Selection, Technology, ZoneKind};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AlertSeverity {
@@ -44,6 +44,7 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
     collect_route_alert(session, &mut alerts);
     collect_patrol_coverage_alert(session, &mut alerts);
     collect_work_district_alert(session, &mut alerts);
+    collect_storage_district_alert(session, &mut alerts);
     collect_construction_alert(session, &mut alerts);
     collect_production_alert(session, &mut alerts);
     collect_material_alert(session, &mut alerts);
@@ -129,6 +130,7 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
     if !has_work_zone {
         return;
     }
+    let staffing_gap = districts::staffing_gap(session, ZoneKind::Work);
     let has_dig_operator = session
         .workforce
         .workers
@@ -163,7 +165,7 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
         })
         .copied()
         .map(Selection::Ground);
-    let target = if !has_dig_operator {
+    let role_target = if !has_dig_operator {
         grave_target
     } else {
         None
@@ -175,18 +177,70 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
             None
         }
     });
+    let target = role_target.or(if staffing_gap > 0 {
+        grave_target.or(forest_target)
+    } else {
+        None
+    });
     let Some(target) = target else {
         return;
     };
+    let staffing = if staffing_gap > 0 {
+        format!(
+            "{}/{} marked Work tiles staffed · ",
+            districts::operator_count(session, ZoneKind::Work),
+            districts::marked_tile_count(session, ZoneKind::Work)
+        )
+    } else {
+        String::new()
+    };
     let detail = match target {
-        Selection::Grave(_) => "Marked Work has a ready grave · assign Dig.",
-        Selection::Ground(_) => "Marked Work reaches the forest edge · assign Wood.",
-        _ => "Marked Work tiles have available labour · assign Dig or Wood.",
+        Selection::Grave(_) => format!("{staffing}Marked Work has a ready grave · assign Dig."),
+        Selection::Ground(_) => {
+            format!("{staffing}Marked Work reaches the forest edge · assign Wood.")
+        }
+        _ => format!("{staffing}Marked Work tiles have available labour · assign Dig or Wood."),
     };
     alerts.push(OperationalAlert::new(
         AlertSeverity::Info,
         "Work district idle",
         detail,
+        Some(target),
+    ));
+}
+
+fn collect_storage_district_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
+    if !session.research.is_unlocked(Technology::DomainStewardship)
+        || districts::staffing_gap(session, ZoneKind::Storage) == 0
+        || (session.economy.loose_bones <= 0
+            && session.economy.loose_wood <= 0
+            && !session
+                .workforce
+                .workers
+                .iter()
+                .any(|worker| worker.carrying > 0))
+    {
+        return;
+    }
+    let target = session
+        .world
+        .zones
+        .iter()
+        .filter(|zone| zone.kind == ZoneKind::Storage)
+        .flat_map(|zone| zone.tiles.iter().copied())
+        .find(|tile| reachable_from_any_worker(session, *tile))
+        .map(Selection::Ground);
+    let Some(target) = target else {
+        return;
+    };
+    alerts.push(OperationalAlert::new(
+        AlertSeverity::Info,
+        "Storage district idle",
+        format!(
+            "{}/{} marked Storage tiles staffed · loose material is waiting · assign Haul.",
+            districts::operator_count(session, ZoneKind::Storage),
+            districts::marked_tile_count(session, ZoneKind::Storage)
+        ),
         Some(target),
     ));
 }

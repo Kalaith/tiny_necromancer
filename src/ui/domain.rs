@@ -392,6 +392,7 @@ fn alert_button_label(title: Option<&str>) -> &'static str {
         Some("Route blocked") => "Inspect route",
         Some("Patrol coverage") => "Staff patrol",
         Some("Work district idle") => "Assign work",
+        Some("Storage district idle") => "Staff storage",
         _ => "Locate blocker",
     }
 }

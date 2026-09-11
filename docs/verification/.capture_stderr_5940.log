@@ -1,0 +1,4 @@
+
+thread 'main' (5956) panicked at tiny_necromancer\src\game\capture.rs:77:22:
+Unknown Tiny Necromancer capture scene: storage-domain
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

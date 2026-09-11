@@ -37,6 +37,7 @@ impl Game {
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
             "harvest-domain" => self.prepare_capture_harvest_domain(),
+            "storage-domain" => self.prepare_capture_storage_domain(),
             "patrol-gap" => self.prepare_capture_patrol_gap(),
             "work-gap" => self.prepare_capture_work_gap(),
             "work-overlap" => self.prepare_capture_work_overlap(),
@@ -269,6 +270,28 @@ impl Game {
     fn prepare_capture_harvest_domain(&mut self) {
         self.prepare_capture_work_domain();
         self.session.stewardship_policy = StewardshipPolicy::Harvest;
+    }
+
+    fn prepare_capture_storage_domain(&mut self) {
+        self.prepare_capture_colony();
+        self.panel = Panel::Domain;
+        self.zone_mode = None;
+        self.session.pressure.suspicion = 0.0;
+        self.session.pressure.stage = SuspicionStage::Calm;
+        self.session.pressure.last_reason =
+            "The marked storage district is waiting for more hands.".to_owned();
+        self.session.world.zones = vec![Zone {
+            kind: ZoneKind::Storage,
+            tiles: vec![TilePos::new(6, 5), TilePos::new(6, 6)],
+        }];
+        self.session.economy.loose_bones = 18;
+        self.session.economy.loose_bones_source = Some(TilePos::new(4, 2));
+        self.session.stewardship_policy = StewardshipPolicy::Balanced;
+        for worker in &mut self.session.workforce.workers {
+            worker.assignment = JobKind::Dig;
+            worker.status = WorkerStatus::Idle;
+        }
+        self.session.world.selected = Some(Selection::Ground(TilePos::new(6, 5)));
     }
 
     fn prepare_capture_patrol_gap(&mut self) {

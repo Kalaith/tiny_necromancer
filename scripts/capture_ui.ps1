@@ -22,6 +22,7 @@ param(
         "colony",
         "domain",
         "harvest-domain",
+        "storage-domain",
         "patrol-gap",
         "work-gap",
         "work-overlap",

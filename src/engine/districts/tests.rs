@@ -130,6 +130,26 @@ fn operations_summary_names_staffing_by_district() {
 }
 
 #[test]
+fn staffing_gap_scales_with_marked_slots() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Work,
+        tiles: vec![
+            session.world.plots[0].position,
+            session.world.plots[1].position,
+        ],
+    });
+    session.workforce.workers[0].assignment = JobKind::Dig;
+
+    assert_eq!(marked_tile_count(&session, ZoneKind::Work), 2);
+    assert_eq!(operator_count(&session, ZoneKind::Work), 1);
+    assert_eq!(staffing_gap(&session, ZoneKind::Work), 1);
+    assert!(staffing_needs_attention(&session));
+}
+
+#[test]
 fn marked_tile_summary_explains_the_local_domain_rule() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

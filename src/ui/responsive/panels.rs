@@ -452,7 +452,10 @@ fn draw_compact_domain_panel(
         .find(|alert| {
             matches!(
                 alert.title,
-                "Route blocked" | "Patrol coverage" | "Work district idle"
+                "Route blocked"
+                    | "Patrol coverage"
+                    | "Work district idle"
+                    | "Storage district idle"
             )
         });
     if let Some(alert) = advisory_alert.as_ref() {
@@ -476,6 +479,7 @@ fn compact_advisory_label(title: &str) -> &'static str {
     match title {
         "Patrol coverage" => "Staff patrol",
         "Work district idle" => "Assign work",
+        "Storage district idle" => "Staff storage",
         _ => "Inspect route",
     }
 }
