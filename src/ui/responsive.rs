@@ -252,6 +252,8 @@ fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<
             ctx.session.active_undead()
         )
     };
+    let storage_full =
+        crate::engine::districts::storage_space(ctx.session, &ctx.data.config.district_rules) == 0;
     draw_text_block(
         &suspicion,
         12.0,
@@ -260,7 +262,7 @@ fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<
         18.0,
         12.0,
         0.0,
-        if ctx.session.pressure.suspicion >= 50.0 {
+        if ctx.session.pressure.suspicion >= 50.0 || storage_full {
             dark::WARNING
         } else {
             dark::TEXT_DIM

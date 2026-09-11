@@ -17,6 +17,17 @@ pub(super) fn draw_status_strip(
     actions: &mut Vec<UiAction>,
 ) {
     let e = &ctx.session.economy;
+    let storage_capacity =
+        crate::engine::districts::storage_capacity(ctx.session, &ctx.data.config.district_rules);
+    let storage_space =
+        crate::engine::districts::storage_space(ctx.session, &ctx.data.config.district_rules);
+    let storage_accent = if storage_space == 0 {
+        dark::NEGATIVE
+    } else if storage_space * 4 <= storage_capacity {
+        dark::WARNING
+    } else {
+        Color::new(0.60, 0.86, 0.70, 1.0)
+    };
     let cards = [
         (
             "BONES",
@@ -50,16 +61,9 @@ pub(super) fn draw_status_strip(
         ),
         (
             "STORAGE",
-            format!(
-                "{}/{}",
-                e.stored_materials(),
-                crate::engine::districts::storage_capacity(
-                    ctx.session,
-                    &ctx.data.config.district_rules
-                )
-            ),
+            format!("{}/{}", e.stored_materials(), storage_capacity),
             Color::new(0.16, 0.20, 0.18, 0.94),
-            Color::new(0.60, 0.86, 0.70, 1.0),
+            storage_accent,
         ),
     ];
     for (index, (label, value, fill, accent)) in cards.into_iter().enumerate() {
