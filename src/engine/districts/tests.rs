@@ -102,7 +102,7 @@ fn operations_summary_names_staffing_by_district() {
 
     assert_eq!(
         operations_summary(&session),
-        "Staffing: Work 1 · Storage 0 · Patrol 0/1 post"
+        "Staffing (workers/marks): Work 1/1 · Storage 0/0 · Patrol 0/1 post"
     );
 }
 

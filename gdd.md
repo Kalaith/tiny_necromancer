@@ -143,7 +143,8 @@ can show a compact chronology alongside the totals. Older saves receive an
 empty activity trail without losing their existing ledger values.
 The Domain readout also reports current staffing by district: Work operators,
 Storage haulers, and Patrol guards compared with the number of marked patrol
-posts, so a player can see coverage pressure before opening a separate board.
+posts, with each ratio showing assigned workers against marked tiles or posts,
+so a player can see coverage pressure before opening a separate board.
 
 ### 5.4 Determinism and saves
 

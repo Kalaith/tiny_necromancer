@@ -64,15 +64,19 @@ pub fn rule_summary(session: &GameSession, config: &DistrictRules) -> String {
 }
 
 pub fn operations_summary(session: &GameSession) -> String {
+    let work_tiles = marked_tile_count(session, ZoneKind::Work);
+    let storage_tiles = marked_tile_count(session, ZoneKind::Storage);
     let patrol_tiles = marked_tile_count(session, ZoneKind::Patrol);
     let work_operators = operator_count(session, ZoneKind::Work);
     let storage_operators = operator_count(session, ZoneKind::Storage);
     let patrol_operators = operator_count(session, ZoneKind::Patrol);
 
     format!(
-        "Staffing: Work {} · Storage {} · Patrol {}/{} post{}",
+        "Staffing (workers/marks): Work {}/{} · Storage {}/{} · Patrol {}/{} post{}",
         work_operators,
+        work_tiles,
         storage_operators,
+        storage_tiles,
         patrol_operators,
         patrol_tiles,
         if patrol_tiles == 1 { "" } else { "s" }
