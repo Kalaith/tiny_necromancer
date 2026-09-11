@@ -296,6 +296,23 @@ pub(super) fn storage_route_policy(session: &GameSession, worker_id: u32) -> Rou
     route_policy(session, worker_id, ZoneKind::Storage)
 }
 
+pub(super) fn storage_destination_is_current(
+    session: &GameSession,
+    worker_id: u32,
+    destination: TilePos,
+) -> bool {
+    match storage_route_policy(session, worker_id) {
+        RoutePolicy::Nearest => destination == WorldState::stockpile_position(),
+        RoutePolicy::MarkedOnly => session.world.zone_contains(ZoneKind::Storage, destination),
+        RoutePolicy::MarkedFirst => {
+            let marked = unique_tiles(zone_tiles(session, ZoneKind::Storage));
+            marked.is_empty() && destination == session.world.storage_position()
+                || marked.contains(&destination)
+                || destination == session.world.storage_position()
+        }
+    }
+}
+
 fn assignment_slot(session: &GameSession, job: JobKind, worker_id: u32) -> usize {
     roster_slot(session, job, worker_id)
 }

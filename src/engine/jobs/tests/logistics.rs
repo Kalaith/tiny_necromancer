@@ -192,3 +192,60 @@ fn pending_haul_plans_reserve_distinct_marked_storage_drops() {
         second_drop
     );
 }
+
+#[test]
+fn removed_storage_drop_replans_a_walking_and_carried_bundle() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_drop = TilePos::new(5, 1);
+    let second_drop = TilePos::new(6, 5);
+    let source = session.world.plots[0].position;
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![first_drop, second_drop],
+    });
+    session.economy.loose_bones = 16;
+    session.economy.loose_bones_source = Some(source);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = WorldState::stockpile_position();
+
+    simulate(&mut session, &data, 0.0);
+    assert_eq!(
+        session.workforce.workers[0]
+            .haul_plan
+            .expect("walking worker should have a plan")
+            .destination,
+        first_drop
+    );
+    session.world.zones[0]
+        .tiles
+        .retain(|tile| *tile != first_drop);
+    simulate(&mut session, &data, 0.0);
+    assert_eq!(
+        session.workforce.workers[0]
+            .haul_plan
+            .expect("walking worker should replan")
+            .destination,
+        second_drop
+    );
+
+    session.workforce.workers[0].position = source;
+    simulate(&mut session, &data, 0.0);
+    assert!(session.workforce.workers[0].carrying > 0);
+    session.world.zones[0].tiles.push(first_drop);
+    session.world.zones[0]
+        .tiles
+        .retain(|tile| *tile != second_drop);
+    simulate(&mut session, &data, 0.0);
+
+    let worker = &session.workforce.workers[0];
+    assert!(worker.carrying > 0);
+    assert_eq!(
+        worker
+            .haul_plan
+            .expect("carried worker should replan")
+            .destination,
+        first_drop
+    );
+}
