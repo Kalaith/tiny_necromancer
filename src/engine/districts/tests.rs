@@ -417,6 +417,19 @@ fn marked_storage_tiles_expand_material_capacity_after_domain() {
 }
 
 #[test]
+fn storage_summary_names_used_and_remaining_room() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 90;
+    session.economy.wood = 4;
+
+    assert_eq!(
+        storage_summary(&session, &data.config.district_rules),
+        "Storage: 94/96 used · 2 room"
+    );
+}
+
+#[test]
 fn district_ledger_records_effects_and_first_use_notes() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

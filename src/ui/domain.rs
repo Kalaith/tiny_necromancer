@@ -14,7 +14,7 @@ pub(super) fn draw_domain_panel(
     pointer: Pointer,
     actions: &mut Vec<UiAction>,
 ) {
-    let rect = Rect::new(238.0, 106.0, 680.0, 490.0);
+    let rect = Rect::new(238.0, 106.0, 680.0, 510.0);
     draw_surface(
         rect,
         &SurfaceStyle::new(Color::new(0.045, 0.055, 0.055, 0.98))
@@ -330,9 +330,23 @@ fn draw_stewardship_readout(
         },
     );
     draw_text_block(
-        &districts::coverage_summary(ctx.session),
+        &districts::storage_summary(ctx.session, &ctx.data.config.district_rules),
         rect.x + 24.0,
         rect.y + 434.0,
+        440.0,
+        18.0,
+        11.0,
+        0.0,
+        if districts::storage_space(ctx.session, &ctx.data.config.district_rules) == 0 {
+            dark::WARNING
+        } else {
+            dark::TEXT_DIM
+        },
+    );
+    draw_text_block(
+        &districts::coverage_summary(ctx.session),
+        rect.x + 24.0,
+        rect.y + 454.0,
         440.0,
         18.0,
         11.0,
@@ -357,7 +371,7 @@ fn draw_stewardship_readout(
             detail
         ),
         rect.x + 24.0,
-        rect.y + 456.0,
+        rect.y + 476.0,
         440.0,
         38.0,
         12.0,

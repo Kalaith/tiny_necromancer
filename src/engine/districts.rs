@@ -45,6 +45,16 @@ pub fn storage_space(session: &GameSession, rules: &DistrictRules) -> i32 {
         .storage_space(storage_capacity(session, rules))
 }
 
+pub fn storage_summary(session: &GameSession, rules: &DistrictRules) -> String {
+    let capacity = storage_capacity(session, rules);
+    format!(
+        "Storage: {}/{} used · {} room",
+        session.economy.stored_materials(),
+        capacity,
+        storage_space(session, rules)
+    )
+}
+
 pub fn guard_mitigation_multiplier(
     session: &GameSession,
     rules: &DistrictRules,

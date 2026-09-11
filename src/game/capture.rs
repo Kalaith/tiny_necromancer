@@ -338,6 +338,8 @@ impl Game {
 
     fn prepare_capture_domain(&mut self) {
         self.prepare_capture_colony();
+        self.session.economy.bones = 72;
+        self.session.economy.wood = 36;
         self.panel = Panel::Domain;
         self.zone_mode = None;
         self.domain_overlays.routes = true;
