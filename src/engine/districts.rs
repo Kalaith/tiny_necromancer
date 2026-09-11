@@ -357,7 +357,10 @@ pub fn tile_summary(
                         (config.work_speed_multiplier - 1.0) * 100.0
                     ),
                     ZoneKind::Storage => {
-                        format!("+{} Haul capacity here.", config.storage_capacity_bonus)
+                        format!(
+                            "+{} Haul · +{} storage here.",
+                            config.storage_capacity_bonus, config.storage_volume_per_tile
+                        )
                     }
                     ZoneKind::Patrol => format!(
                         "+{:.0}% Guard mitigation here.",

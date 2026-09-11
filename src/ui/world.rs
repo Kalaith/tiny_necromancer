@@ -258,7 +258,8 @@ fn district_rule_label(ctx: &UiContext<'_>, kind: ZoneKind, tile: TilePos) -> Op
         ZoneKind::Storage => {
             let bonus =
                 districts::haul_capacity_bonus(ctx.session, &ctx.data.config.district_rules, tile);
-            (bonus > 0).then(|| format!("+{bonus}"))
+            let capacity = ctx.data.config.district_rules.storage_volume_per_tile;
+            (bonus > 0 || capacity > 0).then(|| format!("H+{bonus} C+{capacity}"))
         }
         ZoneKind::Patrol => {
             let multiplier = districts::guard_mitigation_multiplier(

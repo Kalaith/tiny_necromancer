@@ -346,7 +346,7 @@ fn marked_tile_summary_keeps_overlapping_district_marks_visible() {
     assert!(summary.contains("Work district"));
     assert!(summary.contains("+15% Dig/Wood speed here."));
     assert!(summary.contains("Storage district"));
-    assert!(summary.contains("+4 Haul capacity here."));
+    assert!(summary.contains("+4 Haul · +24 storage here."));
     assert!(summary.contains("\n"));
 }
 
