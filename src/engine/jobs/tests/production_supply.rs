@@ -107,3 +107,27 @@ fn refiner_waits_without_advancing_an_unloaded_cycle() {
     );
     assert_eq!(session.workforce.workers[0].status, WorkerStatus::Idle);
 }
+
+#[test]
+fn automated_refiner_switches_to_kiln_supply_when_inputs_are_stockpiled() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = session_with_empty_kiln(&data);
+    session.research.completed.push(Technology::BindingRoutines);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    session.economy.bones = 12;
+    session.economy.wood = 6;
+    session.workforce.workers[0].assignment = JobKind::Refine;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].position = WorldState::stockpile_position();
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
+    assert_eq!(
+        session.workforce.workers[0]
+            .haul_plan
+            .expect("automation should reserve kiln supply")
+            .destination_kind,
+        HaulDestination::Kiln
+    );
+}
