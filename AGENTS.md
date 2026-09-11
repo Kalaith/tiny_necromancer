@@ -30,7 +30,7 @@ These instructions apply to all Rust game projects in this workspace.
 
 ## Testing And Validation
 
-- Store unit tests in separate child files, never inline in implementation files. Use `#[cfg(test)] mod tests;` in `foo.rs` with the tests in `foo/tests.rs` so `use super::*` and private-item access continue to work. See `CODE_STANDARDS.md` §11.4.
+- Store every test under the repository-root `/tests` directory. Do not add test modules, test-only helpers, or `#[cfg(test)]` blocks anywhere under `/src`; tests must exercise the game's public seams from `/tests`. Existing `src/**/tests.rs` files are legacy migration work—do not add to them. See `CODE_STANDARDS.md` §11.4.
 - Keep each major feature's focused test suite to no more than five `#[test]` cases. The existing focused module boundaries are the budget boundaries (for example, core jobs, logistics, production supply, stewardship, districts, alerts, progression, trade, state, and UI layout); do not recreate removed cases by duplicating them in a sibling file or by splitting a suite solely to reset the count. Add coverage by replacing or consolidating the lowest-value case, or by using table-driven assertions inside one of the five tests.
 - Keep every test `.rs` file at or below 800 total lines. Split larger test suites into focused child modules before they reach the limit.
 - Use each project's `publish.ps1` script as the validation path.

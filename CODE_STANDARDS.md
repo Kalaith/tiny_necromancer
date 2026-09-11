@@ -357,23 +357,12 @@ Focus tests on:
 - Before committing, count the `#[test]` functions in every affected feature suite and confirm none exceeds five.
 
 ### 11.4 Test Placement
-Unit tests live in the crate, next to the code they cover, but always in a separate child file. Never embed a test module body in an implementation file.
+All tests live under the repository-root `/tests` directory. This is the only permitted test location.
 
-Declare a child module from the implementation file and place its body in the corresponding child source:
-
-**When a test module dominates its file, extract it to a child module** — not to `tests/`:
-
-```rust
-// src/simulation.rs
-#[cfg(test)]
-mod tests;          // -> src/simulation/tests.rs
-```
-
-This keeps `use super::*` and same-crate access while separating tests from implementation. It follows the named-module rule in §2.3, so use `foo/tests.rs`, never `foo/tests/mod.rs`.
-
-**Do not use a crate-root `tests/` directory for unit tests.** Files there are integration tests: each compiles and links as a separate crate and can only reach the crate's public API. Reserve that directory for genuine integration or end-to-end tests.
-
-Every test source file must remain at or below 800 total lines. Split a larger suite into focused child modules; there are no test-file exceptions to §2.2.
+- Do not add `#[cfg(test)]`, `mod tests`, test-only helpers, or test source files under `/src`.
+- Tests in `/tests` exercise the game's public seams. If a behavior is difficult to reach there, improve the production API or add an intentional test seam rather than moving the test into `/src`.
+- Existing `src/**/tests.rs` files are legacy migration work. Do not extend them; migrate them to `/tests` as a separate change before expanding their coverage.
+- Keep each test source file at or below 800 total lines. Split larger suites into focused files under `/tests`, while preserving the five-test budget for each feature suite.
 
 ## 12. Verification Artifacts
 
