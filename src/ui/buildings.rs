@@ -154,6 +154,16 @@ pub(super) fn draw_desktop_market_button(
     ) {
         actions.push(UiAction::TogglePanel(super::Panel::Market));
     }
+    draw_text_block(
+        &market_standing_label(ctx),
+        panel.x + 18.0,
+        panel.y + 284.0,
+        panel.w - 36.0,
+        20.0,
+        12.0,
+        0.0,
+        dark::ACCENT,
+    );
 }
 
 pub(super) fn draw_compact_market_button(
@@ -187,6 +197,33 @@ pub(super) fn draw_compact_market_button(
         pointer,
     ) {
         actions.push(UiAction::TogglePanel(super::Panel::Market));
+    }
+    draw_text_block(
+        &market_standing_label(ctx),
+        sheet.x + 16.0,
+        sheet.y + 280.0,
+        sheet.w - 32.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
+    );
+}
+
+fn market_standing_label(ctx: &UiContext<'_>) -> String {
+    let market = &ctx.session.progress.market;
+    match market.next_standing_target() {
+        Some(target) => format!(
+            "Broker · {} · favor {}/{}",
+            market.standing_label(),
+            market.favor,
+            target
+        ),
+        None => format!(
+            "Broker · {} · favor {}",
+            market.standing_label(),
+            market.favor
+        ),
     }
 }
 
