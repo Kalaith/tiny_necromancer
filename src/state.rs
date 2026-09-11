@@ -13,7 +13,7 @@ mod workforce;
 pub use research::ResearchState;
 pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
 pub use stewardship::StewardshipPolicy;
-pub use workforce::{Worker, WorkforceState};
+pub use workforce::{HaulPlan, Worker, WorkforceState};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum GamePhase {
@@ -556,6 +556,7 @@ impl GameSession {
                     carrying: 0,
                     carrying_resource: None,
                     priority_mode: false,
+                    haul_plan: None,
                 }],
                 selected_worker: 0,
                 next_worker_id: 2,
@@ -634,6 +635,9 @@ impl GameSession {
         for worker in &mut save.workforce.workers {
             if worker.carrying > 0 && worker.carrying_resource.is_none() {
                 worker.carrying_resource = Some(ResourceKind::Bones);
+            }
+            if worker.carrying <= 0 {
+                worker.haul_plan = None;
             }
         }
         save.workforce.normalize_priorities();

@@ -86,7 +86,11 @@ count, and touch-sized Up/Down controls. Older saves retain their authored
 order and receive any newly introduced duty at the end of the list.
 Loose bones and wood retain a source tile. A hauler walks to that source, picks
 up a capacity-limited bundle, visibly carries it to Storage, and only then
-credits the stockpile. This keeps world feedback and resource totals aligned.
+credits the stockpile. Ossuary Logistics commits that source and its chosen
+Storage drop point into the hauler's route, so marked Work output remains tied
+to a deliberate cross-district delivery. A changed Storage policy or blocked
+drop point replans the carried bundle without losing it. This keeps world
+feedback and resource totals aligned.
 
 ### 5.3 Suspicion and events
 

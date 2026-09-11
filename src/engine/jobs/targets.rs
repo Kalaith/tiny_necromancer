@@ -13,7 +13,10 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
         JobKind::Dig => dig_destination(session, worker),
         JobKind::Haul => {
             if worker.carrying > 0 {
-                storage_destination(session, worker.position, worker.id)
+                worker
+                    .haul_plan
+                    .map(|plan| plan.destination)
+                    .or_else(|| storage_destination(session, worker.position, worker.id))
             } else if session.economy.loose_bones > 0 {
                 let dug = session
                     .world
@@ -276,6 +279,10 @@ pub(super) fn storage_destination_for(
     worker_id: u32,
 ) -> Option<TilePos> {
     storage_destination(session, origin, worker_id)
+}
+
+pub(super) fn storage_route_policy(session: &GameSession, worker_id: u32) -> RoutePolicy {
+    route_policy(session, worker_id, ZoneKind::Storage)
 }
 
 fn assignment_slot(session: &GameSession, job: JobKind, worker_id: u32) -> usize {

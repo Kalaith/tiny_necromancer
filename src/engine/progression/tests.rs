@@ -53,6 +53,7 @@ fn victory_needs_every_vertical_slice_milestone() {
             carrying: 0,
             carrying_resource: None,
             priority_mode: false,
+            haul_plan: None,
         });
     }
     check_victory(&mut session, &data);

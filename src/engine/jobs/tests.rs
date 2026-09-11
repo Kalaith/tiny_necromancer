@@ -1,5 +1,6 @@
 use super::*;
 
+mod logistics;
 mod stewardship;
 
 fn simulate_for_seconds(session: &mut GameSession, data: &crate::data::GameData, seconds: f32) {

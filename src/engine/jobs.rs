@@ -9,6 +9,7 @@ use crate::state::{
 use macroquad_toolkit::grid::TilePos;
 
 mod dig;
+mod logistics;
 mod targets;
 
 pub use targets::{destination_for_worker, patrol_coverage, patrol_post_number};
@@ -407,37 +408,20 @@ fn simulate_haul(
         .expect("validated undead type")
         .haul_capacity;
     if session.workforce.workers[index].carrying <= 0 {
-        let (resource, source) = if session.economy.loose_bones > 0 {
-            (
-                ResourceKind::Bones,
-                destination_for_worker(session, &session.workforce.workers[index]),
-            )
-        } else if session.economy.loose_wood > 0 {
-            (
-                ResourceKind::Wood,
-                destination_for_worker(session, &session.workforce.workers[index]),
-            )
-        } else {
+        let Some(plan) = logistics::plan_haul(session, index) else {
             session.workforce.workers[index].status = WorkerStatus::Idle;
             session.workforce.workers[index].progress = 0.0;
             session.workforce.workers[index].carrying_resource = None;
+            session.workforce.workers[index].haul_plan = None;
             return;
         };
-        let Some(source) = source else {
-            session.workforce.workers[index].status = WorkerStatus::Idle;
-            return;
-        };
-        if move_worker_to(session, index, source) != WorkerMoveResult::Arrived {
+        if move_worker_to(session, index, plan.source) != WorkerMoveResult::Arrived {
             return;
         }
         let storage_bonus =
-            targets::storage_destination_for(session, source, session.workforce.workers[index].id)
-                .map(|storage| {
-                    districts::haul_capacity_bonus(session, &data.config.district_rules, storage)
-                })
-                .unwrap_or(0);
+            districts::haul_capacity_bonus(session, &data.config.district_rules, plan.destination);
         let capacity = base_capacity + storage_bonus;
-        let amount = match resource {
+        let amount = match plan.resource {
             ResourceKind::Bones => session.economy.loose_bones.min(capacity),
             ResourceKind::Wood => session.economy.loose_wood.min(capacity),
         };
@@ -445,7 +429,7 @@ fn simulate_haul(
             return;
         }
         districts::record_storage_bonus(session, (amount - base_capacity).max(0));
-        match resource {
+        match plan.resource {
             ResourceKind::Bones => {
                 session.economy.loose_bones -= amount;
                 if session.economy.loose_bones == 0 {
@@ -461,13 +445,13 @@ fn simulate_haul(
         }
         let worker = &mut session.workforce.workers[index];
         worker.carrying = amount;
-        worker.carrying_resource = Some(resource);
+        worker.carrying_resource = Some(plan.resource);
+        worker.haul_plan = Some(plan);
         worker.status = WorkerStatus::Carrying;
         worker.progress = 0.0;
         return;
     }
-    let Some(storage_position) = destination_for_worker(session, &session.workforce.workers[index])
-    else {
+    let Some(storage_position) = logistics::destination_for_cargo(session, index) else {
         session.workforce.workers[index].status = WorkerStatus::Idle;
         return;
     };
@@ -485,6 +469,7 @@ fn simulate_haul(
     let amount = worker.carrying;
     worker.carrying = 0;
     worker.carrying_resource = None;
+    worker.haul_plan = None;
     worker.status = WorkerStatus::Idle;
     match resource {
         ResourceKind::Bones => {

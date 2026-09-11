@@ -1,8 +1,16 @@
 //! Serializable workers and the shared repeat-priority policy.
 
-use super::{JobKind, ResourceKind, UndeadKind, WorkerStatus};
+use super::{JobKind, ResourceKind, RoutePolicy, UndeadKind, WorkerStatus};
 use macroquad_toolkit::grid::TilePos;
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HaulPlan {
+    pub resource: ResourceKind,
+    pub source: TilePos,
+    pub destination: TilePos,
+    pub storage_policy: RoutePolicy,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Worker {
@@ -19,6 +27,8 @@ pub struct Worker {
     pub carrying_resource: Option<ResourceKind>,
     #[serde(default)]
     pub priority_mode: bool,
+    #[serde(default)]
+    pub haul_plan: Option<HaulPlan>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

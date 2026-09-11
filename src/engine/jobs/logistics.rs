@@ -1,0 +1,61 @@
+//! Source-to-drop planning for carried resources.
+
+use super::{destination_for_worker, targets};
+use crate::engine::navigation;
+use crate::state::{GameSession, HaulPlan, ResourceKind};
+use macroquad_toolkit::grid::TilePos;
+
+pub(super) fn plan_haul(session: &GameSession, worker_index: usize) -> Option<HaulPlan> {
+    let worker = session.workforce.workers.get(worker_index)?;
+    let resource = if session.economy.loose_bones > 0 {
+        ResourceKind::Bones
+    } else if session.economy.loose_wood > 0 {
+        ResourceKind::Wood
+    } else {
+        return None;
+    };
+    let source = destination_for_worker(session, worker)?;
+    let destination = targets::storage_destination_for(session, source, worker.id)?;
+    Some(HaulPlan {
+        resource,
+        source,
+        destination,
+        storage_policy: targets::storage_route_policy(session, worker.id),
+    })
+}
+
+pub(super) fn destination_for_cargo(
+    session: &mut GameSession,
+    worker_index: usize,
+) -> Option<TilePos> {
+    let worker = session.workforce.workers.get(worker_index)?;
+    let resource = worker.carrying_resource.unwrap_or(ResourceKind::Bones);
+    let current_policy = targets::storage_route_policy(session, worker.id);
+    if let Some(plan) = worker.haul_plan {
+        if plan.resource == resource
+            && plan.storage_policy == current_policy
+            && navigation::plan_route(session, worker.position, plan.destination).is_ok()
+        {
+            return Some(plan.destination);
+        }
+    }
+
+    let worker_id = worker.id;
+    let worker_position = worker.position;
+    let previous_source = worker
+        .haul_plan
+        .map(|plan| plan.source)
+        .unwrap_or(worker_position);
+    let destination = targets::storage_destination_for(session, worker_position, worker_id);
+    let Some(destination) = destination else {
+        session.workforce.workers[worker_index].haul_plan = None;
+        return None;
+    };
+    session.workforce.workers[worker_index].haul_plan = Some(HaulPlan {
+        resource,
+        source: previous_source,
+        destination,
+        storage_policy: current_policy,
+    });
+    Some(destination)
+}

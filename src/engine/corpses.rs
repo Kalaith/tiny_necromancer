@@ -117,6 +117,7 @@ pub fn raise(session: &mut GameSession, data: &GameData, kind: UndeadKind) -> Re
         carrying: 0,
         carrying_resource: None,
         priority_mode: false,
+        haul_plan: None,
     });
     session.workforce.selected_worker = session.workforce.workers.len() - 1;
     session.add_feed(format!("Raised a {}. It reports for Haul duty.", def.name));

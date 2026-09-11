@@ -213,6 +213,7 @@ pub fn drop_worker_cargo(session: &mut GameSession, index: usize) {
     if amount <= 0 {
         worker.carrying = 0;
         worker.carrying_resource = None;
+        worker.haul_plan = None;
         worker.status = crate::state::WorkerStatus::Idle;
         return;
     }
@@ -228,6 +229,7 @@ pub fn drop_worker_cargo(session: &mut GameSession, index: usize) {
     }
     worker.carrying = 0;
     worker.carrying_resource = None;
+    worker.haul_plan = None;
     worker.status = crate::state::WorkerStatus::Idle;
     worker.progress = 0.0;
 }
