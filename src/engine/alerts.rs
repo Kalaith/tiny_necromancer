@@ -144,6 +144,7 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
                 && session
                     .world
                     .zone_contains(crate::state::ZoneKind::Work, plot.position)
+                && reachable_from_any_worker(session, plot.position)
         })
         .map(|plot| Selection::Grave(plot.id));
     let forest_target = session
@@ -154,6 +155,7 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
             session
                 .world
                 .zone_contains(crate::state::ZoneKind::Work, **tile)
+                && reachable_from_any_worker(session, **tile)
         })
         .copied()
         .map(Selection::Ground);
@@ -171,6 +173,17 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
         detail,
         Some(target),
     ));
+}
+
+fn reachable_from_any_worker(
+    session: &GameSession,
+    target: macroquad_toolkit::grid::TilePos,
+) -> bool {
+    session
+        .workforce
+        .workers
+        .iter()
+        .any(|worker| navigation::plan_route(session, worker.position, target).is_ok())
 }
 
 fn collect_pressure_alert(

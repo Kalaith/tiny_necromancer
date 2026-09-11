@@ -223,3 +223,42 @@ fn assigned_dig_operator_clears_the_work_district_alert() {
         .iter()
         .any(|alert| alert.title == "Work district idle"));
 }
+
+#[test]
+fn work_district_skips_an_unreachable_grave_for_the_next_reachable_target() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = TilePos::new(4, 2);
+    session.world.plots[2].status = crate::state::PlotStatus::Ready;
+    for position in [
+        TilePos::new(1, 2),
+        TilePos::new(2, 1),
+        TilePos::new(3, 2),
+        TilePos::new(2, 3),
+    ] {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position,
+            width: 1,
+            height: 1,
+        });
+    }
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![
+            session.world.plots[0].position,
+            session.world.plots[2].position,
+        ],
+    });
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Work district idle")
+        .expect("reachable work should still be reported");
+
+    assert_eq!(alert.target, Some(Selection::Grave(2)));
+}
