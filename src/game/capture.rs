@@ -34,6 +34,7 @@ impl Game {
             "menu" | "gameplay" | "scrolled" => {}
             "research" => self.prepare_capture_research(),
             "orders" => self.prepare_capture_orders(),
+            "priority-route" => self.prepare_capture_priority_route(),
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
             "harvest-domain" => self.prepare_capture_harvest_domain(),
@@ -161,6 +162,47 @@ impl Game {
         ];
         self.session.world.selected = Some(Selection::Worker(0));
         self.panel = Panel::Orders;
+    }
+
+    fn prepare_capture_priority_route(&mut self) {
+        self.prepare_capture_colony();
+        self.panel = Panel::None;
+        self.zone_mode = None;
+        self.domain_overlays.routes = true;
+        self.session.pressure.suspicion = 0.0;
+        self.session.pressure.stage = SuspicionStage::Calm;
+        self.session.economy.loose_bones = 8;
+        self.session.economy.loose_bones_source = Some(TilePos::new(2, 2));
+        self.session.economy.wood = 12;
+        self.session.workforce.priorities = vec![
+            JobKind::Wood,
+            JobKind::Haul,
+            JobKind::Guard,
+            JobKind::Dig,
+            JobKind::Build,
+            JobKind::Refine,
+        ];
+        self.session.world.zones = vec![Zone {
+            kind: ZoneKind::Work,
+            tiles: vec![self.session.world.forest_tiles[0]],
+        }];
+        if let Some(worker) = self.session.workforce.workers.first_mut() {
+            worker.assignment = JobKind::Wood;
+            worker.priority_mode = true;
+            worker.status = WorkerStatus::Idle;
+            worker.position = TilePos::new(2, 2);
+        }
+        for y in 0..self.session.world.height as i32 {
+            self.session.world.buildings.push(crate::state::Building {
+                kind: BuildingKind::WorkShed,
+                progress: 10.0,
+                complete: true,
+                position: TilePos::new(1, y),
+                width: 1,
+                height: 1,
+            });
+        }
+        self.session.world.selected = Some(Selection::Worker(0));
     }
 
     fn prepare_capture_colony(&mut self) {

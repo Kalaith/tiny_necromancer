@@ -148,14 +148,17 @@ fn draw_worker(
     let Some(worker) = ctx.session.workforce.workers.get(index) else {
         return;
     };
+    let priority_route_hint = super::super::world_feedback::worker_priority_route_hint(ctx, index)
+        .map_or_else(String::new, |hint| format!(" · {hint}"));
     let route_gap_hint = crate::engine::districts::route_gap_district(ctx.session, index)
         .map_or_else(String::new, |kind| format!(" · {} route gap", kind.label()));
     draw_text_block(
         &format!(
-            "{} · {}{}",
+            "{} · {}{}{}",
             worker.name,
             worker.assignment.label(),
-            route_gap_hint
+            route_gap_hint,
+            priority_route_hint,
         ),
         sheet.x + 16.0,
         sheet.y + 84.0,

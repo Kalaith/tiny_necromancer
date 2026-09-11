@@ -19,6 +19,7 @@ param(
         "placement",
         "research",
         "orders",
+        "priority-route",
         "colony",
         "domain",
         "harvest-domain",

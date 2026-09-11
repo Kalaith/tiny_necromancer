@@ -444,10 +444,11 @@ fn draw_worker_inspector(
         dark::ACCENT,
     );
     let district_hint = super::world_feedback::worker_district_hint(ctx, worker);
+    let priority_route_hint = super::world_feedback::worker_priority_route_hint(ctx, index);
     let route_gap_hint = crate::engine::districts::route_gap_district(ctx.session, index)
         .map_or_else(String::new, |kind| format!(" · {} route gap", kind.label()));
     let job_detail = format!(
-        "Current job: {}{}{}{}",
+        "Current job: {}{}{}{}{}",
         worker.assignment.label(),
         if worker.priority_mode {
             " · priority mode"
@@ -455,7 +456,8 @@ fn draw_worker_inspector(
             ""
         },
         district_hint.map_or_else(String::new, |hint| format!(" · {hint}")),
-        route_gap_hint
+        route_gap_hint,
+        priority_route_hint.map_or_else(String::new, |hint| format!(" · {hint}"))
     );
     draw_text_block(
         &job_detail,

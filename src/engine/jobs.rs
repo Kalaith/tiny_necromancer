@@ -267,51 +267,23 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
     messages
 }
 
+pub fn priority_route_skip(
+    session: &GameSession,
+    data: &GameData,
+    worker_index: usize,
+) -> Option<JobKind> {
+    session.workforce.priorities.iter().copied().find(|job| {
+        priority_available(session, data, *job)
+            && !has_reachable_destination(session, worker_index, *job)
+    })
+}
+
 fn choose_priority(session: &GameSession, data: &GameData, worker_index: usize) -> JobKind {
     let mut available_jobs = Vec::new();
-    let patrol_gap = {
-        let coverage = patrol_coverage(session);
-        coverage.total_posts > coverage.covered_posts
-    };
     for priority in &session.workforce.priorities {
-        let available = match priority {
-            JobKind::Guard => {
-                let threshold =
-                    if session.stewardship_policy == crate::state::StewardshipPolicy::Secure {
-                        data.config.suspicion_thresholds[0]
-                    } else {
-                        data.config.suspicion_thresholds[1]
-                    };
-                session.pressure.suspicion >= threshold
-                    || (session.stewardship_policy == crate::state::StewardshipPolicy::Secure
-                        && patrol_gap)
-            }
-            JobKind::Haul => {
-                session.economy.loose_bones > 0
-                    || session.economy.loose_wood > 0
-                    || session
-                        .workforce
-                        .workers
-                        .iter()
-                        .any(|worker| worker.carrying > 0)
-            }
-            JobKind::Dig => session
-                .world
-                .plots
-                .iter()
-                .any(|plot| plot.status == PlotStatus::Ready),
-            JobKind::Wood => {
-                session.economy.wood < data.config.worker_wood_reserve
-                    || session.progress.unlocked_plots < data.config.victory_plots
-            }
-            JobKind::Build => session
-                .world
-                .buildings
-                .iter()
-                .any(|building| !building.complete),
-            JobKind::Refine => session.progress.production.is_some(),
-        };
-        if available && has_reachable_destination(session, worker_index, *priority) {
+        if priority_available(session, data, *priority)
+            && has_reachable_destination(session, worker_index, *priority)
+        {
             available_jobs.push(*priority);
         }
     }
@@ -319,6 +291,50 @@ fn choose_priority(session: &GameSession, data: &GameData, worker_index: usize) 
         .into_iter()
         .min_by_key(|job| districts::policy_bias(session, *job))
         .unwrap_or(session.workforce.workers[worker_index].assignment)
+}
+
+fn priority_available(session: &GameSession, data: &GameData, priority: JobKind) -> bool {
+    let patrol_gap = {
+        let coverage = patrol_coverage(session);
+        coverage.total_posts > coverage.covered_posts
+    };
+    match priority {
+        JobKind::Guard => {
+            let threshold = if session.stewardship_policy == crate::state::StewardshipPolicy::Secure
+            {
+                data.config.suspicion_thresholds[0]
+            } else {
+                data.config.suspicion_thresholds[1]
+            };
+            session.pressure.suspicion >= threshold
+                || (session.stewardship_policy == crate::state::StewardshipPolicy::Secure
+                    && patrol_gap)
+        }
+        JobKind::Haul => {
+            session.economy.loose_bones > 0
+                || session.economy.loose_wood > 0
+                || session
+                    .workforce
+                    .workers
+                    .iter()
+                    .any(|worker| worker.carrying > 0)
+        }
+        JobKind::Dig => session
+            .world
+            .plots
+            .iter()
+            .any(|plot| plot.status == PlotStatus::Ready),
+        JobKind::Wood => {
+            session.economy.wood < data.config.worker_wood_reserve
+                || session.progress.unlocked_plots < data.config.victory_plots
+        }
+        JobKind::Build => session
+            .world
+            .buildings
+            .iter()
+            .any(|building| !building.complete),
+        JobKind::Refine => session.progress.production.is_some(),
+    }
 }
 
 fn has_reachable_destination(session: &GameSession, worker_index: usize, job: JobKind) -> bool {

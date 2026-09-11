@@ -301,6 +301,18 @@ pub(super) fn worker_district_hint(ctx: &UiContext<'_>, worker: &Worker) -> Opti
         .and_then(|destination| district_rule_hint(ctx, worker, destination))
 }
 
+pub(super) fn worker_priority_route_hint(
+    ctx: &UiContext<'_>,
+    worker_index: usize,
+) -> Option<String> {
+    let worker = ctx.session.workforce.workers.get(worker_index)?;
+    if !worker.priority_mode {
+        return None;
+    }
+    jobs::priority_route_skip(ctx.session, ctx.data, worker_index)
+        .map(|job| format!("Skip {} · no route", job.label()))
+}
+
 pub(super) fn worker_route_summary(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
     let destination = jobs::destination_for_worker(ctx.session, worker)?;
     let summary = match navigation::plan_route(ctx.session, worker.position, destination) {
