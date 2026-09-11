@@ -73,6 +73,18 @@ fn trusted_broker_reduces_exchange_suspicion() {
 }
 
 #[test]
+fn standing_milestone_adds_a_broker_note() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = lantern_session(&data);
+    session.progress.market.favor = 2;
+    session.economy.bones = 30;
+    execute_trade(&mut session, &data).unwrap();
+    assert!(session.pressure.feed[1]
+        .message
+        .contains("broker now calls this cemetery Acquainted"));
+}
+
+#[test]
 fn market_status_names_the_blocker_without_spending_materials() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = lantern_session(&data);

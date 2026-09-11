@@ -443,12 +443,23 @@ impl Game {
             }
             UiAction::ExecuteTrade => {
                 let offer = trade::current_offer(&self.session);
+                let previous_standing = self.session.progress.market.standing_label();
                 let result = trade::execute_trade(&mut self.session, &self.data);
                 match result {
-                    Ok(()) => self.notifications.success(format!(
-                        "Exchange complete: {} for {}.",
-                        offer.cost, offer.reward
-                    )),
+                    Ok(()) => {
+                        let current_standing = self.session.progress.market.standing_label();
+                        if current_standing != previous_standing {
+                            self.notifications.success(format!(
+                                "Exchange complete: {} for {}. Standing: {}.",
+                                offer.cost, offer.reward, current_standing
+                            ));
+                        } else {
+                            self.notifications.success(format!(
+                                "Exchange complete: {} for {}.",
+                                offer.cost, offer.reward
+                            ));
+                        }
+                    }
                     Err(error) => self.notifications.warning(error),
                 }
             }
