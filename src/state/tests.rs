@@ -63,6 +63,46 @@ fn save_recovery_restores_zero_storage_capacity() {
 }
 
 #[test]
+fn older_saves_default_and_sanitize_building_reinforcements() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.building_upgrades.work_shed = 3;
+    let mut value = serde_json::to_value(session.to_save(&data.config.version)).unwrap();
+    value
+        .get_mut("progress")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("progress object")
+        .remove("building_upgrades");
+
+    let restored = GameSession::from_save(serde_json::from_value(value).unwrap());
+
+    assert_eq!(
+        restored
+            .progress
+            .building_upgrades
+            .tier(BuildingKind::WorkShed),
+        0
+    );
+}
+
+#[test]
+fn stale_reinforcement_is_removed_when_the_structure_is_missing() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.building_upgrades.work_shed = 1;
+
+    let restored = GameSession::from_save(session.to_save(&data.config.version));
+
+    assert_eq!(
+        restored
+            .progress
+            .building_upgrades
+            .tier(BuildingKind::WorkShed),
+        0
+    );
+}
+
+#[test]
 fn route_policies_cycle_per_district_and_old_saves_default_them() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

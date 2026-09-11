@@ -1,6 +1,6 @@
 //! Persistent one-tier upgrades for completed settlement structures.
 
-use super::BuildingKind;
+use super::{Building, BuildingKind};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -33,5 +33,23 @@ impl BuildingUpgrades {
         }
         *tier = 1;
         true
+    }
+
+    pub fn normalize(&mut self, buildings: &[Building]) {
+        self.work_shed = self.work_shed.min(1).min(u8::from(
+            buildings
+                .iter()
+                .any(|building| building.kind == BuildingKind::WorkShed && building.complete),
+        ));
+        self.grave_lantern = self.grave_lantern.min(1).min(u8::from(
+            buildings
+                .iter()
+                .any(|building| building.kind == BuildingKind::GraveLantern && building.complete),
+        ));
+        self.ossuary_kiln = self.ossuary_kiln.min(1).min(u8::from(
+            buildings
+                .iter()
+                .any(|building| building.kind == BuildingKind::OssuaryKiln && building.complete),
+        ));
     }
 }

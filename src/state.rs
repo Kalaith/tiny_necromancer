@@ -623,6 +623,9 @@ impl GameSession {
         if save.economy.storage_capacity <= 0 {
             save.economy.storage_capacity = economy::DEFAULT_STORAGE_CAPACITY;
         }
+        save.progress
+            .building_upgrades
+            .normalize(&save.world.buildings);
         for building in &mut save.world.buildings {
             if building.position == default_building_position() {
                 building.position = default_building_position_for_kind(building.kind);
