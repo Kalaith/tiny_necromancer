@@ -236,6 +236,59 @@ fn older_saves_without_a_policy_default_to_balanced() {
 }
 
 #[test]
+fn older_saves_default_kiln_input_and_haul_destination_fields() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.production = Some(ProductionOrder {
+        building: BuildingKind::OssuaryKiln,
+        progress: 2.0,
+        bones_remaining: 12,
+        wood_remaining: 6,
+    });
+    session.workforce.workers[0].haul_plan = Some(HaulPlan {
+        resource: ResourceKind::Bones,
+        source: WorldState::stockpile_position(),
+        destination: WorldState::stockpile_position(),
+        storage_policy: RoutePolicy::MarkedFirst,
+        destination_kind: HaulDestination::Kiln,
+    });
+    session.workforce.workers[0].carrying = 1;
+    session.workforce.workers[0].carrying_resource = Some(ResourceKind::Bones);
+    let mut value = serde_json::to_value(session.to_save(&data.config.version)).unwrap();
+    value
+        .get_mut("progress")
+        .and_then(serde_json::Value::as_object_mut)
+        .and_then(|progress| progress.get_mut("production"))
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("production object")
+        .retain(|key, _| key != "bones_remaining" && key != "wood_remaining");
+    value
+        .get_mut("workforce")
+        .and_then(serde_json::Value::as_object_mut)
+        .and_then(|workforce| workforce.get_mut("workers"))
+        .and_then(serde_json::Value::as_array_mut)
+        .and_then(|workers| workers.first_mut())
+        .and_then(serde_json::Value::as_object_mut)
+        .and_then(|worker| worker.get_mut("haul_plan"))
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("haul plan object")
+        .remove("destination_kind");
+
+    let restored = GameSession::from_save(serde_json::from_value(value).unwrap());
+
+    let order = restored.progress.production.expect("production survives");
+    assert_eq!(order.bones_remaining, 0);
+    assert_eq!(order.wood_remaining, 0);
+    assert_eq!(
+        restored.workforce.workers[0]
+            .haul_plan
+            .expect("haul plan survives")
+            .destination_kind,
+        HaulDestination::Storage
+    );
+}
+
+#[test]
 fn zone_tools_allow_work_tiles_but_reject_roads_and_structures() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
