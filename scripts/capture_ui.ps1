@@ -20,6 +20,7 @@ param(
         "research",
         "orders",
         "priority-route",
+        "route-policy",
         "colony",
         "domain",
         "harvest-domain",

@@ -130,6 +130,12 @@ the next reachable duty; the selected worker inspector names the skipped duty
 when a route fallback is active, and the change produces a concise notice.
 A direct order still stays in force and reports its blocked route to the player.
 
+Domain Stewardship also lets the player cycle a saved route policy for each
+district: Marked first prefers the district before using the normal route,
+Nearest ignores district marks, and Marked only waits when no marked route is
+available. These policies affect repeat priorities; direct orders keep their
+existing route behavior.
+
 After Domain Stewardship, marked districts also carry small operational rules:
 Work tiles speed Dig and Wood work, Storage tiles increase a hauler's bundle
 when it reaches marked storage, and Patrol tiles strengthen guards while they

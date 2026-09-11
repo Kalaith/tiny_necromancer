@@ -469,6 +469,26 @@ impl Game {
                         .info(format!("Automated workers now follow {policy}."));
                 }
             }
+            UiAction::CycleRoutePolicy(kind) => {
+                if self.session.phase == GamePhase::Playing
+                    && self
+                        .session
+                        .research
+                        .is_unlocked(Technology::DomainStewardship)
+                {
+                    let policy = self.session.world.route_policies.cycle(kind);
+                    self.session.add_feed(format!(
+                        "{} route policy: {}.",
+                        kind.label(),
+                        policy.label()
+                    ));
+                    self.notifications.info(format!(
+                        "{} routes now use {}.",
+                        kind.label(),
+                        policy.label()
+                    ));
+                }
+            }
             UiAction::TogglePanel(panel) => {
                 self.panel = if self.panel == panel {
                     Panel::None

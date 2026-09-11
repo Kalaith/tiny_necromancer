@@ -46,6 +46,35 @@ fn save_round_trip_preserves_rng_and_operation() {
 }
 
 #[test]
+fn route_policies_cycle_per_district_and_old_saves_default_them() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    assert_eq!(session.world.route_policies.work, RoutePolicy::MarkedFirst);
+    assert_eq!(
+        session.world.route_policies.cycle(ZoneKind::Work),
+        RoutePolicy::Nearest
+    );
+    assert_eq!(
+        session.world.route_policies.storage,
+        RoutePolicy::MarkedFirst
+    );
+
+    let save = session.to_save(&data.config.version);
+    let mut value = serde_json::to_value(save).unwrap();
+    value
+        .get_mut("world")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("world object")
+        .remove("route_policies");
+    let restored = GameSession::from_save(serde_json::from_value(value).unwrap());
+
+    assert_eq!(
+        restored.world.route_policies,
+        DistrictRoutePolicies::default()
+    );
+}
+
+#[test]
 fn older_saves_default_the_district_ledger() {
     let data = crate::data::GameData::load().unwrap();
     let save = GameSession::new(&data.config).to_save(&data.config.version);

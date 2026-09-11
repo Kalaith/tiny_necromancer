@@ -396,11 +396,12 @@ fn simulate_haul(
         if move_worker_to(session, index, source) != WorkerMoveResult::Arrived {
             return;
         }
-        let storage_bonus = districts::haul_capacity_bonus(
-            session,
-            &data.config.district_rules,
-            targets::storage_destination_for(session, source, session.workforce.workers[index].id),
-        );
+        let storage_bonus =
+            targets::storage_destination_for(session, source, session.workforce.workers[index].id)
+                .map(|storage| {
+                    districts::haul_capacity_bonus(session, &data.config.district_rules, storage)
+                })
+                .unwrap_or(0);
         let capacity = base_capacity + storage_bonus;
         let amount = match resource {
             ResourceKind::Bones => session.economy.loose_bones.min(capacity),
@@ -431,8 +432,11 @@ fn simulate_haul(
         worker.progress = 0.0;
         return;
     }
-    let storage_position = destination_for_worker(session, &session.workforce.workers[index])
-        .unwrap_or_else(WorldState::stockpile_position);
+    let Some(storage_position) = destination_for_worker(session, &session.workforce.workers[index])
+    else {
+        session.workforce.workers[index].status = WorkerStatus::Idle;
+        return;
+    };
     if move_worker_to(session, index, storage_position) != WorkerMoveResult::Arrived {
         return;
     }

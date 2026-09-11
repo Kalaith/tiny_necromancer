@@ -144,7 +144,15 @@ pub(super) fn draw_research_panel(
     }
 }
 pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
-    let rect = Rect::new(350.0, 460.0, 580.0, 146.0);
+    let domain_unlocked = ctx
+        .session
+        .research
+        .is_unlocked(Technology::DomainStewardship);
+    let rect = if domain_unlocked {
+        Rect::new(350.0, 410.0, 580.0, 196.0)
+    } else {
+        Rect::new(350.0, 460.0, 580.0, 146.0)
+    };
     if !ctx.session.research.is_unlocked(Technology::Gravecraft) {
         draw_small_info_panel(
             "WORK AREAS",
@@ -191,47 +199,73 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
             actions.push(UiAction::ToggleZone(kind));
         }
     }
-    let message = if ctx
-        .session
-        .research
-        .is_unlocked(Technology::DomainStewardship)
-    {
-        format!(
-            "District 01 · zones W{} S{} P{} · rules local; Work alerts point to reachable tiles.",
-            zone_count(ctx, ZoneKind::Work),
-            zone_count(ctx, ZoneKind::Storage),
-            zone_count(ctx, ZoneKind::Patrol),
-        )
-    } else if ctx
-        .session
-        .research
-        .is_unlocked(Technology::OssuaryLogistics)
-    {
-        "Storage and Patrol use nearby marked posts; Work favors nearby gathering.".to_owned()
+    if domain_unlocked {
+        draw_text_block(
+            "ROUTE POLICY · repeat workers",
+            rect.x + 18.0,
+            rect.y + 96.0,
+            280.0,
+            16.0,
+            11.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
+        let button_width = (rect.w - 52.0) / 3.0;
+        for (index, kind) in [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
+            .into_iter()
+            .enumerate()
+        {
+            if virtual_button(
+                Rect::new(
+                    rect.x + 18.0 + index as f32 * (button_width + 8.0),
+                    rect.y + 114.0,
+                    button_width,
+                    40.0,
+                ),
+                &format!(
+                    "{} · {}",
+                    kind.label(),
+                    ctx.session.world.route_policies.for_kind(kind).label()
+                ),
+                ctx.session.phase == crate::state::GamePhase::Playing,
+                ButtonTone::Secondary,
+                pointer,
+            ) {
+                actions.push(UiAction::CycleRoutePolicy(kind));
+            }
+        }
+        draw_text_block(
+            "Direct orders keep their existing route behavior.",
+            rect.x + 18.0,
+            rect.y + 162.0,
+            rect.w - 36.0,
+            18.0,
+            12.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
     } else {
-        "Work and patrol markings are visible; Logistics will connect storage and production."
-            .to_owned()
-    };
-    draw_text_block(
-        &message,
-        rect.x + 18.0,
-        rect.y + 104.0,
-        rect.w - 36.0,
-        22.0,
-        13.0,
-        0.0,
-        dark::TEXT_DIM,
-    );
-}
-
-fn zone_count(ctx: &UiContext<'_>, kind: ZoneKind) -> usize {
-    ctx.session
-        .world
-        .zones
-        .iter()
-        .filter(|zone| zone.kind == kind)
-        .map(|zone| zone.tiles.len())
-        .sum()
+        let message = if ctx
+            .session
+            .research
+            .is_unlocked(Technology::OssuaryLogistics)
+        {
+            "Storage and Patrol use nearby marked posts; Work favors nearby gathering.".to_owned()
+        } else {
+            "Work and patrol markings are visible; Logistics will connect storage and production."
+                .to_owned()
+        };
+        draw_text_block(
+            &message,
+            rect.x + 18.0,
+            rect.y + 104.0,
+            rect.w - 36.0,
+            22.0,
+            13.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
+    }
 }
 
 pub(super) fn draw_small_info_panel(title: &str, message: &str) {

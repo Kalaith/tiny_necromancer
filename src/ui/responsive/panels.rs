@@ -318,6 +318,56 @@ fn draw_compact_zones_panel(
             actions.push(UiAction::ToggleZone(kind));
         }
     }
+    if ctx
+        .session
+        .research
+        .is_unlocked(Technology::DomainStewardship)
+    {
+        draw_text_block(
+            "ROUTE POLICY · repeat workers",
+            sheet.x + 16.0,
+            sheet.y + 216.0,
+            sheet.w - 32.0,
+            18.0,
+            11.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
+        for (index, kind) in [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
+            .into_iter()
+            .enumerate()
+        {
+            if compact_virtual_button(
+                Rect::new(
+                    sheet.x + 16.0 + index as f32 * (width + 5.0),
+                    sheet.y + 236.0,
+                    width,
+                    44.0,
+                ),
+                &format!(
+                    "{} · {}",
+                    kind.label(),
+                    ctx.session.world.route_policies.for_kind(kind).label()
+                ),
+                ctx.session.phase == crate::state::GamePhase::Playing,
+                ButtonTone::Secondary,
+                11.0,
+                pointer,
+            ) {
+                actions.push(UiAction::CycleRoutePolicy(kind));
+            }
+        }
+        draw_text_block(
+            "Direct orders keep their existing route behavior.",
+            sheet.x + 16.0,
+            sheet.y + 286.0,
+            sheet.w - 32.0,
+            18.0,
+            11.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
+    }
 }
 
 fn draw_compact_domain_panel(

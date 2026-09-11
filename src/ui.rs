@@ -113,6 +113,7 @@ pub enum UiAction {
     MovePriority(JobKind, i32),
     ToggleDomainOverlay(DomainOverlay),
     CycleStewardshipPolicy,
+    CycleRoutePolicy(ZoneKind),
     TogglePanel(Panel),
     ToggleZone(ZoneKind),
     PaintZone(TilePos),

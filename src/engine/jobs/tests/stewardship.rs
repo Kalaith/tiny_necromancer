@@ -1,6 +1,7 @@
 use super::super::{destination_for_worker, simulate};
 use crate::state::{
-    Building, BuildingKind, GameSession, JobKind, StewardshipPolicy, Technology, WorldState,
+    Building, BuildingKind, GameSession, JobKind, RoutePolicy, StewardshipPolicy, Technology,
+    WorldState,
 };
 use macroquad_toolkit::grid::TilePos;
 
@@ -299,5 +300,77 @@ fn hypothetical_haul_route_uses_the_worker_roster_slot() {
     assert_eq!(
         destination_for_worker(&session, &hypothetical),
         Some(first_storage)
+    );
+}
+
+#[test]
+fn nearest_work_policy_ignores_marked_forest_preference_for_repeat_workers() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.forest_tiles[1]],
+    });
+    session.world.route_policies.work = RoutePolicy::Nearest;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Wood;
+    session.workforce.workers[0].position = TilePos::new(1, 0);
+
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        Some(session.world.forest_tiles[0])
+    );
+}
+
+#[test]
+fn marked_only_work_policy_waits_without_marks_but_direct_orders_stay_open() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.route_policies.work = RoutePolicy::MarkedOnly;
+    session.workforce.workers[0].assignment = JobKind::Wood;
+    session.workforce.workers[0].priority_mode = true;
+
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        None
+    );
+    session.workforce.workers[0].priority_mode = false;
+    assert!(destination_for_worker(&session, &session.workforce.workers[0]).is_some());
+}
+
+#[test]
+fn nearest_storage_and_patrol_policies_use_normal_fallbacks() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    let marked_storage = TilePos::new(5, 1);
+    let marked_patrol = TilePos::new(5, 3);
+    session.world.zones.extend([
+        crate::state::Zone {
+            kind: crate::state::ZoneKind::Storage,
+            tiles: vec![marked_storage],
+        },
+        crate::state::Zone {
+            kind: crate::state::ZoneKind::Patrol,
+            tiles: vec![marked_patrol],
+        },
+    ]);
+    session.world.route_policies.storage = RoutePolicy::Nearest;
+    session.world.route_policies.patrol = RoutePolicy::Nearest;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].position = WorldState::stockpile_position();
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].carrying = 1;
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        Some(WorldState::stockpile_position())
+    );
+    session.workforce.workers[0].assignment = JobKind::Guard;
+    session.workforce.workers[0].carrying = 0;
+    assert_eq!(
+        destination_for_worker(&session, &session.workforce.workers[0]),
+        Some(WorldState::guard_position(session.world.road_x))
     );
 }

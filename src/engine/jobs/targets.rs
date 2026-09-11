@@ -3,7 +3,8 @@
 use super::PatrolCoverage;
 use crate::engine::navigation;
 use crate::state::{
-    Building, BuildingKind, GameSession, JobKind, PlotStatus, Worker, WorldState, ZoneKind,
+    Building, BuildingKind, GameSession, JobKind, PlotStatus, RoutePolicy, Technology, Worker,
+    WorldState, ZoneKind,
 };
 use macroquad_toolkit::grid::TilePos;
 
@@ -12,7 +13,7 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
         JobKind::Dig => dig_destination(session, worker),
         JobKind::Haul => {
             if worker.carrying > 0 {
-                Some(storage_destination(session, worker.position, worker.id))
+                storage_destination(session, worker.position, worker.id)
             } else if session.economy.loose_bones > 0 {
                 let dug = session
                     .world
@@ -39,7 +40,7 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
                 None
             }
         }
-        JobKind::Guard => Some(patrol_destination(session, worker.position, worker.id)),
+        JobKind::Guard => patrol_destination(session, worker.position, worker.id),
         JobKind::Wood => wood_destination(session, worker.position, worker.id),
         JobKind::Build => structure_destination(
             session,
@@ -144,23 +145,32 @@ fn dig_destination(session: &GameSession, worker: &Worker) -> Option<TilePos> {
         .filter(|plot| plot.status == PlotStatus::Ready && !claimed.contains(&plot.id))
         .map(|plot| plot.position)
         .collect::<Vec<_>>();
-    selected
-        .or_else(|| navigation::nearest_reachable(session, worker.position, designated))
-        .or_else(|| navigation::nearest_reachable(session, worker.position, available.clone()))
-        .or_else(|| {
-            session
-                .world
-                .selected_plot
-                .and_then(|plot_id| {
-                    session.world.plots.iter().find(|plot| {
-                        plot.id == plot_id
-                            && plot.status == PlotStatus::Ready
-                            && !claimed.contains(&plot.id)
+    match route_policy(session, worker.id, ZoneKind::Work) {
+        RoutePolicy::MarkedOnly => selected
+            .filter(|position| session.world.zone_contains(ZoneKind::Work, *position))
+            .or_else(|| navigation::nearest_reachable(session, worker.position, designated.clone()))
+            .or_else(|| designated.first().copied()),
+        RoutePolicy::Nearest => selected
+            .or_else(|| navigation::nearest_reachable(session, worker.position, available.clone()))
+            .or_else(|| available.first().copied()),
+        RoutePolicy::MarkedFirst => selected
+            .or_else(|| navigation::nearest_reachable(session, worker.position, designated))
+            .or_else(|| navigation::nearest_reachable(session, worker.position, available.clone()))
+            .or_else(|| {
+                session
+                    .world
+                    .selected_plot
+                    .and_then(|plot_id| {
+                        session.world.plots.iter().find(|plot| {
+                            plot.id == plot_id
+                                && plot.status == PlotStatus::Ready
+                                && !claimed.contains(&plot.id)
+                        })
                     })
-                })
-                .map(|plot| plot.position)
-        })
-        .or_else(|| available.first().copied())
+                    .map(|plot| plot.position)
+            })
+            .or_else(|| available.first().copied()),
+    }
 }
 
 fn nearest_reachable_or_nearest(
@@ -204,17 +214,33 @@ fn structure_destination(
     nearest_reachable_or_nearest(session, origin, candidates)
 }
 
-fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> TilePos {
-    let fallback = session.world.storage_position();
-    let candidates = unique_tiles(zone_tiles(session, ZoneKind::Storage));
-    let candidates = if candidates.is_empty() {
-        vec![fallback]
+fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> Option<TilePos> {
+    let policy = route_policy(session, worker_id, ZoneKind::Storage);
+    let fallback = if policy == RoutePolicy::Nearest {
+        WorldState::stockpile_position()
     } else {
-        candidates
+        session.world.storage_position()
+    };
+    let marked = unique_tiles(zone_tiles(session, ZoneKind::Storage));
+    let candidates = match policy {
+        RoutePolicy::MarkedFirst => {
+            if marked.is_empty() {
+                vec![fallback]
+            } else {
+                marked
+            }
+        }
+        RoutePolicy::Nearest => vec![fallback],
+        RoutePolicy::MarkedOnly => {
+            if marked.is_empty() {
+                return None;
+            }
+            marked
+        }
     };
     let current_slot = storage_slot(session, worker_id);
     let preferred = if current_slot == 0 {
-        nearest_reachable_or_nearest(session, origin, candidates.clone()).unwrap_or(fallback)
+        nearest_reachable_or_nearest(session, origin, candidates.clone())?
     } else {
         candidates[current_slot % candidates.len()]
     };
@@ -228,11 +254,11 @@ fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -
                 && worker.carrying > 0
                 && storage_slot(session, worker.id) < current_slot
         })
-        .map(|worker| storage_destination(session, worker.position, worker.id))
+        .filter_map(|worker| storage_destination(session, worker.position, worker.id))
         .collect::<Vec<_>>();
     if !occupied.contains(&preferred) && navigation::plan_route(session, origin, preferred).is_ok()
     {
-        return preferred;
+        return Some(preferred);
     }
     let unoccupied = candidates
         .iter()
@@ -241,14 +267,14 @@ fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -
         .collect::<Vec<_>>();
     nearest_reachable_or_nearest(session, origin, unoccupied)
         .or_else(|| nearest_reachable_or_nearest(session, origin, candidates.clone()))
-        .unwrap_or(fallback)
+        .or_else(|| (policy != RoutePolicy::MarkedOnly).then_some(fallback))
 }
 
 pub(super) fn storage_destination_for(
     session: &GameSession,
     origin: TilePos,
     worker_id: u32,
-) -> TilePos {
+) -> Option<TilePos> {
     storage_destination(session, origin, worker_id)
 }
 
@@ -274,16 +300,26 @@ fn storage_slot(session: &GameSession, worker_id: u32) -> usize {
         .saturating_sub(1)
 }
 
-fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> TilePos {
-    let fallback = session.world.patrol_position();
-    let candidates = zone_tiles(session, ZoneKind::Patrol);
+fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> Option<TilePos> {
+    let policy = route_policy(session, worker_id, ZoneKind::Patrol);
+    let fallback = if policy == RoutePolicy::Nearest {
+        WorldState::guard_position(session.world.road_x)
+    } else {
+        session.world.patrol_position()
+    };
+    let candidates = unique_tiles(zone_tiles(session, ZoneKind::Patrol));
+    match policy {
+        RoutePolicy::Nearest => return Some(fallback),
+        RoutePolicy::MarkedOnly if candidates.is_empty() => return None,
+        _ => {}
+    }
     if candidates.is_empty() {
-        return fallback;
+        return Some(fallback);
     }
     let current_slot = guard_slot(session, worker_id);
     let preferred = candidates[current_slot % candidates.len()];
     if navigation::plan_route(session, origin, preferred).is_ok() {
-        return preferred;
+        return Some(preferred);
     }
     let occupied = session
         .workforce
@@ -294,7 +330,7 @@ fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) ->
                 && worker.id != worker_id
                 && guard_slot(session, worker.id) < current_slot
         })
-        .map(|worker| patrol_destination(session, worker.position, worker.id))
+        .filter_map(|worker| patrol_destination(session, worker.position, worker.id))
         .collect::<Vec<_>>();
     let unoccupied = candidates
         .iter()
@@ -303,7 +339,9 @@ fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) ->
         .collect::<Vec<_>>();
     nearest_reachable_or_nearest(session, origin, unoccupied)
         .or_else(|| nearest_reachable_or_nearest(session, origin, candidates.clone()))
-        .unwrap_or_else(|| session.world.patrol_position_for(origin))
+        .or_else(|| {
+            (policy != RoutePolicy::MarkedOnly).then(|| session.world.patrol_position_for(origin))
+        })
 }
 
 fn guard_slot(session: &GameSession, worker_id: u32) -> usize {
@@ -353,10 +391,16 @@ fn wood_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> O
         .filter(|tile| session.world.zone_contains(ZoneKind::Work, **tile))
         .copied()
         .collect::<Vec<_>>();
-    let candidates = if marked.is_empty() {
-        session.world.forest_tiles.clone()
-    } else {
-        marked
+    let candidates = match route_policy(session, worker_id, ZoneKind::Work) {
+        RoutePolicy::MarkedFirst => {
+            if marked.is_empty() {
+                session.world.forest_tiles.clone()
+            } else {
+                marked
+            }
+        }
+        RoutePolicy::Nearest => session.world.forest_tiles.clone(),
+        RoutePolicy::MarkedOnly => marked,
     };
     let candidates = unique_tiles(candidates);
     if candidates.is_empty() {
@@ -390,4 +434,18 @@ fn wood_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> O
         .collect::<Vec<_>>();
     nearest_reachable_or_nearest(session, origin, unoccupied)
         .or_else(|| nearest_reachable_or_nearest(session, origin, candidates))
+}
+
+fn route_policy(session: &GameSession, worker_id: u32, kind: ZoneKind) -> RoutePolicy {
+    let automated = session
+        .workforce
+        .workers
+        .iter()
+        .find(|worker| worker.id == worker_id)
+        .is_some_and(|worker| worker.priority_mode);
+    if automated && session.research.is_unlocked(Technology::DomainStewardship) {
+        session.world.route_policies.for_kind(kind)
+    } else {
+        RoutePolicy::MarkedFirst
+    }
 }

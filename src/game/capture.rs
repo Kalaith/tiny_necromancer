@@ -5,8 +5,8 @@ use crate::data::SuspicionStage;
 use crate::engine::corpses;
 use crate::state::{
     BuildingKind, DistrictActivity, DistrictActivityKind, GamePhase, GameSession, JobKind,
-    ProductionOrder, Selection, StewardshipPolicy, Technology, UndeadKind, WorkerStatus, Zone,
-    ZoneKind,
+    ProductionOrder, RoutePolicy, Selection, StewardshipPolicy, Technology, UndeadKind,
+    WorkerStatus, Zone, ZoneKind,
 };
 use crate::ui::{self, DomainOverlays, Panel};
 use macroquad::prelude::*;
@@ -35,6 +35,7 @@ impl Game {
             "research" => self.prepare_capture_research(),
             "orders" => self.prepare_capture_orders(),
             "priority-route" => self.prepare_capture_priority_route(),
+            "route-policy" => self.prepare_capture_route_policy(),
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
             "harvest-domain" => self.prepare_capture_harvest_domain(),
@@ -203,6 +204,16 @@ impl Game {
             });
         }
         self.session.world.selected = Some(Selection::Worker(0));
+    }
+
+    fn prepare_capture_route_policy(&mut self) {
+        self.prepare_capture_colony();
+        self.panel = Panel::Zones;
+        self.zone_mode = None;
+        self.session.world.route_policies.work = RoutePolicy::Nearest;
+        self.session.world.route_policies.storage = RoutePolicy::MarkedOnly;
+        self.session.world.route_policies.patrol = RoutePolicy::MarkedFirst;
+        self.session.world.selected = Some(Selection::Ground(TilePos::new(6, 5)));
     }
 
     fn prepare_capture_colony(&mut self) {

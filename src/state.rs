@@ -7,9 +7,11 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 mod research;
+mod route_policy;
 mod stewardship;
 mod workforce;
 pub use research::ResearchState;
+pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
 pub use stewardship::StewardshipPolicy;
 pub use workforce::{Worker, WorkforceState};
 
@@ -278,6 +280,8 @@ pub struct WorldState {
     pub selected: Option<Selection>,
     #[serde(default)]
     pub zones: Vec<Zone>,
+    #[serde(default)]
+    pub route_policies: DistrictRoutePolicies,
 }
 
 fn default_necromancer_position() -> TilePos {
@@ -537,6 +541,7 @@ impl GameSession {
                 necromancer_destination: None,
                 selected: Some(Selection::Grave(0)),
                 zones: Vec::new(),
+                route_policies: DistrictRoutePolicies::default(),
             },
             workforce: WorkforceState {
                 workers: vec![Worker {
