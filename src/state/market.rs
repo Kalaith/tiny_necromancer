@@ -61,6 +61,15 @@ impl MarketState {
             .copied()
             .find(|threshold| *threshold > self.favor)
     }
+
+    pub fn standing_progress(&self) -> f32 {
+        let tier = self.standing_tier();
+        let Some(target) = self.next_standing_target() else {
+            return 1.0;
+        };
+        let start = BROKER_STANDING_THRESHOLDS[tier];
+        (self.favor.saturating_sub(start) as f32 / (target - start) as f32).clamp(0.0, 1.0)
+    }
 }
 
 fn default_refresh_seconds() -> f32 {

@@ -13,6 +13,10 @@ fn broker_standing_advances_at_persistent_favor_thresholds() {
     market.favor = 8;
     assert_eq!(market.standing_label(), "Trusted");
     assert_eq!(market.next_standing_target(), None);
+    assert_eq!(market.standing_progress(), 1.0);
+
+    market.favor = 2;
+    assert!((market.standing_progress() - (2.0 / 3.0)).abs() < 0.001);
 }
 
 #[test]

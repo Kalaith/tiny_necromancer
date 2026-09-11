@@ -48,6 +48,15 @@ pub(super) fn draw_market_panel(
         0.0,
         dark::ACCENT,
     );
+    progress_bar(
+        rect.x + 486.0,
+        rect.y + 82.0,
+        166.0,
+        7.0,
+        ctx.session.progress.market.standing_progress(),
+        1.0,
+        dark::ACCENT,
+    );
     if virtual_button(
         Rect::new(rect.right() - 96.0, rect.y + 14.0, 72.0, 44.0),
         "Close",
@@ -205,6 +214,15 @@ pub(super) fn draw_compact_market_panel(
         0.0,
         dark::ACCENT,
     );
+    progress_bar(
+        sheet.x + 16.0,
+        sheet.y + 122.0,
+        sheet.w - 32.0,
+        6.0,
+        ctx.session.progress.market.standing_progress(),
+        1.0,
+        dark::ACCENT,
+    );
     if compact_virtual_button(
         Rect::new(sheet.right() - 92.0, sheet.y + 80.0, 76.0, 40.0),
         "Close",
@@ -224,7 +242,7 @@ pub(super) fn draw_compact_market_panel(
     } else {
         "Exchange unavailable".to_owned()
     };
-    let card = Rect::new(sheet.x + 16.0, sheet.y + 122.0, sheet.w - 32.0, 132.0);
+    let card = Rect::new(sheet.x + 16.0, sheet.y + 132.0, sheet.w - 32.0, 132.0);
     draw_surface(
         card,
         &SurfaceStyle::new(Color::new(0.12, 0.085, 0.15, 1.0))
@@ -271,7 +289,7 @@ pub(super) fn draw_compact_market_panel(
         dark::ACCENT,
     );
     if compact_virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 270.0, sheet.w - 32.0, 48.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 280.0, sheet.w - 32.0, 48.0),
         &trade_label,
         trade_ready,
         ButtonTone::Positive,
@@ -283,7 +301,7 @@ pub(super) fn draw_compact_market_panel(
     draw_text_block(
         &trade_status_label(ctx, trade_ready),
         sheet.x + 16.0,
-        sheet.y + 328.0,
+        sheet.y + 338.0,
         sheet.w - 32.0,
         22.0,
         11.0,
@@ -301,7 +319,7 @@ pub(super) fn draw_compact_market_panel(
             ctx.session.progress.market.completed_trades
         ),
         sheet.x + 16.0,
-        sheet.y + 358.0,
+        sheet.y + 368.0,
         sheet.w - 32.0,
         18.0,
         12.0,
