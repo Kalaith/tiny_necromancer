@@ -2,12 +2,20 @@
 
 use super::Game;
 use crate::state::{
-    BuildingKind, HaulDestination, JobKind, ProductionOrder, RoutePolicy, Selection, Technology,
-    WorkerStatus, WorldState,
+    BuildingKind, HaulDestination, JobKind, ProductionOrder, ProductionRecipeKind, RoutePolicy,
+    Selection, Technology, WorkerStatus, WorldState,
 };
 use macroquad_toolkit::grid::TilePos;
 
 impl Game {
+    pub(super) fn prepare_capture_kiln_hush(&mut self) {
+        self.prepare_capture_kiln();
+        self.session.progress.production = None;
+        self.session.progress.production_queue = 0;
+        self.session.progress.production_recipe = ProductionRecipeKind::HushAsh;
+        self.session.pressure.suspicion = 18.0;
+    }
+
     pub(super) fn prepare_capture_production(&mut self) {
         self.session.economy.bones = 48;
         self.session.economy.mana = 60;
@@ -39,6 +47,7 @@ impl Game {
         self.session.progress.production = Some(ProductionOrder {
             building: BuildingKind::OssuaryKiln,
             progress: 4.0,
+            recipe: ProductionRecipeKind::WardCharge,
             bones_remaining: 0,
             wood_remaining: 0,
         });
@@ -69,6 +78,7 @@ impl Game {
         self.session.progress.production = Some(ProductionOrder {
             building: BuildingKind::OssuaryKiln,
             progress: 0.0,
+            recipe: ProductionRecipeKind::WardCharge,
             bones_remaining: 12,
             wood_remaining: 6,
         });

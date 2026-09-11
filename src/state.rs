@@ -13,6 +13,7 @@ mod research;
 mod route_policy;
 mod stewardship;
 mod workforce;
+pub use crate::data::ProductionRecipeKind;
 pub use building_upgrades::BuildingUpgrades;
 pub use economy::EconomyState;
 pub use market::{
@@ -425,6 +426,8 @@ pub struct ProgressState {
     #[serde(default)]
     pub production_queue: usize,
     #[serde(default)]
+    pub production_recipe: ProductionRecipeKind,
+    #[serde(default)]
     pub building_upgrades: BuildingUpgrades,
     #[serde(default)]
     pub district_ledger: DistrictLedger,
@@ -462,6 +465,8 @@ pub struct DistrictActivity {
 pub struct ProductionOrder {
     pub building: BuildingKind,
     pub progress: f32,
+    #[serde(default)]
+    pub recipe: ProductionRecipeKind,
     #[serde(default)]
     pub bones_remaining: i32,
     #[serde(default)]
@@ -594,6 +599,7 @@ impl GameSession {
                 first_building_started: false,
                 production: None,
                 production_queue: 0,
+                production_recipe: ProductionRecipeKind::default(),
                 building_upgrades: BuildingUpgrades::default(),
                 district_ledger: DistrictLedger::default(),
                 market: MarketState::default(),

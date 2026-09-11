@@ -106,11 +106,49 @@ pub struct BuildingDef {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProductionDef {
+    pub recipes: Vec<ProductionRecipeDef>,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProductionRecipeKind {
+    #[default]
+    WardCharge,
+    HushAsh,
+}
+
+impl ProductionRecipeKind {
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::WardCharge => "Ward Charge",
+            Self::HushAsh => "Hush Ash",
+        }
+    }
+
+    pub fn short_label(self) -> &'static str {
+        match self {
+            Self::WardCharge => "Ward",
+            Self::HushAsh => "Hush",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ProductionRecipeDef {
+    pub kind: ProductionRecipeKind,
+    pub name: String,
     pub bones_cost: i32,
     pub wood_cost: i32,
     pub seconds: f32,
     pub output_amount: i32,
+    pub suspicion_delta: f32,
     pub effect_text: String,
+}
+
+impl ProductionDef {
+    pub fn recipe(&self, kind: ProductionRecipeKind) -> Option<&ProductionRecipeDef> {
+        self.recipes.iter().find(|recipe| recipe.kind == kind)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -277,13 +315,32 @@ impl GameData {
                 ));
             }
             if let Some(production) = &building.production {
-                if production.bones_cost < 0
-                    || production.wood_cost < 0
-                    || production.seconds <= 0.0
-                    || production.output_amount <= 0
+                if production.recipes.is_empty()
+                    || production.recipes.iter().any(|recipe| {
+                        recipe.name.is_empty()
+                            || recipe.bones_cost < 0
+                            || recipe.wood_cost < 0
+                            || recipe.seconds <= 0.0
+                            || recipe.output_amount <= 0
+                            || !recipe.suspicion_delta.is_finite()
+                    })
                 {
                     return Err(format!(
                         "buildings.json: impossible production recipe for '{id}'"
+                    ));
+                }
+                let mut kinds = production.recipes.iter().map(|recipe| recipe.kind);
+                if kinds.clone().any(|kind| {
+                    production
+                        .recipes
+                        .iter()
+                        .filter(|recipe| recipe.kind == kind)
+                        .count()
+                        > 1
+                }) || !kinds.any(|kind| kind == ProductionRecipeKind::WardCharge)
+                {
+                    return Err(format!(
+                        "buildings.json: production recipes for '{id}' need one unique ward_charge entry"
                     ));
                 }
             }

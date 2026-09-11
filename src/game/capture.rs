@@ -7,8 +7,8 @@ use crate::data::SuspicionStage;
 use crate::engine::corpses;
 use crate::state::{
     BuildingKind, DistrictActivity, DistrictActivityKind, GamePhase, GameSession, JobKind,
-    ProductionOrder, RoutePolicy, Selection, StewardshipPolicy, Technology, UndeadKind,
-    WorkerStatus, WorldState, Zone, ZoneKind,
+    ProductionOrder, ProductionRecipeKind, RoutePolicy, Selection, StewardshipPolicy, Technology,
+    UndeadKind, WorkerStatus, WorldState, Zone, ZoneKind,
 };
 use crate::ui::{self, DomainOverlays, Panel};
 use macroquad::prelude::*;
@@ -60,6 +60,7 @@ impl Game {
             "district-route-gap" => self.prepare_capture_district_route_gap(),
             "notes" => self.prepare_capture_notes(),
             "production" => self.prepare_capture_production(),
+            "kiln-hush" => self.prepare_capture_kiln_hush(),
             "kiln-supply" => self.prepare_capture_kiln_supply(),
             "kiln-supply-loose" => self.prepare_capture_kiln_supply_loose(),
             "kiln-supply-inspector" => self.prepare_capture_kiln_supply_inspector(),
@@ -750,6 +751,7 @@ impl Game {
         self.session.progress.production = Some(ProductionOrder {
             building: BuildingKind::OssuaryKiln,
             progress: 3.0,
+            recipe: ProductionRecipeKind::WardCharge,
             bones_remaining: 0,
             wood_remaining: 0,
         });

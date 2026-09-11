@@ -43,6 +43,7 @@ param(
         "district-route-gap",
         "notes",
         "production",
+        "kiln-hush",
         "kiln-supply",
         "kiln-supply-loose",
         "kiln-supply-inspector",

@@ -291,12 +291,32 @@ fn older_saves_without_a_policy_default_to_balanced() {
 }
 
 #[test]
+fn older_saves_without_a_kiln_recipe_default_to_ward_charge() {
+    let data = crate::data::GameData::load().unwrap();
+    let save = GameSession::new(&data.config).to_save(&data.config.version);
+    let mut value = serde_json::to_value(save).unwrap();
+    value
+        .get_mut("progress")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("progress object")
+        .remove("production_recipe");
+
+    let migrated = migrate_save_value(None, value, &data.config).unwrap();
+
+    assert_eq!(
+        migrated.progress.production_recipe,
+        ProductionRecipeKind::WardCharge
+    );
+}
+
+#[test]
 fn older_saves_default_kiln_input_and_haul_destination_fields() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
     session.progress.production = Some(ProductionOrder {
         building: BuildingKind::OssuaryKiln,
         progress: 2.0,
+        recipe: ProductionRecipeKind::WardCharge,
         bones_remaining: 12,
         wood_remaining: 6,
     });

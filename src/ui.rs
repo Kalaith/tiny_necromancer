@@ -110,6 +110,7 @@ pub enum UiAction {
     CancelPlacement,
     UnlockPlot,
     StartResearch(Technology),
+    SelectProductionRecipe(BuildingKind, crate::state::ProductionRecipeKind),
     StartProduction(BuildingKind),
     CancelProduction(BuildingKind),
     UpgradeBuilding(BuildingKind),

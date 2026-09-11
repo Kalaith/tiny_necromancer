@@ -1,5 +1,5 @@
 use super::*;
-use crate::state::{Building, BuildingKind, GameSession, ProductionOrder};
+use crate::state::{Building, BuildingKind, GameSession, ProductionOrder, ProductionRecipeKind};
 use macroquad_toolkit::grid::TilePos;
 
 #[test]
@@ -9,6 +9,7 @@ fn loaded_production_without_a_refiner_becomes_actionable() {
     session.progress.production = Some(ProductionOrder {
         building: BuildingKind::OssuaryKiln,
         progress: 1.0,
+        recipe: ProductionRecipeKind::WardCharge,
         bones_remaining: 0,
         wood_remaining: 0,
     });
@@ -35,6 +36,7 @@ fn assigned_refiner_clears_the_kiln_alert() {
     session.progress.production = Some(ProductionOrder {
         building: BuildingKind::OssuaryKiln,
         progress: 1.0,
+        recipe: ProductionRecipeKind::WardCharge,
         bones_remaining: 0,
         wood_remaining: 0,
     });
@@ -51,6 +53,7 @@ fn missing_kiln_inputs_point_to_the_kiln_before_refining() {
     session.progress.production = Some(ProductionOrder {
         building: BuildingKind::OssuaryKiln,
         progress: 0.0,
+        recipe: ProductionRecipeKind::WardCharge,
         bones_remaining: 12,
         wood_remaining: 6,
     });
@@ -78,6 +81,7 @@ fn kiln_input_alert_quiets_while_a_supply_route_is_committed() {
     session.progress.production = Some(ProductionOrder {
         building: BuildingKind::OssuaryKiln,
         progress: 0.0,
+        recipe: ProductionRecipeKind::WardCharge,
         bones_remaining: 8,
         wood_remaining: 6,
     });

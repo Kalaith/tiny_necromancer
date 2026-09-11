@@ -424,6 +424,15 @@ impl Game {
                 let result = progression::start_research(&mut self.session, technology);
                 self.notify_result(result);
             }
+            UiAction::SelectProductionRecipe(kind, recipe) => {
+                let result = progression::select_production_recipe(
+                    &mut self.session,
+                    &self.data,
+                    kind,
+                    recipe,
+                );
+                self.notify_result(result);
+            }
             UiAction::StartProduction(kind) => {
                 let result = progression::start_production(&mut self.session, &self.data, kind);
                 self.notify_result(result);

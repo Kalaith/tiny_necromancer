@@ -179,7 +179,7 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
     let Some(selection) = ctx.session.world.selected else {
         return;
     };
-    let panel = Rect::new(952.0, 86.0, 310.0, 454.0);
+    let panel = Rect::new(952.0, 86.0, 310.0, 516.0);
     draw_surface(
         panel,
         &SurfaceStyle::new(Color::new(0.055, 0.065, 0.065, 0.96))
@@ -652,10 +652,12 @@ fn draw_building_inspector(
                 .buildings
                 .get(building.kind.id())
                 .and_then(|def| def.production.as_ref())
+                .and_then(|production| production.recipe(order.recipe))
                 .map_or(8.0, |recipe| recipe.seconds);
             draw_text_block(
                 &format!(
-                    "Refining ward charge · reserved {}/{}",
+                    "Refining {} · reserved {}/{}",
+                    order.recipe.label(),
                     ctx.session.progress.production_queue,
                     crate::engine::progression::MAX_PRODUCTION_QUEUE
                 ),

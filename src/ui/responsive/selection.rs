@@ -2,6 +2,7 @@
 
 use super::super::buildings;
 use super::super::components::{compact_virtual_button, virtual_button};
+use super::super::production;
 use super::super::{UiAction, UiContext};
 use crate::state::{
     BuildingKind, GamePhase, JobKind, PlotStatus, Selection, Technology, UndeadKind,
@@ -317,7 +318,7 @@ fn draw_building(
     );
     buildings::draw_compact_upgrade(ctx, pointer, actions, sheet, building);
     match building.kind {
-        BuildingKind::OssuaryKiln => draw_kiln(ctx, pointer, actions, sheet),
+        BuildingKind::OssuaryKiln => production::draw_compact_kiln(ctx, pointer, actions, sheet),
         BuildingKind::WorkShed => {
             if virtual_button(
                 Rect::new(sheet.x + 16.0, sheet.y + 174.0, sheet.w - 32.0, 48.0),
@@ -342,95 +343,6 @@ fn draw_building(
             );
             buildings::draw_compact_market_button(ctx, pointer, actions, sheet, building);
         }
-    }
-}
-
-fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>, sheet: Rect) {
-    let Some(recipe) = ctx
-        .data
-        .buildings
-        .get(BuildingKind::OssuaryKiln.id())
-        .and_then(|def| def.production.as_ref())
-    else {
-        return;
-    };
-    let queued = ctx.session.progress.production_queue;
-    let active = ctx.session.progress.production.is_some();
-    let input_status = ctx.session.progress.production.as_ref().map_or_else(
-        || "Inputs · no cycle requested".to_owned(),
-        |order| {
-            if order.bones_remaining > 0 || order.wood_remaining > 0 {
-                format!(
-                    "Inputs waiting · B{} W{} · assign Haul",
-                    order.bones_remaining, order.wood_remaining
-                )
-            } else {
-                "Inputs ready · B0 W0".to_owned()
-            }
-        },
-    );
-    draw_text_block(
-        &format!(
-            "Ward cycle · stored {} · reserved {}/{}\n{}",
-            ctx.session.economy.ward_charges,
-            queued,
-            crate::engine::progression::MAX_PRODUCTION_QUEUE,
-            input_status
-        ),
-        sheet.x + 16.0,
-        sheet.y + 152.0,
-        sheet.w - 32.0,
-        32.0,
-        11.0,
-        3.0,
-        if input_status.contains("waiting") {
-            dark::WARNING
-        } else {
-            dark::ACCENT
-        },
-    );
-    if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 188.0, sheet.w - 32.0, 44.0),
-        if active {
-            "Queue ward cycle"
-        } else if ctx.session.economy.bones >= recipe.bones_cost
-            && ctx.session.economy.wood >= recipe.wood_cost
-        {
-            "Load kiln"
-        } else {
-            "Request kiln supply"
-        },
-        ctx.session.phase == GamePhase::Playing
-            && (!active || queued < crate::engine::progression::MAX_PRODUCTION_QUEUE)
-            && (!active
-                || (ctx.session.economy.bones >= recipe.bones_cost
-                    && ctx.session.economy.wood >= recipe.wood_cost)),
-        ButtonTone::Positive,
-        pointer,
-    ) {
-        actions.push(UiAction::StartProduction(BuildingKind::OssuaryKiln));
-    }
-    if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 234.0, sheet.w - 32.0, 44.0),
-        if queued > 0 {
-            "Cancel reserved cycle"
-        } else {
-            "No reserved cycle"
-        },
-        queued > 0 && ctx.session.phase == GamePhase::Playing,
-        ButtonTone::Warning,
-        pointer,
-    ) {
-        actions.push(UiAction::CancelProduction(BuildingKind::OssuaryKiln));
-    }
-    if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 280.0, sheet.w - 32.0, 44.0),
-        "Spend ward charge",
-        ctx.session.economy.ward_charges > 0 && ctx.session.phase == GamePhase::Playing,
-        ButtonTone::Secondary,
-        pointer,
-    ) {
-        actions.push(UiAction::UseWardCharge);
     }
 }
 

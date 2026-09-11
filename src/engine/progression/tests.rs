@@ -1,5 +1,5 @@
 use super::*;
-use crate::state::{JobKind, UndeadKind, Worker, WorkerStatus};
+use crate::state::{JobKind, ProductionRecipeKind, UndeadKind, Worker, WorkerStatus};
 use macroquad_toolkit::grid::TilePos;
 
 #[test]
@@ -172,6 +172,82 @@ fn kiln_is_gated_by_logistics_and_loads_its_recipe() {
     assert_eq!(session.economy.bones, 70);
     assert_eq!(session.economy.wood, 70);
     assert!(session.progress.production.is_some());
+}
+
+#[test]
+fn kiln_recipe_board_exposes_a_safe_default_and_a_quieting_alternative() {
+    let data = crate::data::GameData::load().unwrap();
+    let recipes = production_recipes(&data, BuildingKind::OssuaryKiln).unwrap();
+
+    assert_eq!(recipes.len(), 2);
+    assert_eq!(recipes[0].kind, ProductionRecipeKind::WardCharge);
+    assert_eq!(recipes[1].kind, ProductionRecipeKind::HushAsh);
+    assert_eq!(
+        GameSession::new(&data.config).progress.production_recipe,
+        ProductionRecipeKind::WardCharge
+    );
+}
+
+#[test]
+fn hush_ash_can_be_selected_and_quiets_suspicion_on_completion() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    session.pressure.suspicion = 20.0;
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    queue_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_construction(&mut session, &data, 14.0);
+
+    select_production_recipe(
+        &mut session,
+        &data,
+        BuildingKind::OssuaryKiln,
+        ProductionRecipeKind::HushAsh,
+    )
+    .unwrap();
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_production(&mut session, &data, 11.0);
+
+    assert_eq!(session.economy.ward_charges, 1);
+    assert_eq!(session.pressure.suspicion, 19.0);
+    assert!(session.pressure.feed[0].message.contains("Hush Ash"));
+}
+
+#[test]
+fn active_kiln_cycle_keeps_its_recipe_and_blocks_switching() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.wood = 100;
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    queue_building(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    advance_construction(&mut session, &data, 14.0);
+    select_production_recipe(
+        &mut session,
+        &data,
+        BuildingKind::OssuaryKiln,
+        ProductionRecipeKind::HushAsh,
+    )
+    .unwrap();
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+
+    let error = select_production_recipe(
+        &mut session,
+        &data,
+        BuildingKind::OssuaryKiln,
+        ProductionRecipeKind::WardCharge,
+    )
+    .unwrap_err();
+
+    assert_eq!(
+        error,
+        "Finish or cancel the active kiln cycle before changing recipes."
+    );
+    assert_eq!(
+        session.progress.production.unwrap().recipe,
+        ProductionRecipeKind::HushAsh
+    );
 }
 
 #[test]

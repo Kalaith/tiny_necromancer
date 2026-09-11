@@ -201,12 +201,19 @@ grave lantern now opens a small rotating night market. Larger populations,
 farms, housing, and additional biomes remain deliberately deferred from the
 current victory slice.
 
-The Ossuary Kiln loads one ward-charge cycle at a time and accepts up to three
-reserved follow-up cycles. Reserved materials are removed when the cycle is
-queued, so the player can see the true available stock before committing to a
-longer production run. A reserved follow-up cycle can be cancelled from the
-kiln inspector; its recipe materials return immediately while the active cycle
-keeps its progress.
+The Ossuary Kiln presents a persistent recipe board with the dependable Ward
+Charge cycle selected by default and the slower Hush Ash cycle as an alternate
+pressure-management tool. Hush Ash still seals one ward charge, but also lowers
+suspicion when it completes. The selected recipe is saved, an active cycle
+keeps its recipe through completion, and a player can only change the board
+between cycles.
+
+Both kiln recipes load one cycle at a time and accept up to three reserved
+follow-up cycles. Reserved materials are removed when the cycle is queued, so
+the player can see the true available stock before committing to a longer
+production run. A reserved follow-up cycle can be cancelled from the kiln
+inspector; its selected recipe materials return immediately while the active
+cycle keeps its progress.
 
 If the first cycle is requested before its full recipe is in storage, the kiln
 keeps the request open and records each missing input. The existing stock is

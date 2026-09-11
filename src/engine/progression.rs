@@ -3,12 +3,61 @@
 use crate::data::GameData;
 use crate::engine::suspicion;
 use crate::state::{
-    Building, BuildingKind, GamePhase, GameSession, PlotStatus, ProductionOrder, Technology,
+    Building, BuildingKind, GamePhase, GameSession, PlotStatus, ProductionOrder,
+    ProductionRecipeKind, Technology,
 };
 use macroquad_toolkit::grid::TilePos;
 
 pub const MAX_PRODUCTION_QUEUE: usize = 3;
 pub const MAX_BUILDING_LEVEL: u8 = 2;
+
+pub fn production_recipes(
+    data: &GameData,
+    kind: BuildingKind,
+) -> Option<&[crate::data::ProductionRecipeDef]> {
+    data.buildings
+        .get(kind.id())
+        .and_then(|building| building.production.as_ref())
+        .map(|production| production.recipes.as_slice())
+}
+
+fn production_recipe(
+    data: &GameData,
+    kind: BuildingKind,
+    recipe_kind: ProductionRecipeKind,
+) -> Result<&crate::data::ProductionRecipeDef, String> {
+    production_recipes(data, kind)
+        .and_then(|recipes| recipes.iter().find(|recipe| recipe.kind == recipe_kind))
+        .ok_or_else(|| "That kiln recipe is not available.".to_owned())
+}
+
+pub fn select_production_recipe(
+    session: &mut GameSession,
+    data: &GameData,
+    kind: BuildingKind,
+    recipe_kind: ProductionRecipeKind,
+) -> Result<(), String> {
+    if kind != BuildingKind::OssuaryKiln {
+        return Err("That structure has no recipe board.".to_owned());
+    }
+    if !session.research.is_unlocked(Technology::OssuaryLogistics) {
+        return Err("Study Ossuary Logistics before tuning the kiln.".to_owned());
+    }
+    if !session.has_building(kind) {
+        return Err("Finish the kiln before choosing a recipe.".to_owned());
+    }
+    let recipe = production_recipe(data, kind, recipe_kind)?;
+    if session.progress.production.is_some() {
+        return Err("Finish or cancel the active kiln cycle before changing recipes.".to_owned());
+    }
+    if session.progress.production_recipe == recipe_kind {
+        return Err(format!("{} is already selected.", recipe.name));
+    }
+    session.progress.production_recipe = recipe_kind;
+    let message = format!("Kiln recipe set to {}.", recipe.name);
+    session.add_feed(message.clone());
+    Ok(())
+}
 
 pub fn building_level(session: &GameSession, kind: BuildingKind) -> u8 {
     session
@@ -247,11 +296,8 @@ pub fn start_production(
     if !session.has_building(kind) {
         return Err("The kiln must be complete before it can refine wards.".to_owned());
     }
-    let recipe = data
-        .buildings
-        .get(kind.id())
-        .and_then(|building| building.production.as_ref())
-        .ok_or_else(|| "That structure has no production recipe.".to_owned())?;
+    let recipe_kind = session.progress.production_recipe;
+    let recipe = production_recipe(data, kind, recipe_kind)?;
     let active = session.progress.production.is_some();
     if active && session.progress.production_queue >= MAX_PRODUCTION_QUEUE {
         return Err("The kiln's ward queue is full.".to_owned());
@@ -266,7 +312,10 @@ pub fn start_production(
         session.economy.bones -= recipe.bones_cost;
         session.economy.wood -= recipe.wood_cost;
         session.progress.production_queue += 1;
-        session.add_feed("Another ward cycle is reserved in the kiln.");
+        session.add_feed(format!(
+            "Another {} cycle is reserved in the kiln.",
+            recipe.name
+        ));
     } else {
         let bones_available = session.economy.bones.min(recipe.bones_cost);
         let wood_available = session.economy.wood.min(recipe.wood_cost);
@@ -277,11 +326,15 @@ pub fn start_production(
         session.progress.production = Some(ProductionOrder {
             building: kind,
             progress: 0.0,
+            recipe: recipe_kind,
             bones_remaining,
             wood_remaining,
         });
         if bones_remaining == 0 && wood_remaining == 0 {
-            session.add_feed("The Ossuary Kiln is loaded; assign a worker to Refine Wards.");
+            session.add_feed(format!(
+                "The Ossuary Kiln is loaded for {}; assign a worker to Refine Wards.",
+                recipe.name
+            ));
         } else {
             session.add_feed(format!(
                 "The Ossuary Kiln needs {bones_remaining} bones and {wood_remaining} wood; assign Haul."
@@ -344,25 +397,21 @@ pub fn cancel_production(
     kind: BuildingKind,
 ) -> Result<(), String> {
     let Some(order) = session.progress.production.as_ref() else {
-        return Err("There is no active ward cycle to adjust.".to_owned());
+        return Err("There is no active kiln cycle to adjust.".to_owned());
     };
     if order.building != kind {
-        return Err("That structure has no active ward cycle.".to_owned());
+        return Err("That structure has no active kiln cycle.".to_owned());
     }
     if session.progress.production_queue == 0 {
         return Err("There is no reserved ward cycle to cancel.".to_owned());
     }
-    let recipe = data
-        .buildings
-        .get(kind.id())
-        .and_then(|building| building.production.as_ref())
-        .ok_or_else(|| "That structure has no production recipe.".to_owned())?;
+    let recipe = production_recipe(data, kind, order.recipe)?;
     session.progress.production_queue -= 1;
     session.economy.bones += recipe.bones_cost;
     session.economy.wood += recipe.wood_cost;
     session.add_feed(format!(
-        "A reserved ward cycle is cancelled; +{} bones and +{} wood return to storage.",
-        recipe.bones_cost, recipe.wood_cost
+        "A reserved {} cycle is cancelled; +{} bones and +{} wood return to storage.",
+        recipe.name, recipe.bones_cost, recipe.wood_cost
     ));
     Ok(())
 }
@@ -377,6 +426,7 @@ pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -
         .buildings
         .get(order.building.id())
         .and_then(|building| building.production.as_ref())
+        .and_then(|production| production.recipe(order.recipe))
         .expect("validated production recipe");
     order.progress += dt;
     let cycle_seconds =
@@ -386,12 +436,18 @@ pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -
         return None;
     }
     session.economy.ward_charges += recipe.output_amount;
+    if recipe.suspicion_delta < 0.0 {
+        suspicion::adjust_quiet(session, recipe.suspicion_delta, "a hush ash kiln cycle");
+    } else if recipe.suspicion_delta > 0.0 {
+        suspicion::adjust(session, recipe.suspicion_delta, "a kiln cycle");
+    }
     let next_cycle = session.progress.production_queue > 0;
     if next_cycle {
         session.progress.production_queue -= 1;
         session.progress.production = Some(ProductionOrder {
             building: order.building,
             progress: 0.0,
+            recipe: order.recipe,
             bones_remaining: 0,
             wood_remaining: 0,
         });
@@ -399,8 +455,9 @@ pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -
         session.progress.production = None;
     }
     let message = format!(
-        "{} Ward charge ready. {}{}",
+        "{} {} ready. {}{}",
         recipe.output_amount,
+        recipe.name,
         recipe.effect_text,
         if next_cycle {
             " Next reserved cycle begins."
