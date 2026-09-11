@@ -15,7 +15,9 @@ mod stewardship;
 mod workforce;
 pub use building_upgrades::BuildingUpgrades;
 pub use economy::EconomyState;
-pub use market::MarketState;
+pub use market::{
+    MarketContract, MarketState, MARKET_CONTRACT_BONUS_FAVOR, MARKET_CONTRACT_SECONDS,
+};
 pub use research::ResearchState;
 pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
 pub use stewardship::StewardshipPolicy;

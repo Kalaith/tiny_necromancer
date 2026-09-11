@@ -2,7 +2,9 @@
 
 use crate::data::GameData;
 use crate::engine::{districts, suspicion};
-use crate::state::{BuildingKind, GameSession};
+use crate::state::{
+    BuildingKind, GameSession, MarketContract, MARKET_CONTRACT_BONUS_FAVOR, MARKET_CONTRACT_SECONDS,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TradeOfferKind {
@@ -53,14 +55,26 @@ const OFFERS: [TradeOffer; 3] = [
 ];
 
 pub fn current_offer(session: &GameSession) -> TradeOffer {
-    OFFERS[session.progress.market.offer_index % OFFERS.len()]
+    session.progress.market.contract.as_ref().map_or_else(
+        || offer_at(session.progress.market.offer_index),
+        |contract| offer_at(contract.offer_index),
+    )
 }
 
 pub fn offer_position(session: &GameSession) -> (usize, usize) {
-    (
-        session.progress.market.offer_index % OFFERS.len() + 1,
-        OFFERS.len(),
-    )
+    let index = session
+        .progress
+        .market
+        .contract
+        .as_ref()
+        .map_or(session.progress.market.offer_index, |contract| {
+            contract.offer_index
+        });
+    (index % OFFERS.len() + 1, OFFERS.len())
+}
+
+fn offer_at(index: usize) -> TradeOffer {
+    OFFERS[index % OFFERS.len()]
 }
 
 pub fn exchange_suspicion(session: &GameSession) -> f32 {
@@ -86,14 +100,52 @@ pub fn advance_market(session: &mut GameSession, dt: f32) -> Option<String> {
     rotated.then(|| {
         format!(
             "Night market offer changed: {}.",
-            current_offer(session).title
+            offer_at(session.progress.market.offer_index).title
         )
     })
+}
+
+pub fn advance_contract(session: &mut GameSession, dt: f32) -> Option<String> {
+    if !dt.is_finite() || dt <= 0.0 {
+        return None;
+    }
+    let contract = session.progress.market.contract.as_mut()?;
+    contract.remaining_seconds -= dt;
+    if contract.remaining_seconds > 0.0 {
+        return None;
+    }
+    let offer = offer_at(contract.offer_index);
+    session.progress.market.contract = None;
+    Some(format!(
+        "Broker request expired: {} was left unfulfilled.",
+        offer.title
+    ))
+}
+
+pub fn accept_contract(session: &mut GameSession) -> Result<(), String> {
+    if !session.has_building(BuildingKind::GraveLantern) {
+        return Err("Complete the grave lantern before accepting a broker request.".to_owned());
+    }
+    if session.progress.market.contract.is_some() {
+        return Err("A broker request is already active.".to_owned());
+    }
+    session.progress.market.contract = Some(MarketContract {
+        offer_index: session.progress.market.offer_index,
+        remaining_seconds: MARKET_CONTRACT_SECONDS,
+        bonus_favor: MARKET_CONTRACT_BONUS_FAVOR,
+    });
+    let offer = current_offer(session);
+    session.add_feed(format!(
+        "Broker request accepted: fulfill {} for +{} favor.",
+        offer.title, MARKET_CONTRACT_BONUS_FAVOR
+    ));
+    Ok(())
 }
 
 pub fn execute_trade(session: &mut GameSession, data: &GameData) -> Result<(), String> {
     trade_status(session, data)?;
     let offer = current_offer(session);
+    let contract = session.progress.market.contract.take();
     session.economy.bones -= offer.bones_cost;
     session.economy.wood -= offer.wood_cost;
     match offer.kind {
@@ -103,7 +155,8 @@ pub fn execute_trade(session: &mut GameSession, data: &GameData) -> Result<(), S
     }
     session.progress.market.completed_trades += 1;
     let previous_tier = session.progress.market.standing_tier();
-    session.progress.market.favor = session.progress.market.favor.saturating_add(1);
+    let favor_gain = 1 + contract.as_ref().map_or(0, |active| active.bonus_favor);
+    session.progress.market.favor = session.progress.market.favor.saturating_add(favor_gain);
     let suspicion_cost = exchange_suspicion(session);
     suspicion::adjust(session, suspicion_cost, "a discreet night market exchange");
     if session.progress.market.standing_tier() > previous_tier {
@@ -112,10 +165,18 @@ pub fn execute_trade(session: &mut GameSession, data: &GameData) -> Result<(), S
             session.progress.market.standing_label()
         ));
     }
-    session.add_feed(format!(
-        "Night market exchange: {} for {}.",
-        offer.cost, offer.reward
-    ));
+    if contract.is_some() {
+        session.progress.market.completed_contracts += 1;
+        session.add_feed(format!(
+            "Broker request fulfilled: {} for {} · +{} favor.",
+            offer.cost, offer.reward, favor_gain
+        ));
+    } else {
+        session.add_feed(format!(
+            "Night market exchange: {} for {}.",
+            offer.cost, offer.reward
+        ));
+    }
     Ok(())
 }
 

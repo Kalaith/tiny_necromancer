@@ -42,6 +42,53 @@ fn trusted_broker_refreshes_the_next_offer_faster() {
 }
 
 #[test]
+fn broker_request_locks_the_offer_and_cannot_stack() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = lantern_session(&data);
+    accept_contract(&mut session).unwrap();
+    assert_eq!(current_offer(&session).kind, TradeOfferKind::CarvedTimber);
+    assert_eq!(
+        session
+            .progress
+            .market
+            .contract
+            .as_ref()
+            .unwrap()
+            .remaining_seconds,
+        75.0
+    );
+    assert!(accept_contract(&mut session).is_err());
+}
+
+#[test]
+fn ignored_broker_request_expires_and_clears() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = lantern_session(&data);
+    accept_contract(&mut session).unwrap();
+    let message = advance_contract(&mut session, 75.0);
+    assert!(session.progress.market.contract.is_none());
+    assert_eq!(
+        message.as_deref(),
+        Some("Broker request expired: Carved timber was left unfulfilled.")
+    );
+}
+
+#[test]
+fn fulfilling_a_broker_request_grants_bonus_favor() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = lantern_session(&data);
+    session.economy.bones = 30;
+    accept_contract(&mut session).unwrap();
+    execute_trade(&mut session, &data).unwrap();
+    assert!(session.progress.market.contract.is_none());
+    assert_eq!(session.progress.market.completed_contracts, 1);
+    assert_eq!(session.progress.market.favor, 3);
+    assert!(session.pressure.feed[0]
+        .message
+        .contains("Broker request fulfilled: 18 bones for 12 wood"));
+}
+
+#[test]
 fn market_requires_a_complete_lantern() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

@@ -158,6 +158,8 @@ spending materials, add a small suspicion cost, and preserve trade history in
 the save without becoming a victory requirement. Repeated trades also build
 broker favor: Whisper becomes Acquainted at three favor and Trusted at eight,
 with the market panel showing the next standing threshold and the reduced
-suspicion cost at higher standing.
+suspicion cost at higher standing. The broker can also issue one optional,
+75-second request that locks the current offer and grants two bonus favor when
+fulfilled; the compact card keeps that action inside the same touch surface.
 
 The first implementation target is a complete playable cemetery screen with the current mechanics and the new visual hierarchy. It establishes the identity before expanding the simulation into a colony builder.

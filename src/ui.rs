@@ -114,6 +114,7 @@ pub enum UiAction {
     CancelProduction(BuildingKind),
     UpgradeBuilding(BuildingKind),
     ExecuteTrade,
+    AcceptMarketContract,
     UseWardCharge,
     MovePriority(JobKind, i32),
     ToggleDomainOverlay(DomainOverlay),

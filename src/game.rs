@@ -463,6 +463,10 @@ impl Game {
                     Err(error) => self.notifications.warning(error),
                 }
             }
+            UiAction::AcceptMarketContract => {
+                let result = trade::accept_contract(&mut self.session);
+                self.notify_result(result);
+            }
             UiAction::UseWardCharge => {
                 let result = progression::use_ward_charge(&mut self.session);
                 self.notify_result(result);

@@ -4,7 +4,18 @@ use serde::{Deserialize, Serialize};
 
 pub const MARKET_OFFER_COUNT: usize = 3;
 pub const MARKET_REFRESH_SECONDS: f32 = 30.0;
+pub const MARKET_CONTRACT_SECONDS: f32 = 75.0;
+pub const MARKET_CONTRACT_BONUS_FAVOR: u32 = 2;
 pub const BROKER_STANDING_THRESHOLDS: [u32; 3] = [0, 3, 8];
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketContract {
+    pub offer_index: usize,
+    #[serde(default = "default_contract_seconds")]
+    pub remaining_seconds: f32,
+    #[serde(default = "default_contract_bonus")]
+    pub bonus_favor: u32,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketState {
@@ -16,6 +27,10 @@ pub struct MarketState {
     pub completed_trades: u32,
     #[serde(default)]
     pub favor: u32,
+    #[serde(default)]
+    pub contract: Option<MarketContract>,
+    #[serde(default)]
+    pub completed_contracts: u32,
 }
 
 impl Default for MarketState {
@@ -25,6 +40,8 @@ impl Default for MarketState {
             refresh_seconds: MARKET_REFRESH_SECONDS,
             completed_trades: 0,
             favor: 0,
+            contract: None,
+            completed_contracts: 0,
         }
     }
 }
@@ -36,6 +53,13 @@ impl MarketState {
             self.refresh_seconds = MARKET_REFRESH_SECONDS;
         }
         self.favor = self.favor.max(self.completed_trades);
+        if let Some(contract) = self.contract.as_mut() {
+            contract.offer_index %= MARKET_OFFER_COUNT;
+            if !contract.remaining_seconds.is_finite() || contract.remaining_seconds <= 0.0 {
+                contract.remaining_seconds = MARKET_CONTRACT_SECONDS;
+            }
+            contract.bonus_favor = contract.bonus_favor.min(MARKET_CONTRACT_BONUS_FAVOR);
+        }
     }
 
     pub fn standing_tier(&self) -> usize {
@@ -82,6 +106,14 @@ impl MarketState {
 
 fn default_refresh_seconds() -> f32 {
     MARKET_REFRESH_SECONDS
+}
+
+fn default_contract_seconds() -> f32 {
+    MARKET_CONTRACT_SECONDS
+}
+
+fn default_contract_bonus() -> u32 {
+    MARKET_CONTRACT_BONUS_FAVOR
 }
 
 #[cfg(test)]

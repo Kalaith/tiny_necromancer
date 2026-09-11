@@ -41,6 +41,7 @@ impl Game {
             "route-policy-wait" => self.prepare_capture_route_policy_wait(),
             "colony" => self.prepare_capture_colony(),
             "market" => self.prepare_capture_market(),
+            "market-contract" => self.prepare_capture_market_contract(),
             "market-locked" => self.prepare_capture_market_locked(),
             "domain" => self.prepare_capture_domain(),
             "harvest-domain" => self.prepare_capture_harvest_domain(),
@@ -349,6 +350,15 @@ impl Game {
         self.session.progress.market.refresh_seconds = 24.0;
         self.session.progress.market.completed_trades = 2;
         self.session.world.selected = Some(Selection::Building(1));
+    }
+
+    fn prepare_capture_market_contract(&mut self) {
+        self.prepare_capture_market();
+        self.session.progress.market.contract = Some(crate::state::MarketContract {
+            offer_index: 0,
+            remaining_seconds: 51.0,
+            bonus_favor: crate::state::MARKET_CONTRACT_BONUS_FAVOR,
+        });
     }
 
     fn prepare_capture_market_locked(&mut self) {

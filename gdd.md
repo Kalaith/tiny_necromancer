@@ -233,6 +233,13 @@ with the cemetery. Acquainted offers refresh in 27 seconds and Trusted offers
 refresh in 24 seconds, making a broker relationship useful beyond pressure
 management.
 
+The broker can also issue one optional request for the current bargain. The
+request locks that offer for 75 seconds; fulfilling it grants two bonus favor
+and records a completed request, while ignoring it clears the request with a
+field note. A request never removes the ordinary exchange path, so players
+can trade freely or take on the timed obligation when their stockpile is
+ready.
+
 ## 7. UI and interaction flow
 
 The main menu shows the game identity and visible **New Game** / **Continue**

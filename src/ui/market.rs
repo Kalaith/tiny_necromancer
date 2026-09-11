@@ -84,6 +84,25 @@ pub(super) fn draw_market_panel(
     ) {
         actions.push(UiAction::ExecuteTrade);
     }
+    let contract_active = ctx.session.progress.market.contract.is_some();
+    let contract_label = ctx.session.progress.market.contract.as_ref().map_or_else(
+        || {
+            format!(
+                "Take request · +{} favor",
+                crate::state::MARKET_CONTRACT_BONUS_FAVOR
+            )
+        },
+        |contract| format!("Request active · {:.0}s", contract.remaining_seconds),
+    );
+    if virtual_button(
+        Rect::new(rect.x + 340.0, rect.y + 284.0, 300.0, 52.0),
+        &contract_label,
+        !contract_active && ctx.session.phase == crate::state::GamePhase::Playing,
+        ButtonTone::Secondary,
+        pointer,
+    ) {
+        actions.push(UiAction::AcceptMarketContract);
+    }
     draw_text_block(
         &trade_status_label(ctx, trade_ready),
         rect.x + 24.0,
@@ -100,8 +119,9 @@ pub(super) fn draw_market_panel(
     );
     draw_text_block(
         &format!(
-            "{} exchanges completed · +{:.1} suspicion at this standing",
+            "{} exchanges · {} requests fulfilled · +{:.1} suspicion at this standing",
             ctx.session.progress.market.completed_trades,
+            ctx.session.progress.market.completed_contracts,
             trade::exchange_suspicion(ctx.session)
         ),
         rect.x + 24.0,
@@ -281,13 +301,33 @@ pub(super) fn draw_compact_market_panel(
     draw_text_block(
         &format!("Pay {}  ·  receive {}", offer.cost, offer.reward),
         card.x + 12.0,
-        card.y + 88.0,
+        card.y + 70.0,
         card.w - 24.0,
         18.0,
         12.0,
         0.0,
         dark::ACCENT,
     );
+    let contract_active = ctx.session.progress.market.contract.is_some();
+    let contract_label = ctx.session.progress.market.contract.as_ref().map_or_else(
+        || {
+            format!(
+                "Take request · +{} favor",
+                crate::state::MARKET_CONTRACT_BONUS_FAVOR
+            )
+        },
+        |contract| format!("Request active · {:.0}s", contract.remaining_seconds),
+    );
+    if compact_virtual_button(
+        Rect::new(card.x + 12.0, card.y + 92.0, card.w - 24.0, 34.0),
+        &contract_label,
+        !contract_active && ctx.session.phase == crate::state::GamePhase::Playing,
+        ButtonTone::Secondary,
+        10.0,
+        pointer,
+    ) {
+        actions.push(UiAction::AcceptMarketContract);
+    }
     if compact_virtual_button(
         Rect::new(sheet.x + 16.0, sheet.y + 280.0, sheet.w - 32.0, 48.0),
         &trade_label,
