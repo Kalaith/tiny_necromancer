@@ -211,6 +211,9 @@ fn hush_ash_can_be_selected_and_quiets_suspicion_on_completion() {
 
     assert_eq!(session.economy.ward_charges, 1);
     assert_eq!(session.pressure.suspicion, 19.0);
+    assert_eq!(session.progress.production_ledger.total_cycles, 1);
+    assert_eq!(session.progress.production_ledger.hush_ash_cycles, 1);
+    assert_eq!(session.progress.production_ledger.suspicion_quieted, 5.0);
     assert!(session.pressure.feed[0].message.contains("Hush Ash"));
 }
 

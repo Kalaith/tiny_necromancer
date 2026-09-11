@@ -7,8 +7,8 @@ use crate::data::SuspicionStage;
 use crate::engine::corpses;
 use crate::state::{
     BuildingKind, DistrictActivity, DistrictActivityKind, GamePhase, GameSession, JobKind,
-    ProductionOrder, ProductionRecipeKind, RoutePolicy, Selection, StewardshipPolicy, Technology,
-    UndeadKind, WorkerStatus, WorldState, Zone, ZoneKind,
+    ProductionLedger, ProductionOrder, ProductionRecipeKind, RoutePolicy, Selection,
+    StewardshipPolicy, Technology, UndeadKind, WorkerStatus, WorldState, Zone, ZoneKind,
 };
 use crate::ui::{self, DomainOverlays, Panel};
 use macroquad::prelude::*;
@@ -619,6 +619,13 @@ impl Game {
     fn prepare_capture_notes(&mut self) {
         self.prepare_capture_domain();
         self.panel = Panel::Feed;
+        self.session.progress.production_ledger = ProductionLedger {
+            total_cycles: 9,
+            ward_cycles: 6,
+            hush_ash_cycles: 3,
+            wards_sealed: 9,
+            suspicion_quieted: 15.0,
+        };
         for message in [
             "The western patrol reached its marked post.",
             "Harvest posture now favours loose material.",

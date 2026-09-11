@@ -436,6 +436,11 @@ pub fn advance_production(session: &mut GameSession, data: &GameData, dt: f32) -
         return None;
     }
     session.economy.ward_charges += recipe.output_amount;
+    session.progress.production_ledger.record(
+        order.recipe,
+        recipe.output_amount,
+        recipe.suspicion_delta,
+    );
     if recipe.suspicion_delta < 0.0 {
         suspicion::adjust_quiet(session, recipe.suspicion_delta, "a hush ash kiln cycle");
     } else if recipe.suspicion_delta > 0.0 {

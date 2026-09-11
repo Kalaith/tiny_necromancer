@@ -9,6 +9,7 @@ use serde_json::Value;
 mod building_upgrades;
 mod economy;
 mod market;
+mod production;
 mod research;
 mod route_policy;
 mod stewardship;
@@ -19,6 +20,7 @@ pub use economy::EconomyState;
 pub use market::{
     MarketContract, MarketState, MARKET_CONTRACT_BONUS_FAVOR, MARKET_CONTRACT_SECONDS,
 };
+pub use production::ProductionLedger;
 pub use research::ResearchState;
 pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
 pub use stewardship::StewardshipPolicy;
@@ -428,6 +430,8 @@ pub struct ProgressState {
     #[serde(default)]
     pub production_recipe: ProductionRecipeKind,
     #[serde(default)]
+    pub production_ledger: ProductionLedger,
+    #[serde(default)]
     pub building_upgrades: BuildingUpgrades,
     #[serde(default)]
     pub district_ledger: DistrictLedger,
@@ -600,6 +604,7 @@ impl GameSession {
                 production: None,
                 production_queue: 0,
                 production_recipe: ProductionRecipeKind::default(),
+                production_ledger: ProductionLedger::default(),
                 building_upgrades: BuildingUpgrades::default(),
                 district_ledger: DistrictLedger::default(),
                 market: MarketState::default(),

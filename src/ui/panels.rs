@@ -318,6 +318,16 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
         0.0,
         dark::TEXT_DIM,
     );
+    draw_text_block(
+        &ctx.session.progress.production_ledger.summary(),
+        rect.x + 24.0,
+        rect.y + 108.0,
+        rect.w - 48.0,
+        16.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
+    );
     if virtual_button(
         Rect::new(rect.right() - 96.0, rect.y + 14.0, 72.0, 44.0),
         "Close",
@@ -330,7 +340,7 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
     for (index, entry) in ctx.session.pressure.feed.iter().take(7).enumerate() {
         let row = Rect::new(
             rect.x + 24.0,
-            rect.y + 114.0 + index as f32 * 52.0,
+            rect.y + 132.0 + index as f32 * 52.0,
             632.0,
             44.0,
         );

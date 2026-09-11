@@ -300,6 +300,11 @@ fn older_saves_without_a_kiln_recipe_default_to_ward_charge() {
         .and_then(serde_json::Value::as_object_mut)
         .expect("progress object")
         .remove("production_recipe");
+    value
+        .get_mut("progress")
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("progress object")
+        .remove("production_ledger");
 
     let migrated = migrate_save_value(None, value, &data.config).unwrap();
 
@@ -307,6 +312,7 @@ fn older_saves_without_a_kiln_recipe_default_to_ward_charge() {
         migrated.progress.production_recipe,
         ProductionRecipeKind::WardCharge
     );
+    assert_eq!(migrated.progress.production_ledger.total_cycles, 0);
 }
 
 #[test]

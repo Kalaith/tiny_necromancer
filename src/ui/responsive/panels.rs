@@ -596,13 +596,22 @@ fn draw_compact_feed_panel(
     sheet: Rect,
 ) {
     compact_panel_title("FIELD NOTES", sheet);
+    let kiln = &ctx.session.progress.production_ledger;
+    let kiln_summary = format!(
+        "Kiln {}c · W+{} · S-{:.0}",
+        kiln.total_cycles, kiln.wards_sealed, kiln.suspicion_quieted
+    );
     let ledger = if sheet.w >= 520.0 {
-        districts::ledger_summary(ctx.session)
+        format!(
+            "{} · {}",
+            districts::ledger_summary(ctx.session),
+            kiln_summary
+        )
     } else {
         let ledger = &ctx.session.progress.district_ledger;
         format!(
-            "Ledger W{} · S+{} · P-{:.1}",
-            ledger.work_cycles, ledger.storage_bonus_items, ledger.patrol_quieting
+            "Ledger W{} · S+{} · P-{:.1} · {}",
+            ledger.work_cycles, ledger.storage_bonus_items, ledger.patrol_quieting, kiln_summary
         )
     };
     draw_text_block(

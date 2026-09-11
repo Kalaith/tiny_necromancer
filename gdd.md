@@ -215,6 +215,10 @@ production run. A reserved follow-up cycle can be cancelled from the kiln
 inspector; its selected recipe materials return immediately while the active
 cycle keeps its progress.
 
+Completed cycles are written into a save-persistent kiln ledger. Field Notes
+can show total cycles, ward charges sealed, and the suspicion quieted by Hush
+Ash, giving the player a durable record of how the kiln has shaped the colony.
+
 If the first cycle is requested before its full recipe is in storage, the kiln
 keeps the request open and records each missing input. The existing stock is
 committed immediately, while Haul workers can carry later bones or wood from
