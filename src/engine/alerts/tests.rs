@@ -177,7 +177,7 @@ fn idle_work_district_points_to_a_marked_grave() {
         .expect("idle work district should be reported");
 
     assert_eq!(alert.severity, AlertSeverity::Info);
-    assert!(alert.detail.contains("assign Dig or Wood"));
+    assert_eq!(alert.detail, "Marked Work has a ready grave · assign Dig.");
     assert_eq!(alert.target, Some(Selection::Grave(0)));
 }
 
@@ -201,6 +201,10 @@ fn idle_work_district_points_to_a_marked_forest_tile() {
         .find(|alert| alert.title == "Work district idle")
         .expect("idle forest work district should be reported");
 
+    assert_eq!(
+        alert.detail,
+        "Marked Work reaches the forest edge · assign Wood."
+    );
     assert_eq!(alert.target, Some(Selection::Ground(forest_tile)));
 }
 

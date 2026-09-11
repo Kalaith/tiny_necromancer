@@ -160,10 +160,15 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
     let Some(target) = grave_target.or(forest_target) else {
         return;
     };
+    let detail = match target {
+        Selection::Grave(_) => "Marked Work has a ready grave · assign Dig.",
+        Selection::Ground(_) => "Marked Work reaches the forest edge · assign Wood.",
+        _ => "Marked Work tiles have available labour · assign Dig or Wood.",
+    };
     alerts.push(OperationalAlert::new(
         AlertSeverity::Info,
         "Work district idle",
-        "Marked Work tiles have available labour · assign Dig or Wood.",
+        detail,
         Some(target),
     ));
 }
