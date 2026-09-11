@@ -33,15 +33,46 @@ pub(super) fn draw_compact_upgrade(
     sheet: Rect,
     building: &Building,
 ) {
+    let label = if upgrade_enabled(ctx, building) {
+        format!(
+            "{} · {}",
+            upgrade_label(ctx, building),
+            compact_upgrade_benefit(ctx, building)
+        )
+    } else {
+        upgrade_label(ctx, building)
+    };
     if compact_virtual_button(
         Rect::new(sheet.x + 16.0, sheet.y + 104.0, sheet.w - 32.0, 44.0),
-        &upgrade_label(ctx, building),
+        &label,
         upgrade_enabled(ctx, building),
         upgrade_tone(ctx, building),
         11.0,
         pointer,
     ) {
         actions.push(UiAction::UpgradeBuilding(building.kind));
+    }
+}
+
+fn compact_upgrade_benefit(ctx: &UiContext<'_>, building: &Building) -> String {
+    let def = ctx
+        .data
+        .buildings
+        .get(building.kind.id())
+        .expect("validated building recipe");
+    match building.kind {
+        crate::state::BuildingKind::WorkShed => format!(
+            "+{:.0}% throughput",
+            (def.upgrade_speed_multiplier - 1.0) * 100.0
+        ),
+        crate::state::BuildingKind::GraveLantern => format!(
+            "-{:.0}% suspicion",
+            (1.0 - def.upgrade_suspicion_multiplier) * 100.0
+        ),
+        crate::state::BuildingKind::OssuaryKiln => format!(
+            "+{:.0}% speed",
+            (def.upgrade_speed_multiplier - 1.0) * 100.0
+        ),
     }
 }
 
