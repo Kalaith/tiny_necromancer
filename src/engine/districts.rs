@@ -194,23 +194,36 @@ pub fn first_route_gap_worker(session: &GameSession, kind: ZoneKind) -> Option<u
         return None;
     }
     let targets = district_tiles(session, kind);
-    session
+    let eligible_workers = session
         .workforce
         .workers
         .iter()
         .enumerate()
-        .find(|(_, worker)| {
+        .filter(|(_, worker)| {
             let serves_target = targets
                 .iter()
                 .copied()
                 .any(|target| worker_serves_tile(session, kind, worker.assignment, target));
             serves_target
-                && !targets.iter().copied().any(|target| {
-                    worker_serves_tile(session, kind, worker.assignment, target)
-                        && navigation::plan_route(session, worker.position, target).is_ok()
-                })
         })
         .map(|(index, _)| index)
+        .collect::<Vec<_>>();
+    eligible_workers
+        .iter()
+        .copied()
+        .find(|worker_index| {
+            !targets.iter().copied().any(|target| {
+                let job = session.workforce.workers[*worker_index].assignment;
+                worker_serves_tile(session, kind, job, target)
+                    && navigation::plan_route(
+                        session,
+                        session.workforce.workers[*worker_index].position,
+                        target,
+                    )
+                    .is_ok()
+            })
+        })
+        .or_else(|| eligible_workers.first().copied())
 }
 
 pub fn route_coverage_needs_attention(session: &GameSession) -> bool {

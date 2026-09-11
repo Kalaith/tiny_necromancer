@@ -242,6 +242,49 @@ fn coverage_summary_ignores_extra_workers_when_naming_route_need() {
 }
 
 #[test]
+fn route_gap_worker_survives_competing_routes_to_one_slot() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Storage,
+        tiles: vec![TilePos::new(5, 5), TilePos::new(6, 6)],
+    });
+    for worker in &mut session.workforce.workers {
+        worker.assignment = JobKind::Refine;
+        worker.position = TilePos::new(2, 2);
+    }
+    let mut second = session.workforce.workers[0].clone();
+    second.id = session.workforce.next_worker_id;
+    session.workforce.next_worker_id += 1;
+    session.workforce.workers.push(second);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[1].assignment = JobKind::Haul;
+    for position in [
+        TilePos::new(5, 6),
+        TilePos::new(7, 6),
+        TilePos::new(6, 5),
+        TilePos::new(6, 7),
+    ] {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position,
+            width: 1,
+            height: 1,
+        });
+    }
+
+    let coverage = service_coverage(&session, ZoneKind::Storage);
+
+    assert_eq!(coverage.marked, 2);
+    assert_eq!(coverage.assigned, 2);
+    assert_eq!(coverage.reachable, 1);
+    assert_eq!(first_route_gap_worker(&session, ZoneKind::Storage), Some(0));
+}
+
+#[test]
 fn marked_tile_summary_explains_the_local_domain_rule() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
