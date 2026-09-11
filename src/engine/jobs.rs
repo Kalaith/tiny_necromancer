@@ -427,6 +427,9 @@ fn simulate_haul(
             .loose_amount_at(plan.resource, plan.source)
             .min(capacity);
         if amount <= 0 {
+            session.workforce.workers[index].haul_plan = None;
+            session.workforce.workers[index].status = WorkerStatus::Idle;
+            session.workforce.workers[index].progress = 0.0;
             return;
         }
         districts::record_storage_bonus(session, (amount - base_capacity).max(0));

@@ -18,6 +18,7 @@ pub(super) fn plan_haul(session: &GameSession, worker_index: usize) -> Option<Ha
         if plan.resource == resource
             && plan.storage_policy == targets::storage_route_policy(session, worker.id)
             && targets::storage_destination_is_current(session, worker.id, plan.destination)
+            && session.economy.loose_amount_at(plan.resource, plan.source) > 0
             && navigation::plan_route(session, worker.position, plan.source).is_ok()
             && navigation::plan_route(session, plan.source, plan.destination).is_ok()
         {

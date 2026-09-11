@@ -19,52 +19,11 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
                     .or_else(|| storage_destination(session, worker.position, worker.id))
             } else if let Some(plan) = worker.haul_plan {
                 let available = session.economy.loose_amount_at(plan.resource, plan.source);
-                (available > 0).then_some(plan.source)
-            } else if session.economy.loose_bones > 0 {
-                let piles = session
-                    .economy
-                    .loose_piles(crate::state::ResourceKind::Bones)
-                    .into_iter()
-                    .map(|pile| pile.position)
-                    .collect::<Vec<_>>();
-                let fallbacks = if session.economy.loose_bones_piles.is_empty() {
-                    session
-                        .world
-                        .plots
-                        .iter()
-                        .filter(|plot| plot.status == PlotStatus::Dug)
-                        .map(|plot| plot.position)
-                        .collect::<Vec<_>>()
-                } else {
-                    Vec::new()
-                };
-                preferred_source_or_reachable_alternative(
-                    session,
-                    worker.position,
-                    session.economy.loose_bones_source,
-                    piles.into_iter().chain(fallbacks).collect(),
-                )
-                .or(Some(WorldState::stockpile_position()))
-            } else if session.economy.loose_wood > 0 {
-                let piles = session
-                    .economy
-                    .loose_piles(crate::state::ResourceKind::Wood)
-                    .into_iter()
-                    .map(|pile| pile.position)
-                    .collect::<Vec<_>>();
-                let fallbacks = if session.economy.loose_wood_piles.is_empty() {
-                    session.world.forest_tiles.clone()
-                } else {
-                    Vec::new()
-                };
-                preferred_source_or_reachable_alternative(
-                    session,
-                    worker.position,
-                    session.economy.loose_wood_source,
-                    piles.into_iter().chain(fallbacks).collect(),
-                )
+                (available > 0)
+                    .then_some(plan.source)
+                    .or_else(|| haul_source_destination(session, worker))
             } else {
-                None
+                haul_source_destination(session, worker)
             }
         }
         JobKind::Guard => patrol_destination(session, worker.position, worker.id),
@@ -91,6 +50,55 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
                 .map(Building::work_position)
                 .collect(),
         ),
+    }
+}
+
+fn haul_source_destination(session: &GameSession, worker: &Worker) -> Option<TilePos> {
+    if session.economy.loose_bones > 0 {
+        let piles = session
+            .economy
+            .loose_piles(crate::state::ResourceKind::Bones)
+            .into_iter()
+            .map(|pile| pile.position)
+            .collect::<Vec<_>>();
+        let fallbacks = if session.economy.loose_bones_piles.is_empty() {
+            session
+                .world
+                .plots
+                .iter()
+                .filter(|plot| plot.status == PlotStatus::Dug)
+                .map(|plot| plot.position)
+                .collect::<Vec<_>>()
+        } else {
+            Vec::new()
+        };
+        preferred_source_or_reachable_alternative(
+            session,
+            worker.position,
+            session.economy.loose_bones_source,
+            piles.into_iter().chain(fallbacks).collect(),
+        )
+        .or(Some(WorldState::stockpile_position()))
+    } else if session.economy.loose_wood > 0 {
+        let piles = session
+            .economy
+            .loose_piles(crate::state::ResourceKind::Wood)
+            .into_iter()
+            .map(|pile| pile.position)
+            .collect::<Vec<_>>();
+        let fallbacks = if session.economy.loose_wood_piles.is_empty() {
+            session.world.forest_tiles.clone()
+        } else {
+            Vec::new()
+        };
+        preferred_source_or_reachable_alternative(
+            session,
+            worker.position,
+            session.economy.loose_wood_source,
+            piles.into_iter().chain(fallbacks).collect(),
+        )
+    } else {
+        None
     }
 }
 

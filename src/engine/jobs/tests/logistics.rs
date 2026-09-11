@@ -288,3 +288,57 @@ fn hauler_selects_the_nearest_of_multiple_resource_piles() {
         8
     );
 }
+
+#[test]
+fn empty_reserved_source_releases_a_hauler_to_the_next_pile() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_source = session.world.plots[0].position;
+    let second_source = session.world.plots[1].position;
+    session
+        .economy
+        .add_loose(crate::state::ResourceKind::Bones, first_source, 8);
+    session
+        .economy
+        .add_loose(crate::state::ResourceKind::Bones, second_source, 8);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = first_source;
+    let mut second_worker = session.workforce.workers[0].clone();
+    second_worker.id = session.workforce.next_worker_id;
+    second_worker.haul_plan = Some(crate::state::HaulPlan {
+        resource: crate::state::ResourceKind::Bones,
+        source: first_source,
+        destination: WorldState::stockpile_position(),
+        storage_policy: RoutePolicy::MarkedFirst,
+    });
+    session.workforce.next_worker_id += 1;
+    session.workforce.workers.push(second_worker);
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].carrying, 8);
+    assert_eq!(session.workforce.workers[1].carrying, 0);
+    assert_eq!(
+        session.workforce.workers[1]
+            .haul_plan
+            .expect("stale reservation should be replaced")
+            .source,
+        second_source
+    );
+
+    for _ in 0..5 {
+        simulate(&mut session, &data, 0.0);
+        if session.workforce.workers[1].carrying > 0 {
+            break;
+        }
+    }
+
+    assert_eq!(session.workforce.workers[1].carrying, 8);
+    assert_eq!(
+        session.workforce.workers[1]
+            .haul_plan
+            .expect("the second hauler should retarget")
+            .source,
+        second_source
+    );
+}
