@@ -3,7 +3,9 @@
 use super::components::GridView;
 use super::UiContext;
 use crate::engine::{districts, jobs, navigation};
-use crate::state::{JobKind, PlotStatus, ResourceKind, Selection, Worker, WorkerStatus};
+use crate::state::{
+    JobKind, PlotStatus, ResourceKind, RoutePolicy, Selection, Worker, WorkerStatus, ZoneKind,
+};
 use macroquad::prelude::*;
 use macroquad_toolkit::grid::TilePos;
 use macroquad_toolkit::prelude::*;
@@ -380,6 +382,9 @@ pub(super) fn route_counts(ctx: &UiContext<'_>) -> (usize, usize) {
 }
 
 pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> String {
+    if let Some(reason) = marked_only_wait_reason(ctx, worker) {
+        return reason;
+    }
     if worker.status != WorkerStatus::Idle {
         return "Active in the clearing".to_owned();
     }
@@ -439,6 +444,70 @@ pub(super) fn worker_idle_reason(ctx: &UiContext<'_>, worker: &Worker) -> String
                 "No kiln cycle loaded".to_owned()
             }
         }
+    }
+}
+
+fn marked_only_wait_reason(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
+    if !worker.priority_mode
+        || !ctx
+            .session
+            .research
+            .is_unlocked(crate::state::Technology::DomainStewardship)
+    {
+        return None;
+    }
+    match worker.assignment {
+        JobKind::Dig
+            if ctx.session.world.route_policies.for_kind(ZoneKind::Work)
+                == RoutePolicy::MarkedOnly
+                && !ctx.session.world.plots.iter().any(|plot| {
+                    plot.status == PlotStatus::Ready
+                        && ctx
+                            .session
+                            .world
+                            .zone_contains(ZoneKind::Work, plot.position)
+                }) =>
+        {
+            Some("Waiting for a marked Work grave".to_owned())
+        }
+        JobKind::Wood
+            if ctx.session.world.route_policies.for_kind(ZoneKind::Work)
+                == RoutePolicy::MarkedOnly
+                && !ctx
+                    .session
+                    .world
+                    .forest_tiles
+                    .iter()
+                    .any(|tile| ctx.session.world.zone_contains(ZoneKind::Work, *tile)) =>
+        {
+            Some("Waiting for a marked Work forest route".to_owned())
+        }
+        JobKind::Haul
+            if worker.carrying > 0
+                && ctx.session.world.route_policies.for_kind(ZoneKind::Storage)
+                    == RoutePolicy::MarkedOnly
+                && !ctx
+                    .session
+                    .world
+                    .zones
+                    .iter()
+                    .any(|zone| zone.kind == ZoneKind::Storage && !zone.tiles.is_empty()) =>
+        {
+            Some("Waiting for a marked Storage drop".to_owned())
+        }
+        JobKind::Guard
+            if ctx.session.world.route_policies.for_kind(ZoneKind::Patrol)
+                == RoutePolicy::MarkedOnly
+                && !ctx
+                    .session
+                    .world
+                    .zones
+                    .iter()
+                    .any(|zone| zone.kind == ZoneKind::Patrol && !zone.tiles.is_empty()) =>
+        {
+            Some("Waiting for a marked Patrol post".to_owned())
+        }
+        _ => None,
     }
 }
 
