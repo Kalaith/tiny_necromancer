@@ -56,6 +56,13 @@ pub fn current_offer(session: &GameSession) -> TradeOffer {
     OFFERS[session.progress.market.offer_index % OFFERS.len()]
 }
 
+pub fn offer_position(session: &GameSession) -> (usize, usize) {
+    (
+        session.progress.market.offer_index % OFFERS.len() + 1,
+        OFFERS.len(),
+    )
+}
+
 pub fn advance_market(session: &mut GameSession, dt: f32) -> Option<String> {
     if !dt.is_finite() || dt <= 0.0 {
         return None;

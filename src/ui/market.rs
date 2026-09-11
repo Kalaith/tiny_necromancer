@@ -96,6 +96,7 @@ pub(super) fn draw_market_panel(
 
 fn draw_offer(ctx: &UiContext<'_>, rect: Rect) {
     let offer = trade::current_offer(ctx.session);
+    let (offer_number, offer_count) = trade::offer_position(ctx.session);
     let card = Rect::new(rect.x + 24.0, rect.y + 92.0, rect.w - 48.0, 168.0);
     draw_surface(
         card,
@@ -111,6 +112,16 @@ fn draw_offer(ctx: &UiContext<'_>, rect: Rect) {
         21.0,
         0.0,
         dark::TEXT_BRIGHT,
+    );
+    draw_text_block(
+        &format!("OFFER {offer_number}/{offer_count}"),
+        card.right() - 112.0,
+        card.y + 20.0,
+        94.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
     );
     draw_text_block(
         offer.detail,
@@ -184,6 +195,7 @@ pub(super) fn draw_compact_market_panel(
         actions.push(UiAction::TogglePanel(super::Panel::None));
     }
     let offer = trade::current_offer(ctx.session);
+    let (offer_number, offer_count) = trade::offer_position(ctx.session);
     let trade_ready = ctx.session.phase == crate::state::GamePhase::Playing
         && trade::trade_status(ctx.session, ctx.data).is_ok();
     let trade_label = if trade_ready {
@@ -201,11 +213,21 @@ pub(super) fn draw_compact_market_panel(
         offer.title,
         card.x + 12.0,
         card.y + 12.0,
-        card.w - 24.0,
+        card.w - 120.0,
         20.0,
         16.0,
         0.0,
         dark::TEXT_BRIGHT,
+    );
+    draw_text_block(
+        &format!("{offer_number}/{offer_count}"),
+        card.right() - 82.0,
+        card.y + 14.0,
+        70.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
     );
     draw_text_block(
         offer.detail,

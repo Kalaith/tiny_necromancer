@@ -28,6 +28,7 @@ fn market_rotates_and_wraps_after_elapsed_time() {
     );
     advance_market(&mut session, 60.0);
     assert_eq!(session.progress.market.offer_index, 0);
+    assert_eq!(offer_position(&session), (1, 3));
 }
 
 #[test]
