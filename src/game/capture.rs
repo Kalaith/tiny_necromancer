@@ -39,6 +39,7 @@ impl Game {
             "patrol-gap" => self.prepare_capture_patrol_gap(),
             "work-gap" => self.prepare_capture_work_gap(),
             "work-overlap" => self.prepare_capture_work_overlap(),
+            "work-locked" => self.prepare_capture_work_locked(),
             "work-domain" => self.prepare_capture_work_domain(),
             "route-blocked" => self.prepare_capture_route_blocked(),
             "route-domain" => self.prepare_capture_route_domain(),
@@ -305,6 +306,14 @@ impl Game {
             kind: ZoneKind::Storage,
             tiles: vec![TilePos::new(0, 3)],
         });
+    }
+
+    fn prepare_capture_work_locked(&mut self) {
+        self.prepare_capture_work_gap();
+        self.session
+            .research
+            .completed
+            .retain(|technology| *technology != Technology::DomainStewardship);
     }
 
     fn prepare_capture_route_blocked(&mut self) {

@@ -24,6 +24,7 @@ param(
         "patrol-gap",
         "work-gap",
         "work-overlap",
+        "work-locked",
         "work-domain",
         "route-blocked",
         "route-domain",

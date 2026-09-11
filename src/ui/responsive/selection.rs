@@ -99,19 +99,17 @@ fn draw_ground(
             sheet.w - 32.0,
             44.0,
         );
-        if ctx
+        let (button_label, destination) = if ctx
             .session
             .research
             .is_unlocked(Technology::DomainStewardship)
-            && virtual_button(
-                button,
-                "Open Domain rules",
-                true,
-                ButtonTone::Secondary,
-                pointer,
-            )
         {
-            actions.push(UiAction::TogglePanel(super::super::Panel::Domain));
+            ("Open Domain rules", super::super::Panel::Domain)
+        } else {
+            ("Open Research", super::super::Panel::Research)
+        };
+        if virtual_button(button, button_label, true, ButtonTone::Secondary, pointer) {
+            actions.push(UiAction::TogglePanel(destination));
         }
     } else {
         draw_text_block(

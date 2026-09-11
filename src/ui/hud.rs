@@ -224,19 +224,17 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
                     panel.w - 36.0,
                     44.0,
                 );
-                if ctx
+                let (button_label, destination) = if ctx
                     .session
                     .research
                     .is_unlocked(Technology::DomainStewardship)
-                    && virtual_button(
-                        button,
-                        "Open Domain rules",
-                        true,
-                        ButtonTone::Secondary,
-                        pointer,
-                    )
                 {
-                    actions.push(UiAction::TogglePanel(Panel::Domain));
+                    ("Open Domain rules", Panel::Domain)
+                } else {
+                    ("Open Research", Panel::Research)
+                };
+                if virtual_button(button, button_label, true, ButtonTone::Secondary, pointer) {
+                    actions.push(UiAction::TogglePanel(destination));
                 }
             } else {
                 draw_text_block(
