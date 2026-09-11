@@ -64,6 +64,31 @@ fn older_saves_default_the_district_ledger() {
 }
 
 #[test]
+fn older_ledgers_default_the_recent_activity_trail() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.progress.district_ledger.work_cycles = 3;
+    session.progress.district_ledger.storage_bonus_items = 5;
+    session.progress.district_ledger.patrol_quieting = 1.25;
+    let save = session.to_save(&data.config.version);
+    let mut value = serde_json::to_value(save).unwrap();
+    value
+        .get_mut("progress")
+        .and_then(serde_json::Value::as_object_mut)
+        .and_then(|progress| progress.get_mut("district_ledger"))
+        .and_then(serde_json::Value::as_object_mut)
+        .expect("district ledger object")
+        .remove("recent_activity");
+
+    let restored = GameSession::from_save(serde_json::from_value(value).unwrap());
+
+    assert_eq!(restored.progress.district_ledger.work_cycles, 3);
+    assert_eq!(restored.progress.district_ledger.storage_bonus_items, 5);
+    assert!((restored.progress.district_ledger.patrol_quieting - 1.25).abs() < 0.001);
+    assert!(restored.progress.district_ledger.recent_activity.is_empty());
+}
+
+#[test]
 fn legacy_save_migrates_to_a_playable_session() {
     let data = crate::data::GameData::load().unwrap();
     let value = serde_json::json!({ "points": 42, "energy": 99.0, "turn": 3 });
