@@ -253,25 +253,25 @@ pub(super) fn storage_destination_for(
 }
 
 fn assignment_slot(session: &GameSession, job: JobKind, worker_id: u32) -> usize {
-    session
-        .workforce
-        .workers
-        .iter()
-        .filter(|worker| worker.assignment == job)
-        .position(|worker| worker.id == worker_id)
-        .unwrap_or(worker_id as usize)
+    roster_slot(session, job, worker_id)
 }
 
 fn storage_slot(session: &GameSession, worker_id: u32) -> usize {
-    session
+    let Some(worker_index) = session
         .workforce
         .workers
         .iter()
-        .filter(|worker| {
-            worker.assignment == JobKind::Haul && (worker.id == worker_id || worker.carrying > 0)
-        })
         .position(|worker| worker.id == worker_id)
-        .unwrap_or(worker_id as usize)
+    else {
+        return worker_id as usize;
+    };
+    session.workforce.workers[..=worker_index]
+        .iter()
+        .filter(|worker| {
+            worker.id == worker_id || (worker.assignment == JobKind::Haul && worker.carrying > 0)
+        })
+        .count()
+        .saturating_sub(1)
 }
 
 fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> TilePos {
@@ -307,13 +307,23 @@ fn patrol_destination(session: &GameSession, origin: TilePos, worker_id: u32) ->
 }
 
 fn guard_slot(session: &GameSession, worker_id: u32) -> usize {
-    session
+    roster_slot(session, JobKind::Guard, worker_id)
+}
+
+fn roster_slot(session: &GameSession, job: JobKind, worker_id: u32) -> usize {
+    let Some(worker_index) = session
         .workforce
         .workers
         .iter()
-        .filter(|worker| worker.assignment == JobKind::Guard)
         .position(|worker| worker.id == worker_id)
-        .unwrap_or(worker_id as usize)
+    else {
+        return worker_id as usize;
+    };
+    session.workforce.workers[..=worker_index]
+        .iter()
+        .filter(|worker| worker.id == worker_id || worker.assignment == job)
+        .count()
+        .saturating_sub(1)
 }
 
 fn zone_tiles(session: &GameSession, kind: ZoneKind) -> Vec<TilePos> {

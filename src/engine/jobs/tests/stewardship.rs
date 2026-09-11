@@ -1,4 +1,4 @@
-use super::super::simulate;
+use super::super::{destination_for_worker, simulate};
 use crate::state::{
     Building, BuildingKind, GameSession, JobKind, StewardshipPolicy, Technology, WorldState,
 };
@@ -271,4 +271,26 @@ fn automated_worker_keeps_priority_order_among_reachable_duties() {
     simulate(&mut session, &data, 0.0);
 
     assert_eq!(session.workforce.workers[0].assignment, JobKind::Wood);
+}
+
+#[test]
+fn hypothetical_haul_route_uses_the_worker_roster_slot() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_storage = TilePos::new(5, 1);
+    let second_storage = TilePos::new(6, 5);
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![first_storage, second_storage],
+    });
+    session.workforce.workers[0].assignment = JobKind::Wood;
+    session.workforce.workers[0].carrying = 1;
+    session.workforce.workers[0].position = first_storage;
+    let mut hypothetical = session.workforce.workers[0].clone();
+    hypothetical.assignment = JobKind::Haul;
+
+    assert_eq!(
+        destination_for_worker(&session, &hypothetical),
+        Some(first_storage)
+    );
 }
