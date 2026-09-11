@@ -25,7 +25,7 @@ pub(super) fn draw(
         Some(Selection::Grave(index)) => draw_grave(ctx, pointer, actions, sheet, index),
         Some(Selection::Building(index)) => draw_building(ctx, pointer, actions, sheet, index),
         Some(Selection::Necromancer) => draw_necromancer(ctx, pointer, actions, sheet),
-        Some(Selection::Ground(tile)) => draw_ground(ctx, sheet, tile),
+        Some(Selection::Ground(tile)) => draw_ground(ctx, pointer, actions, sheet, tile),
         None => draw_empty(sheet),
     }
 }
@@ -62,7 +62,13 @@ fn draw_placement(pointer: Pointer, actions: &mut Vec<UiAction>, sheet: Rect) {
     }
 }
 
-fn draw_ground(ctx: &UiContext<'_>, sheet: Rect, tile: TilePos) {
+fn draw_ground(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    sheet: Rect,
+    tile: TilePos,
+) {
     draw_text_block(
         &format!("GROUND · tile {}, {}", tile.x + 1, tile.y + 1),
         sheet.x + 16.0,
@@ -87,16 +93,26 @@ fn draw_ground(ctx: &UiContext<'_>, sheet: Rect, tile: TilePos) {
             3.0,
             dark::ACCENT,
         );
-        draw_text_block(
-            "Tap a worker, grave, or structure in the world for its actions.",
+        let button = Rect::new(
             sheet.x + 16.0,
             sheet.y + 122.0 + summary_height + 8.0,
             sheet.w - 32.0,
-            36.0,
-            14.0,
-            3.0,
-            dark::TEXT_DIM,
+            44.0,
         );
+        if ctx
+            .session
+            .research
+            .is_unlocked(Technology::DomainStewardship)
+            && virtual_button(
+                button,
+                "Open Domain rules",
+                true,
+                ButtonTone::Secondary,
+                pointer,
+            )
+        {
+            actions.push(UiAction::TogglePanel(super::super::Panel::Domain));
+        }
     } else {
         draw_text_block(
             "Tap a worker, grave, or structure in the world for its actions.",

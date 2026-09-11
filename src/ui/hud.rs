@@ -218,16 +218,26 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
                     4.0,
                     dark::ACCENT,
                 );
-                draw_text_block(
-                    "Select an actor or structure for contextual orders.",
+                let button = Rect::new(
                     panel.x + 18.0,
                     panel.y + 132.0 + summary_height + 8.0,
                     panel.w - 36.0,
-                    48.0,
-                    14.0,
-                    4.0,
-                    dark::TEXT_DIM,
+                    44.0,
                 );
+                if ctx
+                    .session
+                    .research
+                    .is_unlocked(Technology::DomainStewardship)
+                    && virtual_button(
+                        button,
+                        "Open Domain rules",
+                        true,
+                        ButtonTone::Secondary,
+                        pointer,
+                    )
+                {
+                    actions.push(UiAction::TogglePanel(Panel::Domain));
+                }
             } else {
                 draw_text_block(
                     "Select an actor or structure for contextual orders.",
