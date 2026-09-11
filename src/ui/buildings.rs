@@ -45,6 +45,17 @@ pub(super) fn draw_compact_upgrade(
     }
 }
 
+pub(super) fn status_label(ctx: &UiContext<'_>, building: &Building) -> String {
+    if building.complete {
+        format!(
+            "Finished · reinforcement L{}",
+            progression::building_level(ctx.session, building.kind)
+        )
+    } else {
+        "Scaffold · construction in progress".to_owned()
+    }
+}
+
 fn upgrade_label(ctx: &UiContext<'_>, building: &Building) -> String {
     let level = progression::building_level(ctx.session, building.kind);
     if !building.complete {

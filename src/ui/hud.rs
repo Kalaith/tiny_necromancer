@@ -612,11 +612,7 @@ fn draw_building_inspector(
         dark::TEXT_BRIGHT,
     );
     draw_text_block(
-        if building.complete {
-            "Finished structure"
-        } else {
-            "Scaffold · construction in progress"
-        },
+        &buildings::status_label(ctx, building),
         panel.x + 18.0,
         panel.y + 94.0,
         panel.w - 36.0,
