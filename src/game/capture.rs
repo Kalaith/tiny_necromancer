@@ -41,6 +41,7 @@ impl Game {
             "route-policy-wait" => self.prepare_capture_route_policy_wait(),
             "colony" => self.prepare_capture_colony(),
             "market" => self.prepare_capture_market(),
+            "market-locked" => self.prepare_capture_market_locked(),
             "domain" => self.prepare_capture_domain(),
             "harvest-domain" => self.prepare_capture_harvest_domain(),
             "storage-domain" => self.prepare_capture_storage_domain(),
@@ -348,6 +349,21 @@ impl Game {
         self.session.progress.market.refresh_seconds = 24.0;
         self.session.progress.market.completed_trades = 2;
         self.session.world.selected = Some(Selection::Building(1));
+    }
+
+    fn prepare_capture_market_locked(&mut self) {
+        self.prepare_capture_colony();
+        self.panel = Panel::None;
+        self.zone_mode = None;
+        self.session.world.buildings = vec![crate::state::Building {
+            kind: BuildingKind::GraveLantern,
+            progress: 4.0,
+            complete: false,
+            position: TilePos::new(7, 6),
+            width: 1,
+            height: 1,
+        }];
+        self.session.world.selected = Some(Selection::Building(0));
     }
 
     fn prepare_capture_domain(&mut self) {

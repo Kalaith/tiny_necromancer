@@ -131,6 +131,18 @@ pub(super) fn draw_desktop_market_button(
     building: &Building,
 ) {
     if building.kind != crate::state::BuildingKind::GraveLantern || !building.complete {
+        if building.kind == crate::state::BuildingKind::GraveLantern {
+            draw_text_block(
+                "Finish construction to meet the night broker.",
+                panel.x + 18.0,
+                panel.y + 232.0,
+                panel.w - 36.0,
+                40.0,
+                13.0,
+                3.0,
+                dark::TEXT_DIM,
+            );
+        }
         return;
     }
     if virtual_button(
@@ -152,6 +164,18 @@ pub(super) fn draw_compact_market_button(
     building: &Building,
 ) {
     if building.kind != crate::state::BuildingKind::GraveLantern || !building.complete {
+        if building.kind == crate::state::BuildingKind::GraveLantern {
+            draw_text_block(
+                "Finish construction to meet the night broker.",
+                sheet.x + 16.0,
+                sheet.y + 228.0,
+                sheet.w - 32.0,
+                36.0,
+                12.0,
+                3.0,
+                dark::TEXT_DIM,
+            );
+        }
         return;
     }
     if compact_virtual_button(

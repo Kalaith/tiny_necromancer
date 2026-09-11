@@ -24,6 +24,7 @@ param(
         "route-policy-wait",
         "colony",
         "market",
+        "market-locked",
         "domain",
         "harvest-domain",
         "storage-domain",
