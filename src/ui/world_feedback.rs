@@ -320,6 +320,29 @@ pub(super) fn worker_route_summary(ctx: &UiContext<'_>, worker: &Worker) -> Opti
             destination.x + 1,
             destination.y + 1
         )
+    } else if worker.assignment == JobKind::Wood
+        && ctx
+            .session
+            .world
+            .zone_contains(crate::state::ZoneKind::Work, destination)
+        && ctx.session.world.forest_tiles.contains(&destination)
+    {
+        format!(
+            "WOOD {},{} · {summary}",
+            destination.x + 1,
+            destination.y + 1
+        )
+    } else if worker.assignment == JobKind::Dig
+        && ctx
+            .session
+            .world
+            .zone_contains(crate::state::ZoneKind::Work, destination)
+    {
+        format!(
+            "DIG {},{} · {summary}",
+            destination.x + 1,
+            destination.y + 1
+        )
     } else {
         summary
     };
