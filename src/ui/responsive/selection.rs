@@ -76,12 +76,13 @@ fn draw_ground(ctx: &UiContext<'_>, sheet: Rect, tile: TilePos) {
     if let Some(summary) =
         crate::engine::districts::tile_summary(ctx.session, &ctx.data.config.district_rules, tile)
     {
+        let summary_height = if summary.contains('\n') { 82.0 } else { 52.0 };
         draw_text_block(
             &summary,
             sheet.x + 16.0,
             sheet.y + 122.0,
             sheet.w - 32.0,
-            52.0,
+            summary_height,
             14.0,
             3.0,
             dark::ACCENT,
@@ -89,7 +90,7 @@ fn draw_ground(ctx: &UiContext<'_>, sheet: Rect, tile: TilePos) {
         draw_text_block(
             "Tap a worker, grave, or structure in the world for its actions.",
             sheet.x + 16.0,
-            sheet.y + 182.0,
+            sheet.y + 122.0 + summary_height + 8.0,
             sheet.w - 32.0,
             36.0,
             14.0,

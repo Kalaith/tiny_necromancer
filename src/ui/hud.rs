@@ -207,12 +207,13 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
                 &ctx.data.config.district_rules,
                 tile,
             ) {
+                let summary_height = if summary.contains('\n') { 96.0 } else { 64.0 };
                 draw_text_block(
                     &summary,
                     panel.x + 18.0,
                     panel.y + 132.0,
                     panel.w - 36.0,
-                    64.0,
+                    summary_height,
                     14.0,
                     4.0,
                     dark::ACCENT,
@@ -220,7 +221,7 @@ pub(super) fn draw_inspector(ctx: &UiContext<'_>, pointer: Pointer, actions: &mu
                 draw_text_block(
                     "Select an actor or structure for contextual orders.",
                     panel.x + 18.0,
-                    panel.y + 204.0,
+                    panel.y + 132.0 + summary_height + 8.0,
                     panel.w - 36.0,
                     48.0,
                     14.0,

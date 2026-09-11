@@ -112,7 +112,8 @@ pub fn tile_summary(
         })
         .collect::<Vec<_>>();
 
-    Some(summaries.join(" · "))
+    let separator = if summaries.len() == 1 { "" } else { "\n" };
+    Some(summaries.join(separator))
 }
 
 pub fn ledger_summary(session: &GameSession) -> String {
