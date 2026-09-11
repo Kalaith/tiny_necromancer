@@ -269,6 +269,27 @@ fn assigned_hauler_clears_the_storage_district_alert() {
 }
 
 #[test]
+fn storage_staffing_alert_replaces_generic_material_waiting() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![crate::state::WorldState::stockpile_position()],
+    });
+    session.economy.loose_bones = 8;
+
+    let alerts = collect(&session, &data);
+
+    assert!(alerts
+        .iter()
+        .any(|alert| alert.title == "Storage district idle"));
+    assert!(!alerts
+        .iter()
+        .any(|alert| alert.title == "Materials waiting"));
+}
+
+#[test]
 fn work_district_skips_an_unreachable_grave_for_the_next_reachable_target() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

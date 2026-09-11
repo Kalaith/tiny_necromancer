@@ -210,29 +210,19 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
 }
 
 fn collect_storage_district_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
-    if !session.research.is_unlocked(Technology::DomainStewardship)
-        || districts::staffing_gap(session, ZoneKind::Storage) == 0
-        || (session.economy.loose_bones <= 0
-            && session.economy.loose_wood <= 0
-            && !session
-                .workforce
-                .workers
-                .iter()
-                .any(|worker| worker.carrying > 0))
+    let Some(target) = storage_district_target(session) else {
+        return;
+    };
+    if session.economy.loose_bones <= 0
+        && session.economy.loose_wood <= 0
+        && !session
+            .workforce
+            .workers
+            .iter()
+            .any(|worker| worker.carrying > 0)
     {
         return;
     }
-    let target = session
-        .world
-        .zones
-        .iter()
-        .filter(|zone| zone.kind == ZoneKind::Storage)
-        .flat_map(|zone| zone.tiles.iter().copied())
-        .find(|tile| reachable_from_any_worker(session, *tile))
-        .map(Selection::Ground);
-    let Some(target) = target else {
-        return;
-    };
     alerts.push(OperationalAlert::new(
         AlertSeverity::Info,
         "Storage district idle",
@@ -241,8 +231,23 @@ fn collect_storage_district_alert(session: &GameSession, alerts: &mut Vec<Operat
             districts::operator_count(session, ZoneKind::Storage),
             districts::marked_tile_count(session, ZoneKind::Storage)
         ),
-        Some(target),
+        Some(Selection::Ground(target)),
     ));
+}
+
+fn storage_district_target(session: &GameSession) -> Option<macroquad_toolkit::grid::TilePos> {
+    if !session.research.is_unlocked(Technology::DomainStewardship)
+        || districts::staffing_gap(session, ZoneKind::Storage) == 0
+    {
+        return None;
+    }
+    session
+        .world
+        .zones
+        .iter()
+        .filter(|zone| zone.kind == ZoneKind::Storage)
+        .flat_map(|zone| zone.tiles.iter().copied())
+        .find(|tile| reachable_from_any_worker(session, *tile))
 }
 
 fn reachable_from_any_worker(
@@ -343,6 +348,9 @@ fn collect_production_alert(session: &GameSession, alerts: &mut Vec<OperationalA
 
 fn collect_material_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
     if session.economy.loose_bones <= 0 && session.economy.loose_wood <= 0 {
+        return;
+    }
+    if storage_district_target(session).is_some() {
         return;
     }
     if session
