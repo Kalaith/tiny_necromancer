@@ -178,6 +178,27 @@ fn harvest_policy_spreads_automated_workers_across_marked_gaps() {
 }
 
 #[test]
+fn harvest_policy_fills_a_marked_forest_gap_with_wood() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.stewardship_policy = crate::state::StewardshipPolicy::Harvest;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.forest_tiles[0]],
+    });
+    for plot in &mut session.world.plots {
+        plot.status = crate::state::PlotStatus::Locked;
+    }
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Wood);
+}
+
+#[test]
 fn harvest_policy_keeps_pre_domain_priorities_unchanged() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
