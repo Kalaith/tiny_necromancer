@@ -213,21 +213,26 @@ fn collect_storage_district_alert(session: &GameSession, alerts: &mut Vec<Operat
     let Some(target) = storage_district_target(session) else {
         return;
     };
-    if session.economy.loose_bones <= 0
-        && session.economy.loose_wood <= 0
-        && !session
-            .workforce
-            .workers
-            .iter()
-            .any(|worker| worker.carrying > 0)
-    {
+    let has_loose_material = session.economy.loose_bones > 0 || session.economy.loose_wood > 0;
+    let has_carried_material = session
+        .workforce
+        .workers
+        .iter()
+        .any(|worker| worker.carrying > 0);
+    if !has_loose_material && !has_carried_material {
         return;
     }
+    let waiting_detail = match (has_loose_material, has_carried_material) {
+        (true, true) => "loose material and a carried load are waiting",
+        (true, false) => "loose material is waiting",
+        (false, true) => "a carried load is waiting",
+        (false, false) => unreachable!("storage alert requires material"),
+    };
     alerts.push(OperationalAlert::new(
         AlertSeverity::Info,
         "Storage district idle",
         format!(
-            "{}/{} marked Storage tiles staffed · loose material is waiting · assign Haul.",
+            "{}/{} marked Storage tiles staffed · {waiting_detail} · assign Haul.",
             districts::operator_count(session, ZoneKind::Storage),
             districts::marked_tile_count(session, ZoneKind::Storage)
         ),

@@ -290,6 +290,32 @@ fn storage_staffing_alert_replaces_generic_material_waiting() {
 }
 
 #[test]
+fn storage_staffing_alert_names_a_carried_load() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Storage,
+        tiles: vec![
+            crate::state::WorldState::stockpile_position(),
+            TilePos::new(6, 6),
+        ],
+    });
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].carrying = 4;
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Storage district idle")
+        .expect("carried material should keep storage demand visible");
+
+    assert_eq!(
+        alert.detail,
+        "1/2 marked Storage tiles staffed · a carried load is waiting · assign Haul."
+    );
+}
+
+#[test]
 fn unreachable_storage_keeps_the_source_material_alert() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
