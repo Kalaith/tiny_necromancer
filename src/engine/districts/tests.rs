@@ -124,6 +124,32 @@ fn marked_tile_summary_names_domain_as_the_next_unlock() {
 }
 
 #[test]
+fn marked_tile_summary_keeps_overlapping_district_marks_visible() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let tile = session.world.plots[0].position;
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones = vec![
+        crate::state::Zone {
+            kind: ZoneKind::Work,
+            tiles: vec![tile],
+        },
+        crate::state::Zone {
+            kind: ZoneKind::Storage,
+            tiles: vec![tile],
+        },
+    ];
+
+    let summary = tile_summary(&session, &data.config.district_rules, tile)
+        .expect("overlapping district marks should be inspectable");
+
+    assert!(summary.contains("Work district"));
+    assert!(summary.contains("+15% Dig/Wood speed here."));
+    assert!(summary.contains("Storage district"));
+    assert!(summary.contains("+4 Haul capacity here."));
+}
+
+#[test]
 fn empty_districts_keep_original_job_values() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
