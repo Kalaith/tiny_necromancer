@@ -36,6 +36,7 @@ impl Game {
             "orders" => self.prepare_capture_orders(),
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
+            "harvest-domain" => self.prepare_capture_harvest_domain(),
             "patrol-gap" => self.prepare_capture_patrol_gap(),
             "work-gap" => self.prepare_capture_work_gap(),
             "work-overlap" => self.prepare_capture_work_overlap(),
@@ -263,6 +264,11 @@ impl Game {
                 worker.position = position;
             }
         }
+    }
+
+    fn prepare_capture_harvest_domain(&mut self) {
+        self.prepare_capture_work_domain();
+        self.session.stewardship_policy = StewardshipPolicy::Harvest;
     }
 
     fn prepare_capture_patrol_gap(&mut self) {

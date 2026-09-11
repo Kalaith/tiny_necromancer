@@ -317,7 +317,7 @@ fn choose_priority(session: &GameSession, data: &GameData) -> JobKind {
     }
     available_jobs
         .into_iter()
-        .min_by_key(|job| session.stewardship_policy.bias(*job))
+        .min_by_key(|job| districts::policy_bias(session, *job))
         .unwrap_or(JobKind::Guard)
 }
 

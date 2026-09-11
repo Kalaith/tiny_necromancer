@@ -21,6 +21,7 @@ param(
         "orders",
         "colony",
         "domain",
+        "harvest-domain",
         "patrol-gap",
         "work-gap",
         "work-overlap",

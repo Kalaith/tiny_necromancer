@@ -107,6 +107,43 @@ fn harvest_policy_prefers_material_work_over_guarding() {
 }
 
 #[test]
+fn harvest_policy_fills_a_marked_work_gap_before_unmarked_haul() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.stewardship_policy = crate::state::StewardshipPolicy::Harvest;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.plots[0].position],
+    });
+    session.economy.loose_bones = 8;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Dig);
+}
+
+#[test]
+fn harvest_policy_keeps_pre_domain_priorities_unchanged() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.stewardship_policy = crate::state::StewardshipPolicy::Harvest;
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![session.world.plots[0].position],
+    });
+    session.economy.loose_bones = 8;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].assignment = JobKind::Guard;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
+}
+
+#[test]
 fn binding_routines_reorders_shared_priorities() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

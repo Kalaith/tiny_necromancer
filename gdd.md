@@ -117,8 +117,10 @@ available but no Dig or Wood operator.
 The current stewardship policy is persistent save data. Balanced respects the
 shared worker priority list, Secure brings Guard duty forward, staffs uncovered
 patrol posts, and responds at Rumour pressure, and Harvest brings Dig, Haul, and
-Wood forward when those orders are available. The policy affects only automated
-workers; direct orders remain authoritative.
+Wood forward when those orders are available. After Domain Stewardship, Harvest
+also fills an unstaffed marked Work or Storage district before generic material
+work. The policy affects only automated workers; direct orders remain authoritative,
+and pre-domain saves keep their original priority behavior.
 
 After Domain Stewardship, marked districts also carry small operational rules:
 Work tiles speed Dig and Wood work, Storage tiles increase a hauler's bundle

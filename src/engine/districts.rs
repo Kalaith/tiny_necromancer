@@ -116,6 +116,30 @@ pub fn staffing_needs_attention(session: &GameSession) -> bool {
         .any(|kind| marked_tile_count(session, kind) > 0 && operator_count(session, kind) == 0)
 }
 
+pub fn policy_bias(session: &GameSession, job: JobKind) -> usize {
+    if session.stewardship_policy != crate::state::StewardshipPolicy::Harvest
+        || !session.research.is_unlocked(Technology::DomainStewardship)
+    {
+        return session.stewardship_policy.bias(job);
+    }
+
+    let work_gap = marked_tile_count(session, ZoneKind::Work) > 0
+        && operator_count(session, ZoneKind::Work) == 0;
+    let storage_gap = marked_tile_count(session, ZoneKind::Storage) > 0
+        && operator_count(session, ZoneKind::Storage) == 0;
+    if work_gap && matches!(job, JobKind::Dig | JobKind::Wood) {
+        return 0;
+    }
+    if storage_gap && job == JobKind::Haul {
+        return 0;
+    }
+    if matches!(job, JobKind::Dig | JobKind::Haul | JobKind::Wood) {
+        1
+    } else {
+        2
+    }
+}
+
 pub fn tile_summary(
     session: &GameSession,
     config: &DistrictRules,
