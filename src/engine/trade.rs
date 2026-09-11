@@ -85,6 +85,15 @@ pub fn exchange_suspicion(session: &GameSession) -> f32 {
     }
 }
 
+pub fn contract_progress(session: &GameSession) -> Option<f32> {
+    session
+        .progress
+        .market
+        .contract
+        .as_ref()
+        .map(|contract| (contract.remaining_seconds / MARKET_CONTRACT_SECONDS).clamp(0.0, 1.0))
+}
+
 pub fn advance_market(session: &mut GameSession, dt: f32) -> Option<String> {
     if !dt.is_finite() || dt <= 0.0 {
         return None;

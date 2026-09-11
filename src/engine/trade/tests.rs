@@ -57,6 +57,15 @@ fn broker_request_locks_the_offer_and_cannot_stack() {
             .remaining_seconds,
         75.0
     );
+    assert_eq!(contract_progress(&session), Some(1.0));
+    session
+        .progress
+        .market
+        .contract
+        .as_mut()
+        .unwrap()
+        .remaining_seconds = 37.5;
+    assert!((contract_progress(&session).unwrap() - 0.5).abs() < 0.001);
     assert!(accept_contract(&mut session).is_err());
 }
 

@@ -103,6 +103,17 @@ pub(super) fn draw_market_panel(
     ) {
         actions.push(UiAction::AcceptMarketContract);
     }
+    if let Some(progress) = trade::contract_progress(ctx.session) {
+        progress_bar(
+            rect.x + 340.0,
+            rect.y + 344.0,
+            300.0,
+            6.0,
+            progress,
+            1.0,
+            dark::WARNING,
+        );
+    }
     draw_text_block(
         &trade_status_label(ctx, trade_ready),
         rect.x + 24.0,
@@ -327,6 +338,17 @@ pub(super) fn draw_compact_market_panel(
         pointer,
     ) {
         actions.push(UiAction::AcceptMarketContract);
+    }
+    if let Some(progress) = trade::contract_progress(ctx.session) {
+        progress_bar(
+            card.x + 12.0,
+            card.y + 126.0,
+            card.w - 24.0,
+            4.0,
+            progress,
+            1.0,
+            dark::WARNING,
+        );
     }
     if compact_virtual_button(
         Rect::new(sheet.x + 16.0, sheet.y + 280.0, sheet.w - 32.0, 48.0),
