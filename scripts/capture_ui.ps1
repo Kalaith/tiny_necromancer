@@ -21,6 +21,7 @@ param(
         "orders",
         "priority-route",
         "route-policy",
+        "route-policy-wait",
         "colony",
         "domain",
         "harvest-domain",

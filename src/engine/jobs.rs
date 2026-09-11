@@ -3,7 +3,8 @@
 use crate::data::GameData;
 use crate::engine::{districts, movement, navigation, progression, suspicion};
 use crate::state::{
-    BuildingKind, GameSession, JobKind, PlotStatus, ResourceKind, WorkerStatus, WorldState,
+    BuildingKind, GameSession, JobKind, PlotStatus, ResourceKind, RoutePolicy, WorkerStatus,
+    WorldState, ZoneKind,
 };
 use macroquad_toolkit::grid::TilePos;
 
@@ -284,6 +285,39 @@ pub fn priority_route_skip(
         priority_available(session, data, *job)
             && !has_reachable_destination(session, worker_index, *job)
     })
+}
+
+pub fn marked_only_priority_wait(
+    session: &GameSession,
+    data: &GameData,
+    worker_index: usize,
+) -> Option<(JobKind, ZoneKind)> {
+    if !session
+        .research
+        .is_unlocked(crate::state::Technology::DomainStewardship)
+    {
+        return None;
+    }
+    let worker = session.workforce.workers.get(worker_index)?;
+    if !worker.priority_mode {
+        return None;
+    }
+    let job = priority_route_skip(session, data, worker_index)?;
+    let kind = match job {
+        JobKind::Dig | JobKind::Wood => ZoneKind::Work,
+        JobKind::Haul => ZoneKind::Storage,
+        JobKind::Guard => ZoneKind::Patrol,
+        JobKind::Build | JobKind::Refine => return None,
+    };
+    if session.world.route_policies.for_kind(kind) != RoutePolicy::MarkedOnly {
+        return None;
+    }
+    let mut hypothetical = worker.clone();
+    hypothetical.assignment = job;
+    hypothetical.target_plot = None;
+    destination_for_worker(session, &hypothetical)
+        .is_none()
+        .then_some((job, kind))
 }
 
 fn choose_priority(session: &GameSession, data: &GameData, worker_index: usize) -> JobKind {

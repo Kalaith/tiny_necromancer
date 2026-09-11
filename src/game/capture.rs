@@ -36,6 +36,7 @@ impl Game {
             "orders" => self.prepare_capture_orders(),
             "priority-route" => self.prepare_capture_priority_route(),
             "route-policy" => self.prepare_capture_route_policy(),
+            "route-policy-wait" => self.prepare_capture_route_policy_wait(),
             "colony" => self.prepare_capture_colony(),
             "domain" => self.prepare_capture_domain(),
             "harvest-domain" => self.prepare_capture_harvest_domain(),
@@ -214,6 +215,34 @@ impl Game {
         self.session.world.route_policies.storage = RoutePolicy::MarkedOnly;
         self.session.world.route_policies.patrol = RoutePolicy::MarkedFirst;
         self.session.world.selected = Some(Selection::Ground(TilePos::new(6, 5)));
+    }
+
+    fn prepare_capture_route_policy_wait(&mut self) {
+        self.prepare_capture_colony();
+        self.panel = Panel::Domain;
+        self.zone_mode = None;
+        self.session.pressure.suspicion = 0.0;
+        self.session.pressure.stage = SuspicionStage::Calm;
+        self.session.world.route_policies.work = RoutePolicy::MarkedOnly;
+        self.session
+            .world
+            .zones
+            .retain(|zone| zone.kind != ZoneKind::Work);
+        self.session.economy.wood = 12;
+        self.session.workforce.priorities = vec![
+            JobKind::Wood,
+            JobKind::Haul,
+            JobKind::Guard,
+            JobKind::Dig,
+            JobKind::Build,
+            JobKind::Refine,
+        ];
+        if let Some(worker) = self.session.workforce.workers.first_mut() {
+            worker.assignment = JobKind::Wood;
+            worker.priority_mode = true;
+            worker.status = WorkerStatus::Idle;
+        }
+        self.session.world.selected = Some(Selection::Worker(0));
     }
 
     fn prepare_capture_colony(&mut self) {

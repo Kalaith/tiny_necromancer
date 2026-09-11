@@ -347,6 +347,33 @@ fn district_route_gap_points_to_the_assigned_worker() {
 }
 
 #[test]
+fn marked_only_priority_waiting_becomes_an_actionable_alert() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![crate::state::Technology::DomainStewardship];
+    session.world.route_policies.work = crate::state::RoutePolicy::MarkedOnly;
+    session.economy.wood = 0;
+    session.workforce.workers[0].assignment = crate::state::JobKind::Wood;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.priorities = vec![
+        crate::state::JobKind::Wood,
+        crate::state::JobKind::Haul,
+        crate::state::JobKind::Guard,
+        crate::state::JobKind::Dig,
+        crate::state::JobKind::Build,
+        crate::state::JobKind::Refine,
+    ];
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Route policy waiting")
+        .expect("a strict route policy should explain its missing mark");
+
+    assert_eq!(alert.target, Some(crate::state::Selection::Worker(0)));
+    assert!(alert.detail.contains("marked Work route for Wood"));
+}
+
+#[test]
 fn unreachable_storage_keeps_the_source_material_alert() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

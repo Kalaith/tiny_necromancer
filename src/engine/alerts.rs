@@ -42,6 +42,7 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
     let mut alerts = Vec::new();
     collect_pressure_alert(session, data, &mut alerts);
     collect_route_alert(session, &mut alerts);
+    collect_route_policy_alert(session, data, &mut alerts);
     collect_district_route_alert(session, &mut alerts);
     collect_patrol_coverage_alert(session, &mut alerts);
     collect_work_district_alert(session, &mut alerts);
@@ -51,6 +52,39 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
     collect_material_alert(session, &mut alerts);
     collect_grave_alert(session, &mut alerts);
     alerts
+}
+
+fn collect_route_policy_alert(
+    session: &GameSession,
+    data: &GameData,
+    alerts: &mut Vec<OperationalAlert>,
+) {
+    if alerts.iter().any(|alert| alert.title == "Route blocked") {
+        return;
+    }
+    let Some((worker_index, worker, (job, kind))) = session
+        .workforce
+        .workers
+        .iter()
+        .enumerate()
+        .find_map(|(index, worker)| {
+            jobs::marked_only_priority_wait(session, data, index)
+                .map(|waiting| (index, worker, waiting))
+        })
+    else {
+        return;
+    };
+    alerts.push(OperationalAlert::new(
+        AlertSeverity::Warning,
+        "Route policy waiting",
+        format!(
+            "{} is waiting for a marked {} route for {} · mark a destination or choose another policy.",
+            worker.name,
+            kind.label(),
+            job.label()
+        ),
+        Some(Selection::Worker(worker_index)),
+    ));
 }
 
 fn collect_route_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
