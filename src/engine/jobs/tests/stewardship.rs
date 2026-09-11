@@ -219,9 +219,12 @@ fn automated_worker_falls_back_from_a_blocked_marked_forest() {
         super::super::priority_route_skip(&session, &data, 0),
         Some(JobKind::Wood)
     );
-    simulate(&mut session, &data, 0.0);
+    let messages = simulate(&mut session, &data, 0.0);
 
     assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
+    assert!(messages
+        .iter()
+        .any(|message| message == "Rattlebones skipped Wood: no route."));
 }
 
 #[test]

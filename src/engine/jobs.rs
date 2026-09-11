@@ -154,12 +154,20 @@ pub fn simulate(session: &mut GameSession, data: &GameData, dt: f32) -> Vec<Stri
     for index in 0..worker_count {
         let automatic = session.workforce.workers[index].priority_mode;
         let previous_job = session.workforce.workers[index].assignment;
+        let skipped_priority = automatic.then(|| priority_route_skip(session, data, index));
         let job = if automatic {
             choose_priority(session, data, index)
         } else {
             previous_job
         };
         if automatic && job != previous_job {
+            if let Some(Some(skipped_priority)) = skipped_priority {
+                messages.push(format!(
+                    "{} skipped {}: no route.",
+                    session.workforce.workers[index].name,
+                    skipped_priority.label()
+                ));
+            }
             movement::drop_worker_cargo(session, index);
             if let Some(plot_id) = session.workforce.workers[index].target_plot {
                 if let Some(plot) = session.world.plots.get_mut(plot_id) {

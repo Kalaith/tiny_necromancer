@@ -127,8 +127,8 @@ work. The policy affects only automated workers; direct orders remain authoritat
 and pre-domain saves keep their original priority behavior. Automated workers
 also skip an available priority whose destination has no route, then fall back to
 the next reachable duty; the selected worker inspector names the skipped duty
-when a route fallback is active. A direct order still stays in force and
-reports its blocked route to the player.
+when a route fallback is active, and the change produces a concise notice.
+A direct order still stays in force and reports its blocked route to the player.
 
 After Domain Stewardship, marked districts also carry small operational rules:
 Work tiles speed Dig and Wood work, Storage tiles increase a hauler's bundle
