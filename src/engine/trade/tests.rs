@@ -53,6 +53,16 @@ fn carved_timber_exchange_respects_storage_and_pays_reward() {
 }
 
 #[test]
+fn market_status_names_the_blocker_without_spending_materials() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = lantern_session(&data);
+    session.economy.bones = 10;
+    let status = trade_status(&session, &data).unwrap_err();
+    assert!(status.contains("18 bones"));
+    assert_eq!(session.economy.bones, 10);
+}
+
+#[test]
 fn market_save_defaults_and_normalizes_invalid_rotation() {
     let data = crate::data::GameData::load().unwrap();
     let mut save = lantern_session(&data).to_save(&data.config.version);

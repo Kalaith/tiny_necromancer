@@ -69,6 +69,25 @@ pub fn advance_market(session: &mut GameSession, dt: f32) {
 }
 
 pub fn execute_trade(session: &mut GameSession, data: &GameData) -> Result<(), String> {
+    trade_status(session, data)?;
+    let offer = current_offer(session);
+    session.economy.bones -= offer.bones_cost;
+    session.economy.wood -= offer.wood_cost;
+    match offer.kind {
+        TradeOfferKind::CarvedTimber => session.economy.wood += 12,
+        TradeOfferKind::LanternDraught => session.economy.mana += 8,
+        TradeOfferKind::QuietBargain => session.economy.ward_charges += 1,
+    }
+    session.progress.market.completed_trades += 1;
+    session.add_feed(format!(
+        "Night market exchange: {} for {}.",
+        offer.cost, offer.reward
+    ));
+    suspicion::adjust(session, 2.0, "a discreet night market exchange");
+    Ok(())
+}
+
+pub fn trade_status(session: &GameSession, data: &GameData) -> Result<(), String> {
     if !session.has_building(BuildingKind::GraveLantern) {
         return Err("Complete the grave lantern before meeting the night broker.".to_owned());
     }
@@ -91,19 +110,6 @@ pub fn execute_trade(session: &mut GameSession, data: &GameData) -> Result<(), S
         }
         TradeOfferKind::QuietBargain => {}
     }
-    session.economy.bones -= offer.bones_cost;
-    session.economy.wood -= offer.wood_cost;
-    match offer.kind {
-        TradeOfferKind::CarvedTimber => session.economy.wood += 12,
-        TradeOfferKind::LanternDraught => session.economy.mana += 8,
-        TradeOfferKind::QuietBargain => session.economy.ward_charges += 1,
-    }
-    session.progress.market.completed_trades += 1;
-    session.add_feed(format!(
-        "Night market exchange: {} for {}.",
-        offer.cost, offer.reward
-    ));
-    suspicion::adjust(session, 2.0, "a discreet night market exchange");
     Ok(())
 }
 

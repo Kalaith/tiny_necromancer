@@ -49,22 +49,43 @@ pub(super) fn draw_market_panel(
     }
     draw_offer(ctx, rect);
     let offer = trade::current_offer(ctx.session);
+    let trade_ready = ctx.session.phase == crate::state::GamePhase::Playing
+        && trade::trade_status(ctx.session, ctx.data).is_ok();
+    let trade_label = if trade_ready {
+        format!("Make exchange · {}", offer.cost)
+    } else {
+        "Exchange unavailable".to_owned()
+    };
     if virtual_button(
         Rect::new(rect.x + 24.0, rect.y + 284.0, 300.0, 52.0),
-        &format!("Make exchange · {}", offer.cost),
-        ctx.session.phase == crate::state::GamePhase::Playing,
+        &trade_label,
+        trade_ready,
         ButtonTone::Positive,
         pointer,
     ) {
         actions.push(UiAction::ExecuteTrade);
     }
     draw_text_block(
+        &trade_status_label(ctx, trade_ready),
+        rect.x + 24.0,
+        rect.y + 350.0,
+        rect.w - 48.0,
+        28.0,
+        13.0,
+        3.0,
+        if trade_ready {
+            dark::POSITIVE
+        } else {
+            dark::WARNING
+        },
+    );
+    draw_text_block(
         &format!(
             "{} exchanges completed · +2 suspicion per bargain",
             ctx.session.progress.market.completed_trades
         ),
         rect.x + 24.0,
-        rect.y + 360.0,
+        rect.y + 392.0,
         rect.w - 48.0,
         20.0,
         13.0,
@@ -163,6 +184,13 @@ pub(super) fn draw_compact_market_panel(
         actions.push(UiAction::TogglePanel(super::Panel::None));
     }
     let offer = trade::current_offer(ctx.session);
+    let trade_ready = ctx.session.phase == crate::state::GamePhase::Playing
+        && trade::trade_status(ctx.session, ctx.data).is_ok();
+    let trade_label = if trade_ready {
+        format!("Make exchange · {}", offer.cost)
+    } else {
+        "Exchange unavailable".to_owned()
+    };
     let card = Rect::new(sheet.x + 16.0, sheet.y + 122.0, sheet.w - 32.0, 132.0);
     draw_surface(
         card,
@@ -201,8 +229,8 @@ pub(super) fn draw_compact_market_panel(
     );
     if compact_virtual_button(
         Rect::new(sheet.x + 16.0, sheet.y + 270.0, sheet.w - 32.0, 48.0),
-        &format!("Make exchange · {}", offer.cost),
-        ctx.session.phase == crate::state::GamePhase::Playing,
+        &trade_label,
+        trade_ready,
         ButtonTone::Positive,
         12.0,
         pointer,
@@ -210,17 +238,45 @@ pub(super) fn draw_compact_market_panel(
         actions.push(UiAction::ExecuteTrade);
     }
     draw_text_block(
+        &trade_status_label(ctx, trade_ready),
+        sheet.x + 16.0,
+        sheet.y + 328.0,
+        sheet.w - 32.0,
+        22.0,
+        11.0,
+        2.0,
+        if trade_ready {
+            dark::POSITIVE
+        } else {
+            dark::WARNING
+        },
+    );
+    draw_text_block(
         &format!(
             "Next in {:.0}s · {} completed",
             ctx.session.progress.market.refresh_seconds,
             ctx.session.progress.market.completed_trades
         ),
         sheet.x + 16.0,
-        sheet.y + 332.0,
+        sheet.y + 358.0,
         sheet.w - 32.0,
         18.0,
         12.0,
         0.0,
         dark::TEXT_DIM,
     );
+}
+
+fn trade_status_label(ctx: &UiContext<'_>, ready: bool) -> String {
+    if ready {
+        "Offer ready · the broker leaves when the timer turns.".to_owned()
+    } else if ctx.session.phase != crate::state::GamePhase::Playing {
+        "Resume the cemetery before making an exchange.".to_owned()
+    } else {
+        format!(
+            "Waiting · {}",
+            trade::trade_status(ctx.session, ctx.data)
+                .expect_err("unavailable market offer should explain its blocker")
+        )
+    }
 }
