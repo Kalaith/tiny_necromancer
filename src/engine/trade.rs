@@ -116,10 +116,12 @@ pub fn advance_contract(session: &mut GameSession, dt: f32) -> Option<String> {
     }
     let offer = offer_at(contract.offer_index);
     session.progress.market.contract = None;
-    Some(format!(
+    let message = format!(
         "Broker request expired: {} was left unfulfilled.",
         offer.title
-    ))
+    );
+    session.add_feed(message.clone());
+    Some(message)
 }
 
 pub fn accept_contract(session: &mut GameSession) -> Result<(), String> {

@@ -71,6 +71,7 @@ fn ignored_broker_request_expires_and_clears() {
         message.as_deref(),
         Some("Broker request expired: Carved timber was left unfulfilled.")
     );
+    assert_eq!(session.pressure.feed[0].message, message.unwrap());
 }
 
 #[test]
