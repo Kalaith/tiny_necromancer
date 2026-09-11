@@ -37,6 +37,7 @@ impl Game {
             "domain" => self.prepare_capture_domain(),
             "patrol-gap" => self.prepare_capture_patrol_gap(),
             "work-gap" => self.prepare_capture_work_gap(),
+            "work-domain" => self.prepare_capture_work_domain(),
             "route-blocked" => self.prepare_capture_route_blocked(),
             "route-domain" => self.prepare_capture_route_domain(),
             "notes" => self.prepare_capture_notes(),
@@ -272,6 +273,11 @@ impl Game {
             worker.status = WorkerStatus::Idle;
         }
         self.session.world.selected = Some(Selection::Ground(TilePos::new(0, 3)));
+    }
+
+    fn prepare_capture_work_domain(&mut self) {
+        self.prepare_capture_work_gap();
+        self.panel = Panel::Domain;
     }
 
     fn prepare_capture_route_blocked(&mut self) {

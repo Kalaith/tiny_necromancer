@@ -349,25 +349,22 @@ fn draw_stewardship_readout(
     if let Some(alert) = operational.first().and_then(|alert| alert.target) {
         if virtual_button(
             Rect::new(rect.x + 492.0, rect.y + 458.0, 142.0, 32.0),
-            if operational
-                .first()
-                .is_some_and(|alert| alert.title == "Route blocked")
-            {
-                "Inspect route"
-            } else if operational
-                .first()
-                .is_some_and(|alert| alert.title == "Patrol coverage")
-            {
-                "Staff patrol"
-            } else {
-                "Locate blocker"
-            },
+            alert_button_label(operational.first().map(|alert| alert.title)),
             true,
             ButtonTone::Warning,
             pointer,
         ) {
             actions.push(alert_action(ctx, alert));
         }
+    }
+}
+
+fn alert_button_label(title: Option<&str>) -> &'static str {
+    match title {
+        Some("Route blocked") => "Inspect route",
+        Some("Patrol coverage") => "Staff patrol",
+        Some("Work district idle") => "Assign work",
+        _ => "Locate blocker",
     }
 }
 

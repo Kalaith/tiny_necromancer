@@ -428,27 +428,52 @@ fn draw_compact_domain_panel(
     ) {
         actions.push(UiAction::UseWardCharge);
     }
-    let coverage_alert = alerts::collect(ctx.session, ctx.data)
+    let advisory_alert = alerts::collect(ctx.session, ctx.data)
         .into_iter()
-        .find(|alert| matches!(alert.title, "Route blocked" | "Patrol coverage"));
-    let route_target = coverage_alert.as_ref().and_then(|alert| alert.target);
-    if let Some(Selection::Worker(index)) = route_target {
+        .find(|alert| {
+            matches!(
+                alert.title,
+                "Route blocked" | "Patrol coverage" | "Work district idle"
+            )
+        });
+    if let Some(alert) = advisory_alert.as_ref() {
+        let Some(target) = alert.target else {
+            return;
+        };
+        let action = compact_advisory_action(ctx, target);
         if virtual_button(
             Rect::new(sheet.x + 16.0, sheet.y + 320.0, sheet.w - 32.0, 44.0),
-            if coverage_alert
-                .as_ref()
-                .is_some_and(|alert| alert.title == "Patrol coverage")
-            {
-                "Staff patrol"
-            } else {
-                "Inspect route"
-            },
+            compact_advisory_label(alert.title),
             true,
             ButtonTone::Warning,
             pointer,
         ) {
-            actions.push(UiAction::SelectWorker(index));
+            actions.push(action);
         }
+    }
+}
+
+fn compact_advisory_label(title: &str) -> &'static str {
+    match title {
+        "Patrol coverage" => "Staff patrol",
+        "Work district idle" => "Assign work",
+        _ => "Inspect route",
+    }
+}
+
+fn compact_advisory_action(ctx: &UiContext<'_>, target: Selection) -> UiAction {
+    match target {
+        Selection::Worker(index) => UiAction::SelectWorker(index),
+        Selection::Ground(tile) => UiAction::SelectTile(tile),
+        Selection::Grave(index) => ctx.session.world.plots.get(index).map_or(
+            UiAction::SelectTile(crate::state::WorldState::stockpile_position()),
+            |plot| UiAction::SelectTile(plot.position),
+        ),
+        Selection::Necromancer => UiAction::SelectNecromancer,
+        Selection::Building(index) => ctx.session.world.buildings.get(index).map_or(
+            UiAction::SelectTile(crate::state::WorldState::stockpile_position()),
+            |building| UiAction::SelectTile(building.position),
+        ),
     }
 }
 
