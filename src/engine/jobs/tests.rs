@@ -517,6 +517,30 @@ fn storage_slots_skip_a_sealed_preferred_drop_point() {
 }
 
 #[test]
+fn marked_forest_slots_split_two_wood_workers_across_targets() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let first_forest = session.world.forest_tiles[0];
+    let second_forest = session.world.forest_tiles[1];
+    session.world.zones.push(crate::state::Zone {
+        kind: crate::state::ZoneKind::Work,
+        tiles: vec![first_forest, second_forest],
+    });
+    session.workforce.workers[0].assignment = JobKind::Wood;
+    session.workforce.workers[0].position = first_forest;
+    let mut second_worker = session.workforce.workers[0].clone();
+    second_worker.id = session.workforce.next_worker_id;
+    session.workforce.next_worker_id += 1;
+    session.workforce.workers.push(second_worker);
+
+    let first_destination = destination_for_worker(&session, &session.workforce.workers[0]);
+    let second_destination = destination_for_worker(&session, &session.workforce.workers[1]);
+
+    assert_eq!(first_destination, Some(first_forest));
+    assert_eq!(second_destination, Some(second_forest));
+}
+
+#[test]
 fn idle_dig_preview_uses_a_reachable_grave() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
