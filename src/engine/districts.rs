@@ -1,6 +1,7 @@
 //! Domain Stewardship rules applied by marked district tiles.
 
 use crate::data::DistrictRules;
+use crate::engine::navigation;
 use crate::state::{
     DistrictActivity, DistrictActivityKind, GameSession, JobKind, PlotStatus, Technology, ZoneKind,
 };
@@ -109,6 +110,75 @@ pub fn compact_operations_summary(session: &GameSession) -> String {
         operator_count(session, ZoneKind::Patrol),
         marked_tile_count(session, ZoneKind::Patrol),
         suffix
+    )
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DistrictCoverage {
+    pub marked: usize,
+    pub assigned: usize,
+    pub reachable: usize,
+}
+
+pub fn service_coverage(session: &GameSession, kind: ZoneKind) -> DistrictCoverage {
+    let targets = district_tiles(session, kind);
+    if targets.is_empty() {
+        return DistrictCoverage {
+            marked: 0,
+            assigned: 0,
+            reachable: 0,
+        };
+    }
+    let mut matched_workers = vec![None; targets.len()];
+    for worker_index in 0..session.workforce.workers.len() {
+        let mut visited = vec![false; targets.len()];
+        let _ = match_reachable_worker(
+            session,
+            kind,
+            worker_index,
+            &targets,
+            &mut matched_workers,
+            &mut visited,
+        );
+    }
+    let reachable = matched_workers
+        .iter()
+        .filter(|worker| worker.is_some())
+        .count();
+    DistrictCoverage {
+        marked: targets.len(),
+        assigned: operator_count(session, kind),
+        reachable,
+    }
+}
+
+pub fn coverage_summary(session: &GameSession) -> String {
+    let work = service_coverage(session, ZoneKind::Work);
+    let storage = service_coverage(session, ZoneKind::Storage);
+    let patrol = service_coverage(session, ZoneKind::Patrol);
+    format!(
+        "Route coverage (reachable/assigned): Work {}/{} · Storage {}/{} · Patrol {}/{}",
+        work.reachable,
+        work.assigned,
+        storage.reachable,
+        storage.assigned,
+        patrol.reachable,
+        patrol.assigned
+    )
+}
+
+pub fn compact_coverage_summary(session: &GameSession) -> String {
+    let work = service_coverage(session, ZoneKind::Work);
+    let storage = service_coverage(session, ZoneKind::Storage);
+    let patrol = service_coverage(session, ZoneKind::Patrol);
+    format!(
+        "Routes: W {}/{} · S {}/{} · P {}/{}",
+        work.reachable,
+        work.assigned,
+        storage.reachable,
+        storage.assigned,
+        patrol.reachable,
+        patrol.assigned
     )
 }
 
@@ -437,6 +507,73 @@ fn assigned_operator_count(session: &GameSession, kind: ZoneKind) -> usize {
             ZoneKind::Patrol => worker.assignment == JobKind::Guard,
         })
         .count()
+}
+
+fn district_tiles(session: &GameSession, kind: ZoneKind) -> Vec<TilePos> {
+    session
+        .world
+        .zones
+        .iter()
+        .filter(|zone| zone.kind == kind)
+        .flat_map(|zone| zone.tiles.iter().copied())
+        .collect()
+}
+
+fn match_reachable_worker(
+    session: &GameSession,
+    kind: ZoneKind,
+    worker_index: usize,
+    targets: &[TilePos],
+    matched_workers: &mut [Option<usize>],
+    visited: &mut [bool],
+) -> bool {
+    let worker = &session.workforce.workers[worker_index];
+    for (target_index, target) in targets.iter().enumerate() {
+        if visited[target_index]
+            || !worker_serves_tile(session, kind, worker.assignment, *target)
+            || navigation::plan_route(session, worker.position, *target).is_err()
+        {
+            continue;
+        }
+        visited[target_index] = true;
+        if matched_workers[target_index].is_none()
+            || match_reachable_worker(
+                session,
+                kind,
+                matched_workers[target_index].expect("checked matched worker"),
+                targets,
+                matched_workers,
+                visited,
+            )
+        {
+            matched_workers[target_index] = Some(worker_index);
+            return true;
+        }
+    }
+    false
+}
+
+fn worker_serves_tile(session: &GameSession, kind: ZoneKind, job: JobKind, tile: TilePos) -> bool {
+    match kind {
+        ZoneKind::Work => work_role_for_tile(session, tile)
+            .map_or(matches!(job, JobKind::Dig | JobKind::Wood), |required| {
+                job == required
+            }),
+        ZoneKind::Storage => job == JobKind::Haul,
+        ZoneKind::Patrol => job == JobKind::Guard,
+    }
+}
+
+fn work_role_for_tile(session: &GameSession, tile: TilePos) -> Option<JobKind> {
+    if session.world.plots.iter().any(|plot| {
+        plot.position == tile && matches!(plot.status, PlotStatus::Ready | PlotStatus::Digging)
+    }) {
+        Some(JobKind::Dig)
+    } else if session.world.forest_tiles.contains(&tile) {
+        Some(JobKind::Wood)
+    } else {
+        None
+    }
 }
 
 fn job_operator_count(session: &GameSession, job: JobKind) -> usize {

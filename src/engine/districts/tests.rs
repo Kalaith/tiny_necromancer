@@ -1,5 +1,5 @@
 use super::*;
-use crate::state::{StewardshipPolicy, WorldState};
+use crate::state::{Building, BuildingKind, StewardshipPolicy, WorldState};
 
 #[test]
 fn district_rules_wait_for_domain_stewardship() {
@@ -171,6 +171,47 @@ fn work_staffing_matches_workers_to_the_marked_role() {
 
     assert_eq!(operator_count(&session, ZoneKind::Work), 1);
     assert_eq!(staffing_gap(&session, ZoneKind::Work), 0);
+}
+
+#[test]
+fn service_coverage_separates_assignment_from_route_access() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::DomainStewardship];
+    session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Storage,
+        tiles: vec![WorldState::stockpile_position()],
+    });
+    session.workforce.workers[0].assignment = JobKind::Haul;
+
+    assert_eq!(
+        service_coverage(&session, ZoneKind::Storage),
+        DistrictCoverage {
+            marked: 1,
+            assigned: 1,
+            reachable: 1,
+        }
+    );
+
+    for y in 0..session.world.height as i32 {
+        session.world.buildings.push(Building {
+            kind: BuildingKind::WorkShed,
+            progress: 10.0,
+            complete: true,
+            position: TilePos::new(3, y),
+            width: 1,
+            height: 1,
+        });
+    }
+
+    assert_eq!(
+        service_coverage(&session, ZoneKind::Storage),
+        DistrictCoverage {
+            marked: 1,
+            assigned: 1,
+            reachable: 0,
+        }
+    );
 }
 
 #[test]

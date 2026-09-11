@@ -398,6 +398,21 @@ fn draw_compact_domain_panel(
             dark::TEXT_DIM
         },
     );
+    let coverage_summary = if sheet.w < 520.0 {
+        districts::compact_coverage_summary(ctx.session)
+    } else {
+        districts::coverage_summary(ctx.session)
+    };
+    draw_text_block(
+        &coverage_summary,
+        sheet.x + 16.0,
+        sheet.y + 212.0,
+        sheet.w - 32.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
     let (clear_routes, total_routes) = super::super::world_feedback::route_counts(ctx);
     let patrol_coverage = crate::engine::jobs::patrol_coverage(ctx.session);
     let route_summary = if total_routes == 0 {
@@ -414,7 +429,7 @@ fn draw_compact_domain_panel(
     draw_text_block(
         &route_summary,
         sheet.x + 16.0,
-        sheet.y + 212.0,
+        sheet.y + 232.0,
         sheet.w - 32.0,
         16.0,
         11.0,
@@ -428,7 +443,7 @@ fn draw_compact_domain_panel(
         },
     );
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 232.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 252.0, sheet.w - 32.0, 44.0),
         super::compact_policy_label(ctx.session.stewardship_policy),
         ctx.session.phase == GamePhase::Playing,
         ButtonTone::Secondary,
@@ -437,7 +452,7 @@ fn draw_compact_domain_panel(
         actions.push(UiAction::CycleStewardshipPolicy);
     }
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 280.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 300.0, sheet.w - 32.0, 44.0),
         "Quiet ward · -8 suspicion",
         ctx.session.phase == GamePhase::Playing
             && ctx.session.economy.ward_charges > 0
@@ -464,7 +479,7 @@ fn draw_compact_domain_panel(
         };
         let action = compact_advisory_action(ctx, target);
         if virtual_button(
-            Rect::new(sheet.x + 16.0, sheet.y + 328.0, sheet.w - 32.0, 44.0),
+            Rect::new(sheet.x + 16.0, sheet.y + 348.0, sheet.w - 32.0, 44.0),
             compact_advisory_label(alert.title),
             true,
             ButtonTone::Warning,

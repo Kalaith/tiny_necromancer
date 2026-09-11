@@ -329,6 +329,16 @@ fn draw_stewardship_readout(
             dark::TEXT_DIM
         },
     );
+    draw_text_block(
+        &districts::coverage_summary(ctx.session),
+        rect.x + 24.0,
+        rect.y + 434.0,
+        440.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
 
     let operational = alerts::collect(ctx.session, ctx.data);
     let detail = operational.first().map_or_else(
@@ -343,7 +353,7 @@ fn draw_stewardship_readout(
             detail
         ),
         rect.x + 24.0,
-        rect.y + 436.0,
+        rect.y + 456.0,
         440.0,
         38.0,
         12.0,
@@ -376,7 +386,7 @@ fn draw_stewardship_readout(
     }
     if let Some(alert) = operational.first().and_then(|alert| alert.target) {
         if virtual_button(
-            Rect::new(rect.x + 492.0, rect.y + 458.0, 142.0, 32.0),
+            Rect::new(rect.x + 492.0, rect.y + 478.0, 142.0, 32.0),
             alert_button_label(operational.first().map(|alert| alert.title)),
             true,
             ButtonTone::Warning,

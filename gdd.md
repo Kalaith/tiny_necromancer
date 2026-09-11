@@ -147,8 +147,10 @@ empty activity trail without losing their existing ledger values.
 The Domain readout also reports current staffing by district: Work operators,
 Storage haulers, and Patrol guards compared with the number of marked tiles or
 posts. Each marked tile is a concurrent staffing slot, so an underfilled
-district stays visible until its demand is met; a player can see coverage
-pressure before opening a separate board.
+district stays visible until its demand is met. A separate route-coverage line
+matches reachable workers to marked slots, exposing the difference between a
+missing order and a path blocked by structures before the player opens another
+board.
 
 ### 5.4 Determinism and saves
 
@@ -224,10 +226,11 @@ pressure independently readable on the same world-first map. A blocker can be
 located from the readout, while **Quiet ward** remains a visible response when
 charges and suspicion make it applicable. A touch-sized policy control cycles
 between Balanced, Secure, and Harvest and states each policy's effect.
-The readout pairs its rule and ledger lines with a compact staffing summary for
-Work, Storage, and Patrol, keeping each district's current demand visible beside
-the policy and pressure controls. Underfilled Storage becomes a locateable
-**Staff storage** action when loose material is waiting.
+The readout pairs its rule, ledger, staffing, and route-coverage lines for Work,
+Storage, and Patrol, keeping each district's current demand visible beside the
+policy and pressure controls. Underfilled Storage becomes a locateable **Staff
+storage** action when loose material is waiting, while route coverage shows
+whether assigned hands can actually reach their marked slots.
 
 ## 8. Toolkit mapping
 
@@ -252,7 +255,8 @@ simulation tiles, and procedural animation makes digging, hauling, gathering,
 construction, guarding, refining, walking, and ritual focus readable. Domain
 Stewardship now surfaces a compact district overview, actionable operational
 alerts, toggleable zone, route, and pressure overlays, capacity-aware staffing
-demand, and small bonuses for marked district rules. Responsive layouts now
+demand, route-aware district coverage, and small bonuses for marked district
+rules. Responsive layouts now
 preserve those interactions at smaller viewport sizes with a reduced world area
 and touch-sized bottom sheet.
 
