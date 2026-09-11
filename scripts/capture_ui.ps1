@@ -40,6 +40,7 @@ param(
         "notes",
         "production",
         "kiln-supply",
+        "kiln-supply-inspector",
         "worker-walking",
         "worker-haul-planned",
         "multi-source",

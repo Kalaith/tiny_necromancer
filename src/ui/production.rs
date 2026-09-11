@@ -89,6 +89,39 @@ pub(super) fn draw_kiln_inspector(
     ) {
         actions.push(UiAction::UseWardCharge);
     }
+    let input_status = ctx
+        .session
+        .progress
+        .production
+        .as_ref()
+        .filter(|order| order.building == building.kind)
+        .map_or_else(
+            || "Inputs · no cycle requested".to_owned(),
+            |order| {
+                if order.bones_remaining > 0 || order.wood_remaining > 0 {
+                    format!(
+                        "Inputs waiting · B{} W{} · assign Haul",
+                        order.bones_remaining, order.wood_remaining
+                    )
+                } else {
+                    "Inputs ready · B0 W0".to_owned()
+                }
+            },
+        );
+    draw_text_block(
+        &input_status,
+        panel.x + 18.0,
+        panel.y + 398.0,
+        panel.w - 36.0,
+        20.0,
+        13.0,
+        0.0,
+        if input_status.contains("waiting") {
+            dark::WARNING
+        } else {
+            dark::ACCENT
+        },
+    );
     draw_text_block(
         &format!(
             "Ward charges · {} · stored {} · reserved {}/{}",
@@ -98,11 +131,11 @@ pub(super) fn draw_kiln_inspector(
             crate::engine::progression::MAX_PRODUCTION_QUEUE
         ),
         panel.x + 18.0,
-        panel.y + 402.0,
+        panel.y + 420.0,
         panel.w - 36.0,
-        48.0,
-        14.0,
-        4.0,
+        32.0,
+        12.0,
+        3.0,
         dark::TEXT_DIM,
     );
 }

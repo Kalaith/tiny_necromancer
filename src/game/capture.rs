@@ -55,6 +55,7 @@ impl Game {
             "notes" => self.prepare_capture_notes(),
             "production" => self.prepare_capture_production(),
             "kiln-supply" => self.prepare_capture_kiln_supply(),
+            "kiln-supply-inspector" => self.prepare_capture_kiln_supply_inspector(),
             "placement" => {
                 self.panel = Panel::Build;
                 self.placement = Some(BuildingKind::WorkShed);
@@ -646,6 +647,11 @@ impl Game {
             destination_kind: HaulDestination::Kiln,
         });
         self.session.world.selected = Some(Selection::Worker(0));
+    }
+
+    fn prepare_capture_kiln_supply_inspector(&mut self) {
+        self.prepare_capture_kiln_supply();
+        self.session.world.selected = Some(Selection::Building(0));
     }
 
     fn prepare_capture_worker_walking(&mut self) {

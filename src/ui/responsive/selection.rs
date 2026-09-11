@@ -353,23 +353,41 @@ fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>,
     };
     let queued = ctx.session.progress.production_queue;
     let active = ctx.session.progress.production.is_some();
+    let input_status = ctx.session.progress.production.as_ref().map_or_else(
+        || "Inputs · no cycle requested".to_owned(),
+        |order| {
+            if order.bones_remaining > 0 || order.wood_remaining > 0 {
+                format!(
+                    "Inputs waiting · B{} W{} · assign Haul",
+                    order.bones_remaining, order.wood_remaining
+                )
+            } else {
+                "Inputs ready · B0 W0".to_owned()
+            }
+        },
+    );
     draw_text_block(
         &format!(
-            "Ward cycle · stored {} · reserved {}/{}",
+            "Ward cycle · stored {} · reserved {}/{}\n{}",
             ctx.session.economy.ward_charges,
             queued,
-            crate::engine::progression::MAX_PRODUCTION_QUEUE
+            crate::engine::progression::MAX_PRODUCTION_QUEUE,
+            input_status
         ),
         sheet.x + 16.0,
-        sheet.y + 106.0,
+        sheet.y + 104.0,
         sheet.w - 32.0,
-        20.0,
-        12.0,
-        0.0,
-        dark::TEXT_DIM,
+        32.0,
+        11.0,
+        3.0,
+        if input_status.contains("waiting") {
+            dark::WARNING
+        } else {
+            dark::ACCENT
+        },
     );
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 130.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 140.0, sheet.w - 32.0, 44.0),
         if active {
             "Queue ward cycle"
         } else if ctx.session.economy.bones >= recipe.bones_cost
@@ -390,7 +408,7 @@ fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>,
         actions.push(UiAction::StartProduction(BuildingKind::OssuaryKiln));
     }
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 176.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 186.0, sheet.w - 32.0, 44.0),
         if queued > 0 {
             "Cancel reserved cycle"
         } else {
@@ -403,7 +421,7 @@ fn draw_kiln(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>,
         actions.push(UiAction::CancelProduction(BuildingKind::OssuaryKiln));
     }
     if virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 222.0, sheet.w - 32.0, 44.0),
+        Rect::new(sheet.x + 16.0, sheet.y + 232.0, sheet.w - 32.0, 44.0),
         "Spend ward charge",
         ctx.session.economy.ward_charges > 0 && ctx.session.phase == GamePhase::Playing,
         ButtonTone::Secondary,
