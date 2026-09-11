@@ -4,8 +4,9 @@ use super::Game;
 use crate::data::SuspicionStage;
 use crate::engine::corpses;
 use crate::state::{
-    BuildingKind, GamePhase, GameSession, JobKind, ProductionOrder, Selection, StewardshipPolicy,
-    Technology, UndeadKind, WorkerStatus, Zone, ZoneKind,
+    BuildingKind, DistrictActivity, DistrictActivityKind, GamePhase, GameSession, JobKind,
+    ProductionOrder, Selection, StewardshipPolicy, Technology, UndeadKind, WorkerStatus, Zone,
+    ZoneKind,
 };
 use crate::ui::{self, DomainOverlays, Panel};
 use macroquad::prelude::*;
@@ -215,6 +216,23 @@ impl Game {
         self.session.progress.district_ledger.work_cycles = 4;
         self.session.progress.district_ledger.storage_bonus_items = 6;
         self.session.progress.district_ledger.patrol_quieting = 1.75;
+        self.session.progress.district_ledger.recent_activity = vec![
+            DistrictActivity {
+                kind: DistrictActivityKind::PatrolQuieting,
+                amount: 0.35,
+                elapsed_seconds: 39.0,
+            },
+            DistrictActivity {
+                kind: DistrictActivityKind::StorageBonus,
+                amount: 4.0,
+                elapsed_seconds: 28.0,
+            },
+            DistrictActivity {
+                kind: DistrictActivityKind::WorkCycle,
+                amount: 1.0,
+                elapsed_seconds: 15.0,
+            },
+        ];
         self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
         self.panel = Panel::Zones;
         self.zone_mode = Some(ZoneKind::Work);

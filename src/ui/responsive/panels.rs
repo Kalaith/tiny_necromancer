@@ -503,6 +503,25 @@ fn draw_compact_feed_panel(
         0.0,
         dark::ACCENT,
     );
+    let show_activity = sheet.w >= 520.0
+        && !ctx
+            .session
+            .progress
+            .district_ledger
+            .recent_activity
+            .is_empty();
+    if show_activity {
+        draw_text_block(
+            &districts::latest_activity_summary(ctx.session),
+            sheet.x + 16.0,
+            sheet.y + 120.0,
+            sheet.w - 32.0,
+            16.0,
+            11.0,
+            0.0,
+            dark::TEXT_DIM,
+        );
+    }
     if virtual_button(
         Rect::new(sheet.right() - 92.0, sheet.y + 80.0, 76.0, 40.0),
         "Close",
@@ -513,7 +532,7 @@ fn draw_compact_feed_panel(
         actions.push(UiAction::TogglePanel(Panel::None));
     }
     for (index, entry) in ctx.session.pressure.feed.iter().take(4).enumerate() {
-        let y = sheet.y + 132.0 + index as f32 * 52.0;
+        let y = sheet.y + if show_activity { 148.0 } else { 132.0 } + index as f32 * 52.0;
         draw_text_block(
             &entry.message,
             sheet.x + 16.0,

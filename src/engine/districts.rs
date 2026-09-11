@@ -1,8 +1,10 @@
 //! Domain Stewardship rules applied by marked district tiles.
 
 use crate::data::DistrictRules;
-use crate::state::{GameSession, Technology, ZoneKind};
+use crate::state::{DistrictActivity, DistrictActivityKind, GameSession, Technology, ZoneKind};
 use macroquad_toolkit::grid::TilePos;
+
+const RECENT_ACTIVITY_LIMIT: usize = 8;
 
 pub fn work_speed_multiplier(session: &GameSession, rules: &DistrictRules, tile: TilePos) -> f32 {
     if rule_active(session, ZoneKind::Work) && session.world.zone_contains(ZoneKind::Work, tile) {
@@ -76,6 +78,40 @@ pub fn ledger_summary(session: &GameSession) -> String {
     )
 }
 
+pub fn activity_summary(session: &GameSession) -> String {
+    let entries = session
+        .progress
+        .district_ledger
+        .recent_activity
+        .iter()
+        .take(2)
+        .map(format_activity)
+        .collect::<Vec<_>>();
+    if entries.is_empty() {
+        "Activity: no marked district effect recorded yet.".to_owned()
+    } else {
+        format!("Activity: {}", entries.join(" · "))
+    }
+}
+
+pub fn latest_activity_summary(session: &GameSession) -> String {
+    session
+        .progress
+        .district_ledger
+        .recent_activity
+        .first()
+        .map_or_else(
+            || "Last district effect: none recorded.".to_owned(),
+            |entry| {
+                format!(
+                    "Last: {} @ {:.0}s",
+                    activity_label(entry),
+                    entry.elapsed_seconds
+                )
+            },
+        )
+}
+
 pub fn record_work_cycle(session: &mut GameSession) {
     let first = {
         let ledger = &mut session.progress.district_ledger;
@@ -83,6 +119,7 @@ pub fn record_work_cycle(session: &mut GameSession) {
         ledger.work_cycles = ledger.work_cycles.saturating_add(1);
         first
     };
+    record_activity(session, DistrictActivityKind::WorkCycle, 1.0);
     if first {
         session.add_feed("A marked Work tile completes its first accelerated cycle.");
     }
@@ -98,6 +135,7 @@ pub fn record_storage_bonus(session: &mut GameSession, amount: i32) {
         ledger.storage_bonus_items = ledger.storage_bonus_items.saturating_add(amount);
         first
     };
+    record_activity(session, DistrictActivityKind::StorageBonus, amount as f32);
     if first {
         session.add_feed("Marked Storage gives a hauler extra room on its first pickup.");
     }
@@ -113,8 +151,36 @@ pub fn record_patrol_quieting(session: &mut GameSession, amount: f32) {
         ledger.patrol_quieting += amount;
         first
     };
+    record_activity(session, DistrictActivityKind::PatrolQuieting, amount);
     if first {
         session.add_feed("A marked Patrol post quiets the road more effectively.");
+    }
+}
+
+fn record_activity(session: &mut GameSession, kind: DistrictActivityKind, amount: f32) {
+    let activity = &mut session.progress.district_ledger.recent_activity;
+    activity.insert(
+        0,
+        DistrictActivity {
+            kind,
+            amount,
+            elapsed_seconds: session.progress.elapsed_seconds,
+        },
+    );
+    activity.truncate(RECENT_ACTIVITY_LIMIT);
+}
+
+fn format_activity(entry: &DistrictActivity) -> String {
+    format!("{} @ {:.0}s", activity_label(entry), entry.elapsed_seconds)
+}
+
+fn activity_label(entry: &DistrictActivity) -> String {
+    match entry.kind {
+        DistrictActivityKind::WorkCycle => "Work cycle".to_owned(),
+        DistrictActivityKind::StorageBonus => format!("Storage +{:.0} haul", entry.amount),
+        DistrictActivityKind::PatrolQuieting => {
+            format!("Patrol -{:.1} suspicion", entry.amount)
+        }
     }
 }
 

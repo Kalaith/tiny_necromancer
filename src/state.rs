@@ -442,6 +442,22 @@ pub struct DistrictLedger {
     pub storage_bonus_items: i32,
     #[serde(default)]
     pub patrol_quieting: f32,
+    #[serde(default)]
+    pub recent_activity: Vec<DistrictActivity>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DistrictActivityKind {
+    WorkCycle,
+    StorageBonus,
+    PatrolQuieting,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DistrictActivity {
+    pub kind: DistrictActivityKind,
+    pub amount: f32,
+    pub elapsed_seconds: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

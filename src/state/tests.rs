@@ -20,6 +20,15 @@ fn save_round_trip_preserves_rng_and_operation() {
     session.progress.district_ledger.work_cycles = 3;
     session.progress.district_ledger.storage_bonus_items = 5;
     session.progress.district_ledger.patrol_quieting = 1.25;
+    session
+        .progress
+        .district_ledger
+        .recent_activity
+        .push(DistrictActivity {
+            kind: DistrictActivityKind::StorageBonus,
+            amount: 4.0,
+            elapsed_seconds: 12.0,
+        });
     let save = session.to_save(&data.config.version);
     let restored = GameSession::from_save(save.clone());
     assert_eq!(restored.phase, GamePhase::Playing);
@@ -28,6 +37,11 @@ fn save_round_trip_preserves_rng_and_operation() {
     assert_eq!(restored.progress.district_ledger.work_cycles, 3);
     assert_eq!(restored.progress.district_ledger.storage_bonus_items, 5);
     assert!((restored.progress.district_ledger.patrol_quieting - 1.25).abs() < 0.001);
+    assert_eq!(restored.progress.district_ledger.recent_activity.len(), 1);
+    assert_eq!(
+        restored.progress.district_ledger.recent_activity[0].kind,
+        DistrictActivityKind::StorageBonus
+    );
     assert_eq!(restored.rng.state(), save.rng_state);
 }
 
@@ -46,6 +60,7 @@ fn older_saves_default_the_district_ledger() {
     assert_eq!(restored.progress.district_ledger.work_cycles, 0);
     assert_eq!(restored.progress.district_ledger.storage_bonus_items, 0);
     assert_eq!(restored.progress.district_ledger.patrol_quieting, 0.0);
+    assert!(restored.progress.district_ledger.recent_activity.is_empty());
 }
 
 #[test]

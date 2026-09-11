@@ -117,16 +117,32 @@ fn district_ledger_records_effects_and_first_use_notes() {
     );
     record_work_cycle(&mut session);
     record_work_cycle(&mut session);
+    session.progress.elapsed_seconds = 12.0;
     record_storage_bonus(&mut session, 4);
+    session.progress.elapsed_seconds = 18.0;
     record_patrol_quieting(&mut session, 0.6);
     record_patrol_quieting(&mut session, 0.2);
 
     assert_eq!(session.progress.district_ledger.work_cycles, 2);
     assert_eq!(session.progress.district_ledger.storage_bonus_items, 4);
     assert!((session.progress.district_ledger.patrol_quieting - 0.8).abs() < 0.001);
+    assert_eq!(session.progress.district_ledger.recent_activity.len(), 5);
+    assert_eq!(
+        session.progress.district_ledger.recent_activity[0].kind,
+        DistrictActivityKind::PatrolQuieting
+    );
+    assert!((session.progress.district_ledger.recent_activity[0].amount - 0.2).abs() < 0.001);
     assert_eq!(
         ledger_summary(&session),
         "Ledger: Work 2 cycles · Storage +4 haul · Patrol -0.8 suspicion"
+    );
+    assert_eq!(
+        activity_summary(&session),
+        "Activity: Patrol -0.2 suspicion @ 18s · Patrol -0.6 suspicion @ 18s"
+    );
+    assert_eq!(
+        latest_activity_summary(&session),
+        "Last: Patrol -0.2 suspicion @ 18s"
     );
     assert_eq!(session.pressure.feed.len(), 4);
     assert!(session

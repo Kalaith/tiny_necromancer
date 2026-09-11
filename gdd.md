@@ -132,7 +132,10 @@ The Domain readout keeps a save-persistent ledger of accelerated Work cycles,
 extra Storage capacity actually used, and additional Patrol quieting. The first
 successful use of each active rule also becomes a Field Notes entry, giving the
 player a short operational history without flooding the feed every simulation
-step.
+step. The ledger also keeps the eight most recent meaningful district effects,
+with their measured contribution and elapsed time, so the Field Notes archive
+can show a compact chronology alongside the totals. Older saves receive an
+empty activity trail without losing their existing ledger values.
 
 ### 5.4 Determinism and saves
 
