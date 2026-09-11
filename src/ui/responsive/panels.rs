@@ -503,13 +503,12 @@ fn draw_compact_feed_panel(
         0.0,
         dark::ACCENT,
     );
-    let show_activity = sheet.w >= 520.0
-        && !ctx
-            .session
-            .progress
-            .district_ledger
-            .recent_activity
-            .is_empty();
+    let show_activity = !ctx
+        .session
+        .progress
+        .district_ledger
+        .recent_activity
+        .is_empty();
     if show_activity {
         draw_text_block(
             &districts::latest_activity_summary(ctx.session),
