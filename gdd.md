@@ -225,6 +225,12 @@ and preserve a completed-trade count in the save. The market is opened from
 the lantern inspector so the new economy stays contextual rather than adding
 another permanent command-dock slot.
 
+Repeated exchanges build broker favor. Three favor earns the Acquainted
+standing and eight earns Trusted standing; each exchange then raises less
+suspicion, from +2.0 at Whisper to +1.5 when Acquainted and +1.0 when Trusted.
+Standing and its next threshold remain visible in the market panel and save
+with the cemetery.
+
 ## 7. UI and interaction flow
 
 The main menu shows the game identity and visible **New Game** / **Continue**

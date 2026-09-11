@@ -63,6 +63,14 @@ pub fn offer_position(session: &GameSession) -> (usize, usize) {
     )
 }
 
+pub fn exchange_suspicion(session: &GameSession) -> f32 {
+    match session.progress.market.standing_tier() {
+        0 => 2.0,
+        1 => 1.5,
+        _ => 1.0,
+    }
+}
+
 pub fn advance_market(session: &mut GameSession, dt: f32) -> Option<String> {
     if !dt.is_finite() || dt <= 0.0 {
         return None;
@@ -94,7 +102,16 @@ pub fn execute_trade(session: &mut GameSession, data: &GameData) -> Result<(), S
         TradeOfferKind::QuietBargain => session.economy.ward_charges += 1,
     }
     session.progress.market.completed_trades += 1;
-    suspicion::adjust(session, 2.0, "a discreet night market exchange");
+    let previous_tier = session.progress.market.standing_tier();
+    session.progress.market.favor = session.progress.market.favor.saturating_add(1);
+    let suspicion_cost = exchange_suspicion(session);
+    suspicion::adjust(session, suspicion_cost, "a discreet night market exchange");
+    if session.progress.market.standing_tier() > previous_tier {
+        session.add_feed(format!(
+            "The broker now calls this cemetery {}.",
+            session.progress.market.standing_label()
+        ));
+    }
     session.add_feed(format!(
         "Night market exchange: {} for {}.",
         offer.cost, offer.reward

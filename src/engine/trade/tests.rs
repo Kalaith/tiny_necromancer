@@ -58,6 +58,18 @@ fn carved_timber_exchange_respects_storage_and_pays_reward() {
     assert!(session.pressure.feed[0]
         .message
         .contains("Night market exchange: 18 bones for 12 wood"));
+    assert_eq!(session.progress.market.favor, 1);
+}
+
+#[test]
+fn trusted_broker_reduces_exchange_suspicion() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = lantern_session(&data);
+    session.progress.market.favor = 8;
+    session.economy.bones = 30;
+    execute_trade(&mut session, &data).unwrap();
+    assert!((session.pressure.suspicion - 1.0).abs() < 0.001);
+    assert_eq!(session.progress.market.favor, 9);
 }
 
 #[test]

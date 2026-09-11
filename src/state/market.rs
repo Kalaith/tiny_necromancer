@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 pub const MARKET_OFFER_COUNT: usize = 3;
 pub const MARKET_REFRESH_SECONDS: f32 = 30.0;
+pub const BROKER_STANDING_THRESHOLDS: [u32; 3] = [0, 3, 8];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MarketState {
@@ -13,6 +14,8 @@ pub struct MarketState {
     pub refresh_seconds: f32,
     #[serde(default)]
     pub completed_trades: u32,
+    #[serde(default)]
+    pub favor: u32,
 }
 
 impl Default for MarketState {
@@ -21,6 +24,7 @@ impl Default for MarketState {
             offer_index: 0,
             refresh_seconds: MARKET_REFRESH_SECONDS,
             completed_trades: 0,
+            favor: 0,
         }
     }
 }
@@ -32,8 +36,35 @@ impl MarketState {
             self.refresh_seconds = MARKET_REFRESH_SECONDS;
         }
     }
+
+    pub fn standing_tier(&self) -> usize {
+        BROKER_STANDING_THRESHOLDS
+            .iter()
+            .enumerate()
+            .rev()
+            .find_map(|(tier, threshold)| (self.favor >= *threshold).then_some(tier))
+            .unwrap_or(0)
+    }
+
+    pub fn standing_label(&self) -> &'static str {
+        match self.standing_tier() {
+            0 => "Whisper",
+            1 => "Acquainted",
+            _ => "Trusted",
+        }
+    }
+
+    pub fn next_standing_target(&self) -> Option<u32> {
+        BROKER_STANDING_THRESHOLDS
+            .iter()
+            .copied()
+            .find(|threshold| *threshold > self.favor)
+    }
 }
 
 fn default_refresh_seconds() -> f32 {
     MARKET_REFRESH_SECONDS
 }
+
+#[cfg(test)]
+mod tests;

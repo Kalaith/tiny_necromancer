@@ -38,6 +38,16 @@ pub(super) fn draw_market_panel(
         0.0,
         dark::TEXT_DIM,
     );
+    draw_text_block(
+        &standing_summary(ctx),
+        rect.x + 24.0,
+        rect.y + 76.0,
+        420.0,
+        18.0,
+        12.0,
+        0.0,
+        dark::ACCENT,
+    );
     if virtual_button(
         Rect::new(rect.right() - 96.0, rect.y + 14.0, 72.0, 44.0),
         "Close",
@@ -81,8 +91,9 @@ pub(super) fn draw_market_panel(
     );
     draw_text_block(
         &format!(
-            "{} exchanges completed · +2 suspicion per bargain",
-            ctx.session.progress.market.completed_trades
+            "{} exchanges completed · +{:.1} suspicion at this standing",
+            ctx.session.progress.market.completed_trades,
+            trade::exchange_suspicion(ctx.session)
         ),
         rect.x + 24.0,
         rect.y + 392.0,
@@ -183,6 +194,16 @@ pub(super) fn draw_compact_market_panel(
         16.0,
         0.0,
         dark::TEXT_BRIGHT,
+    );
+    draw_text_block(
+        &standing_summary(ctx),
+        sheet.x + 16.0,
+        sheet.y + 104.0,
+        sheet.w - 32.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::ACCENT,
     );
     if compact_virtual_button(
         Rect::new(sheet.right() - 92.0, sheet.y + 80.0, 76.0, 40.0),
@@ -300,5 +321,22 @@ fn trade_status_label(ctx: &UiContext<'_>, ready: bool) -> String {
             trade::trade_status(ctx.session, ctx.data)
                 .expect_err("unavailable market offer should explain its blocker")
         )
+    }
+}
+
+fn standing_summary(ctx: &UiContext<'_>) -> String {
+    let market = &ctx.session.progress.market;
+    match market.next_standing_target() {
+        Some(target) => format!(
+            "Broker standing · {} · favor {}/{}",
+            market.standing_label(),
+            market.favor,
+            target
+        ),
+        None => format!(
+            "Broker standing · {} · favor {} · highest standing",
+            market.standing_label(),
+            market.favor
+        ),
     }
 }

@@ -155,6 +155,9 @@ Defer farms, housing, multiple biomes, and large defence systems until the first
 The completed Grave Lantern now opens a contextual Night Market. Its three
 fixed offers rotate every 30 seconds, check storage and mana capacity before
 spending materials, add a small suspicion cost, and preserve trade history in
-the save without becoming a victory requirement.
+the save without becoming a victory requirement. Repeated trades also build
+broker favor: Whisper becomes Acquainted at three favor and Trusted at eight,
+with the market panel showing the next standing threshold and the reduced
+suspicion cost at higher standing.
 
 The first implementation target is a complete playable cemetery screen with the current mechanics and the new visual hierarchy. It establishes the identity before expanding the simulation into a colony builder.
