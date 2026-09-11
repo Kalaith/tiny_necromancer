@@ -230,15 +230,25 @@ fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<
     }
     let suspicion = if show_undead_card {
         format!(
-            "SUSPICION · {} {:.0}%",
+            "SUSPICION · {} {:.0}% · STORE {}/{}",
             super::components::stage_label(ctx.session.pressure.stage),
-            ctx.session.pressure.suspicion
+            ctx.session.pressure.suspicion,
+            ctx.session.economy.stored_materials(),
+            crate::engine::districts::storage_capacity(
+                ctx.session,
+                &ctx.data.config.district_rules
+            )
         )
     } else {
         format!(
-            "SUSPICION · {} {:.0}% · UNDEAD {}",
+            "SUSPICION · {} {:.0}% · STORE {}/{} · UNDEAD {}",
             super::components::stage_label(ctx.session.pressure.stage),
             ctx.session.pressure.suspicion,
+            ctx.session.economy.stored_materials(),
+            crate::engine::districts::storage_capacity(
+                ctx.session,
+                &ctx.data.config.district_rules
+            ),
             ctx.session.active_undead()
         )
     };

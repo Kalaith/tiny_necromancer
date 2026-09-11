@@ -103,3 +103,18 @@ fn normalization_compacts_duplicate_and_empty_source_piles() {
     assert_eq!(economy.loose_wood, 5);
     assert_eq!(economy.loose_wood_source, Some(first));
 }
+
+#[test]
+fn storage_space_clamps_material_deposits_at_capacity() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut economy = GameSession::new(&data.config).economy;
+    economy.storage_capacity = 10;
+    economy.bones = 8;
+    economy.wood = 1;
+
+    assert_eq!(economy.storage_space(10), 1);
+    assert_eq!(economy.store_resource(ResourceKind::Wood, 4, 10), 1);
+    assert_eq!(economy.stored_materials(), 10);
+    assert_eq!(economy.wood, 2);
+    assert_eq!(economy.store_resource(ResourceKind::Bones, 2, 10), 0);
+}

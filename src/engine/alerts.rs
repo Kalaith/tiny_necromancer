@@ -46,10 +46,11 @@ pub fn collect(session: &GameSession, data: &GameData) -> Vec<OperationalAlert> 
     collect_district_route_alert(session, &mut alerts);
     collect_patrol_coverage_alert(session, &mut alerts);
     collect_work_district_alert(session, &mut alerts);
-    collect_storage_district_alert(session, &mut alerts);
+    collect_storage_district_alert(session, data, &mut alerts);
     collect_construction_alert(session, &mut alerts);
     collect_production_alert(session, &mut alerts);
-    collect_material_alert(session, &mut alerts);
+    collect_material_alert(session, data, &mut alerts);
+    collect_storage_capacity_alert(session, data, &mut alerts);
     collect_grave_alert(session, &mut alerts);
     alerts
 }
@@ -270,7 +271,16 @@ fn collect_work_district_alert(session: &GameSession, alerts: &mut Vec<Operation
     ));
 }
 
-fn collect_storage_district_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
+fn collect_storage_district_alert(
+    session: &GameSession,
+    data: &GameData,
+    alerts: &mut Vec<OperationalAlert>,
+) {
+    if storage_overflow_waiting(session)
+        && districts::storage_space(session, &data.config.district_rules) <= 0
+    {
+        return;
+    }
     let Some(target) = storage_district_target(session) else {
         return;
     };
@@ -299,6 +309,42 @@ fn collect_storage_district_alert(session: &GameSession, alerts: &mut Vec<Operat
         ),
         Some(Selection::Ground(target)),
     ));
+}
+
+fn collect_storage_capacity_alert(
+    session: &GameSession,
+    data: &GameData,
+    alerts: &mut Vec<OperationalAlert>,
+) {
+    if !storage_overflow_waiting(session)
+        || districts::storage_space(session, &data.config.district_rules) > 0
+    {
+        return;
+    }
+    alerts.push(OperationalAlert::new(
+        AlertSeverity::Warning,
+        "Storage full",
+        format!(
+            "Material storage is full at {}/{} · clear space or mark Storage tiles.",
+            session.economy.stored_materials(),
+            districts::storage_capacity(session, &data.config.district_rules)
+        ),
+        Some(Selection::Ground(session.world.storage_position())),
+    ));
+}
+
+fn storage_overflow_waiting(session: &GameSession) -> bool {
+    let bones_waiting = session.economy.loose_bones
+        > progression::production_input_need(session, crate::state::ResourceKind::Bones);
+    let wood_waiting = session.economy.loose_wood
+        > progression::production_input_need(session, crate::state::ResourceKind::Wood);
+    let carried_for_storage = session.workforce.workers.iter().any(|worker| {
+        worker.carrying > 0
+            && worker
+                .haul_plan
+                .is_some_and(|plan| plan.destination_kind == crate::state::HaulDestination::Storage)
+    });
+    bones_waiting || wood_waiting || carried_for_storage
 }
 
 fn storage_district_target(session: &GameSession) -> Option<macroquad_toolkit::grid::TilePos> {
@@ -437,11 +483,20 @@ fn collect_production_alert(session: &GameSession, alerts: &mut Vec<OperationalA
     ));
 }
 
-fn collect_material_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>) {
+fn collect_material_alert(
+    session: &GameSession,
+    data: &GameData,
+    alerts: &mut Vec<OperationalAlert>,
+) {
     if session.economy.loose_bones <= 0 && session.economy.loose_wood <= 0 {
         return;
     }
     if storage_district_target(session).is_some() {
+        return;
+    }
+    if storage_overflow_waiting(session)
+        && districts::storage_space(session, &data.config.district_rules) <= 0
+    {
         return;
     }
     if session

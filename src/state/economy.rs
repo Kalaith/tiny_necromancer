@@ -4,6 +4,8 @@ use super::{ResourceKind, WorldState};
 use macroquad_toolkit::grid::TilePos;
 use serde::{Deserialize, Serialize};
 
+pub const DEFAULT_STORAGE_CAPACITY: i32 = 96;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct LooseResourcePile {
     pub position: TilePos,
@@ -16,6 +18,8 @@ pub struct EconomyState {
     pub mana: i32,
     pub mana_fraction: f32,
     pub wood: i32,
+    #[serde(default = "default_storage_capacity")]
+    pub storage_capacity: i32,
     pub shovels: i32,
     pub loose_bones: i32,
     pub loose_wood: i32,
@@ -33,6 +37,23 @@ pub struct EconomyState {
 }
 
 impl EconomyState {
+    pub fn stored_materials(&self) -> i32 {
+        self.bones.saturating_add(self.wood)
+    }
+
+    pub fn storage_space(&self, capacity: i32) -> i32 {
+        capacity.saturating_sub(self.stored_materials()).max(0)
+    }
+
+    pub fn store_resource(&mut self, resource: ResourceKind, amount: i32, capacity: i32) -> i32 {
+        let stored = amount.max(0).min(self.storage_space(capacity));
+        match resource {
+            ResourceKind::Bones => self.bones += stored,
+            ResourceKind::Wood => self.wood += stored,
+        }
+        stored
+    }
+
     pub fn normalize_loose_piles(&mut self) {
         if self.loose_bones_piles.is_empty() && self.loose_bones > 0 {
             self.loose_bones_piles.push(LooseResourcePile {
@@ -169,4 +190,8 @@ impl EconomyState {
             }
         }
     }
+}
+
+fn default_storage_capacity() -> i32 {
+    DEFAULT_STORAGE_CAPACITY
 }

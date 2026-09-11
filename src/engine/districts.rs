@@ -27,6 +27,24 @@ pub fn haul_capacity_bonus(session: &GameSession, rules: &DistrictRules, tile: T
     }
 }
 
+pub fn storage_capacity(session: &GameSession, rules: &DistrictRules) -> i32 {
+    let marked_tiles = if rule_active(session, ZoneKind::Storage) {
+        marked_tile_count(session, ZoneKind::Storage) as i32
+    } else {
+        0
+    };
+    session
+        .economy
+        .storage_capacity
+        .saturating_add(marked_tiles.saturating_mul(rules.storage_volume_per_tile))
+}
+
+pub fn storage_space(session: &GameSession, rules: &DistrictRules) -> i32 {
+    session
+        .economy
+        .storage_space(storage_capacity(session, rules))
+}
+
 pub fn guard_mitigation_multiplier(
     session: &GameSession,
     rules: &DistrictRules,
@@ -49,7 +67,10 @@ pub fn rule_summary(session: &GameSession, config: &DistrictRules) -> String {
         ));
     }
     if rule_active(session, ZoneKind::Storage) {
-        rules.push(format!("Storage +{}", config.storage_capacity_bonus));
+        rules.push(format!(
+            "Storage +{} haul · +{} capacity/tile",
+            config.storage_capacity_bonus, config.storage_volume_per_tile
+        ));
     }
     if rule_active(session, ZoneKind::Patrol) {
         rules.push(format!(

@@ -80,7 +80,7 @@ fn rule_summary_names_only_marked_districts() {
 
     assert_eq!(
         rule_summary(&session, &data.config.district_rules),
-        "Rules: marked tiles · Storage +4"
+        "Rules: marked tiles · Storage +4 haul · +24 capacity/tile"
     );
 }
 
@@ -395,6 +395,25 @@ fn empty_districts_keep_original_job_values() {
         1.0
     );
     assert!(rule_summary(&session, &data.config.district_rules).starts_with("No district rules"));
+}
+
+#[test]
+fn marked_storage_tiles_expand_material_capacity_after_domain() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let storage_tile = WorldState::stockpile_position();
+    session.world.zones.push(crate::state::Zone {
+        kind: ZoneKind::Storage,
+        tiles: vec![storage_tile, TilePos::new(5, 5)],
+    });
+
+    assert_eq!(storage_capacity(&session, &data.config.district_rules), 96);
+    session.research.completed = vec![Technology::DomainStewardship];
+
+    assert_eq!(
+        storage_capacity(&session, &data.config.district_rules),
+        96 + 2 * data.config.district_rules.storage_volume_per_tile
+    );
 }
 
 #[test]

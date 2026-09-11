@@ -36,6 +36,26 @@ fn hauling_respects_worker_capacity() {
 }
 
 #[test]
+fn full_storage_keeps_loose_material_at_its_source() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = data.config.storage_capacity;
+    let source = session.world.plots[0].position;
+    session.economy.add_loose(ResourceKind::Bones, source, 8);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = source;
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(
+        session.economy.loose_amount_at(ResourceKind::Bones, source),
+        8
+    );
+    assert_eq!(session.workforce.workers[0].carrying, 0);
+    assert!(session.workforce.workers[0].haul_plan.is_none());
+}
+
+#[test]
 fn same_seed_produces_same_work_output() {
     let data = crate::data::GameData::load().unwrap();
     let mut first = GameSession::new(&data.config);

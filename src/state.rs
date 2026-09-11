@@ -555,6 +555,7 @@ impl GameSession {
                 mana: config.starting_mana,
                 mana_fraction: 0.0,
                 wood: config.starting_wood,
+                storage_capacity: config.storage_capacity,
                 shovels: 1,
                 loose_bones: 0,
                 loose_wood: 0,

@@ -20,33 +20,46 @@ pub(super) fn draw_status_strip(
     let cards = [
         (
             "BONES",
-            e.bones,
+            e.bones.to_string(),
             Color::new(0.24, 0.25, 0.24, 0.94),
             dark::TEXT_BRIGHT,
         ),
         (
             "MANA",
-            e.mana,
+            e.mana.to_string(),
             Color::new(0.18, 0.20, 0.34, 0.94),
             Color::new(0.73, 0.79, 1.0, 1.0),
         ),
         (
             "WOOD",
-            e.wood,
+            e.wood.to_string(),
             Color::new(0.28, 0.20, 0.13, 0.94),
             Color::new(0.90, 0.74, 0.52, 1.0),
         ),
         (
             "UNDEAD",
-            ctx.session.active_undead() as i32,
+            ctx.session.active_undead().to_string(),
             Color::new(0.12, 0.22, 0.18, 0.94),
             Color::new(0.69, 0.91, 0.78, 1.0),
         ),
         (
             "WARDS",
-            e.ward_charges,
+            e.ward_charges.to_string(),
             Color::new(0.24, 0.17, 0.31, 0.94),
             Color::new(0.86, 0.68, 1.0, 1.0),
+        ),
+        (
+            "STORAGE",
+            format!(
+                "{}/{}",
+                e.stored_materials(),
+                crate::engine::districts::storage_capacity(
+                    ctx.session,
+                    &ctx.data.config.district_rules
+                )
+            ),
+            Color::new(0.16, 0.20, 0.18, 0.94),
+            Color::new(0.60, 0.86, 0.70, 1.0),
         ),
     ];
     for (index, (label, value, fill, accent)) in cards.into_iter().enumerate() {
@@ -66,7 +79,7 @@ pub(super) fn draw_status_strip(
             accent,
         );
         draw_text_block(
-            &value.to_string(),
+            &value,
             rect.x + 10.0,
             rect.y + 22.0,
             rect.w - 20.0,

@@ -117,6 +117,33 @@ fn loose_material_without_a_hauler_points_to_its_source() {
 }
 
 #[test]
+fn full_storage_points_to_space_for_waiting_material() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = data.config.storage_capacity;
+    session.economy.wood = 0;
+    let source = TilePos::new(4, 3);
+    session.economy.loose_bones = 8;
+    session.economy.loose_bones_source = Some(source);
+
+    let alert = collect(&session, &data)
+        .into_iter()
+        .find(|alert| alert.title == "Storage full")
+        .expect("full material storage should be reported");
+
+    assert_eq!(
+        alert.detail,
+        "Material storage is full at 96/96 · clear space or mark Storage tiles."
+    );
+    assert_eq!(
+        alert.target,
+        Some(Selection::Ground(
+            crate::state::WorldState::stockpile_position()
+        ))
+    );
+}
+
+#[test]
 fn multi_source_material_alert_counts_piles_and_targets_the_first_pile() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

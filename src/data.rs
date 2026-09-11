@@ -25,6 +25,7 @@ pub struct GameConfig {
     pub starting_bones: i32,
     pub starting_mana: i32,
     pub starting_wood: i32,
+    pub storage_capacity: i32,
     pub max_mana: i32,
     pub worker_wood_reserve: i32,
     pub starting_unlocked_plots: usize,
@@ -45,6 +46,7 @@ pub struct GameConfig {
 pub struct DistrictRules {
     pub work_speed_multiplier: f32,
     pub storage_capacity_bonus: i32,
+    pub storage_volume_per_tile: i32,
     pub patrol_mitigation_multiplier: f32,
 }
 
@@ -194,6 +196,7 @@ impl GameData {
         if config.starting_bones < 0
             || config.starting_mana < 0
             || config.starting_wood < 0
+            || config.storage_capacity <= 0
             || config.max_mana <= 0
             || config.worker_wood_reserve < 0
             || config.starting_unlocked_plots == 0
@@ -221,6 +224,7 @@ impl GameData {
         }
         if config.district_rules.work_speed_multiplier < 1.0
             || config.district_rules.storage_capacity_bonus < 0
+            || config.district_rules.storage_volume_per_tile < 0
             || config.district_rules.patrol_mitigation_multiplier < 1.0
         {
             return Err(

@@ -9,6 +9,7 @@
   "starting_bones": 54,
   "starting_mana": 16,
   "starting_wood": 12,
+  "storage_capacity": 96,
   "max_mana": 99,
   "worker_wood_reserve": 24,
   "starting_unlocked_plots": 1,
@@ -24,6 +25,7 @@
   "district_rules": {
     "work_speed_multiplier": 1.15,
     "storage_capacity_bonus": 4,
+    "storage_volume_per_tile": 24,
     "patrol_mitigation_multiplier": 1.25
   },
   "research_durations": {

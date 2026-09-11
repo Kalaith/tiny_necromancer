@@ -429,6 +429,11 @@ fn simulate_haul(
             0
         };
         let capacity = base_capacity + storage_bonus;
+        let storage_space = if plan.destination_kind == HaulDestination::Storage {
+            districts::storage_space(session, &data.config.district_rules)
+        } else {
+            i32::MAX
+        };
         let source_amount = match plan.destination_kind {
             HaulDestination::Storage => session.economy.loose_amount_at(plan.resource, plan.source),
             HaulDestination::Kiln => match plan.resource {
@@ -446,7 +451,10 @@ fn simulate_haul(
         } else {
             i32::MAX
         };
-        let amount = source_amount.min(capacity).min(production_need);
+        let amount = source_amount
+            .min(capacity)
+            .min(production_need)
+            .min(storage_space);
         if amount <= 0 {
             session.workforce.workers[index].haul_plan = None;
             session.workforce.workers[index].status = WorkerStatus::Idle;
@@ -482,7 +490,9 @@ fn simulate_haul(
         worker.progress = 0.0;
         return;
     }
-    let Some((destination, replanned)) = logistics::destination_for_cargo(session, index) else {
+    let Some((destination, replanned)) =
+        logistics::destination_for_cargo(session, index, &data.config.district_rules)
+    else {
         session.workforce.workers[index].status = WorkerStatus::Idle;
         return;
     };
@@ -538,15 +548,31 @@ fn simulate_haul(
             ));
         }
     } else {
-        match resource {
-            ResourceKind::Bones => {
-                session.economy.bones += amount;
-                messages.push(format!("Hauled {amount} bones into the stockpile."));
-            }
-            ResourceKind::Wood => {
-                session.economy.wood += amount;
-                messages.push(format!("Hauled {amount} wood into the stockpile."));
-            }
+        let stored = session.economy.store_resource(
+            resource,
+            amount,
+            districts::storage_capacity(session, &data.config.district_rules),
+        );
+        if stored > 0 {
+            let label = match resource {
+                ResourceKind::Bones => "bones",
+                ResourceKind::Wood => "wood",
+            };
+            messages.push(format!("Hauled {stored} {label} into the stockpile."));
+        }
+        if stored < amount {
+            let worker = &mut session.workforce.workers[index];
+            worker.carrying = amount - stored;
+            worker.carrying_resource = Some(resource);
+            worker.status = WorkerStatus::Carrying;
+            messages.push(format!(
+                "Storage is full; {} {} remain carried.",
+                amount - stored,
+                match resource {
+                    ResourceKind::Bones => "bones",
+                    ResourceKind::Wood => "wood",
+                }
+            ));
         }
     }
 }

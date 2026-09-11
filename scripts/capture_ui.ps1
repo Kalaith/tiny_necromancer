@@ -27,6 +27,7 @@ param(
         "harvest-domain",
         "storage-domain",
         "storage-slots",
+        "storage-full",
         "wood-slots",
         "patrol-gap",
         "work-gap",

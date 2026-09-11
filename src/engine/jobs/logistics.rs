@@ -1,7 +1,8 @@
 //! Source-to-drop planning for carried resources.
 
 use super::{destination_for_worker, targets};
-use crate::engine::{navigation, progression};
+use crate::data::DistrictRules;
+use crate::engine::{districts, navigation, progression};
 use crate::state::{GameSession, HaulDestination, HaulPlan, ResourceKind};
 use macroquad_toolkit::grid::TilePos;
 
@@ -109,6 +110,7 @@ fn kiln_source_amount(session: &GameSession, plan: HaulPlan) -> i32 {
 pub(super) fn destination_for_cargo(
     session: &mut GameSession,
     worker_index: usize,
+    rules: &DistrictRules,
 ) -> Option<(TilePos, bool)> {
     let worker = session.workforce.workers.get(worker_index)?;
     let resource = worker.carrying_resource.unwrap_or(ResourceKind::Bones);
@@ -119,6 +121,7 @@ pub(super) fn destination_for_cargo(
                 plan.resource == resource
                     && plan.storage_policy == current_policy
                     && targets::storage_destination_is_current(session, worker.id, plan.destination)
+                    && districts::storage_space(session, rules) > 0
                     && navigation::plan_route(session, worker.position, plan.destination).is_ok()
             }
             HaulDestination::Kiln => {
@@ -144,6 +147,10 @@ pub(super) fn destination_for_cargo(
     let (destination, destination_kind) = if let Some(destination) = production_destination {
         (destination, HaulDestination::Kiln)
     } else {
+        if districts::storage_space(session, rules) <= 0 {
+            session.workforce.workers[worker_index].haul_plan = None;
+            return None;
+        }
         let destination = targets::storage_destination_for(session, worker_position, worker_id);
         let Some(destination) = destination else {
             session.workforce.workers[worker_index].haul_plan = None;

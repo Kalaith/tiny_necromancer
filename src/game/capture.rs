@@ -8,7 +8,7 @@ use crate::engine::corpses;
 use crate::state::{
     BuildingKind, DistrictActivity, DistrictActivityKind, GamePhase, GameSession, JobKind,
     ProductionOrder, RoutePolicy, Selection, StewardshipPolicy, Technology, UndeadKind,
-    WorkerStatus, Zone, ZoneKind,
+    WorkerStatus, WorldState, Zone, ZoneKind,
 };
 use crate::ui::{self, DomainOverlays, Panel};
 use macroquad::prelude::*;
@@ -44,6 +44,7 @@ impl Game {
             "harvest-domain" => self.prepare_capture_harvest_domain(),
             "storage-domain" => self.prepare_capture_storage_domain(),
             "storage-slots" => self.prepare_capture_storage_slots(),
+            "storage-full" => self.prepare_capture_storage_full(),
             "wood-slots" => self.prepare_capture_wood_slots(),
             "patrol-gap" => self.prepare_capture_patrol_gap(),
             "work-gap" => self.prepare_capture_work_gap(),
@@ -411,6 +412,19 @@ impl Game {
             }
         }
         self.session.world.selected = Some(Selection::Worker(0));
+    }
+
+    fn prepare_capture_storage_full(&mut self) {
+        self.session.economy.bones = self.data.config.storage_capacity;
+        self.session.economy.wood = 0;
+        let source = self.session.world.plots[0].position;
+        self.session
+            .economy
+            .add_loose(crate::state::ResourceKind::Bones, source, 8);
+        self.session.workforce.workers[0].assignment = JobKind::Guard;
+        self.session.workforce.workers[0].status = WorkerStatus::Hiding;
+        self.session.workforce.workers[0].position = WorldState::stockpile_position();
+        self.session.world.selected = Some(Selection::Ground(WorldState::stockpile_position()));
     }
 
     fn prepare_capture_wood_slots(&mut self) {

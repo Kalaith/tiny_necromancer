@@ -94,6 +94,13 @@ tied to a deliberate cross-district delivery. A changed Storage policy or
 blocked drop point replans the carried bundle without losing it. This keeps
 world feedback and resource totals aligned.
 
+Material storage is finite. The starting stockpile holds bones and wood together
+up to the configured capacity; an active Domain Stewardship Storage mark adds
+volume per tile. Storage-bound haulers cap their load against the remaining room
+and leave excess loose material at its source when the stockpile is full. The
+capacity bottleneck becomes an actionable alert, while kiln-bound input routes
+do not consume storage space.
+
 ### 5.3 Suspicion and events
 
 Suspicion is clamped to 0–100 and advances through Calm, Rumour, Questioning,
