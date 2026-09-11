@@ -686,12 +686,13 @@ fn draw_building_inspector(
         ),
         panel.x + 18.0,
         panel.y + 160.0,
-        panel.w - 36.0,
+        panel.w - 172.0,
         22.0,
         14.0,
         0.0,
         dark::TEXT_DIM,
     );
+    buildings::draw_desktop_upgrade_preview(ctx, panel, building);
     buildings::draw_desktop_upgrade(ctx, pointer, actions, panel, building);
     if building.kind == BuildingKind::WorkShed
         && building.complete

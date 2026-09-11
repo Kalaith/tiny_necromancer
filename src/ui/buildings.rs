@@ -56,6 +56,42 @@ pub(super) fn status_label(ctx: &UiContext<'_>, building: &Building) -> String {
     }
 }
 
+pub(super) fn draw_desktop_upgrade_preview(ctx: &UiContext<'_>, panel: Rect, building: &Building) {
+    if !building.complete
+        || progression::building_level(ctx.session, building.kind)
+            >= progression::MAX_BUILDING_LEVEL
+    {
+        return;
+    }
+    let Some(def) = ctx.data.buildings.get(building.kind.id()) else {
+        return;
+    };
+    let preview = match building.kind {
+        crate::state::BuildingKind::WorkShed => format!(
+            "+{:.0}% throughput",
+            (def.upgrade_speed_multiplier - 1.0) * 100.0
+        ),
+        crate::state::BuildingKind::GraveLantern => format!(
+            "-{:.0}% suspicion",
+            (1.0 - def.upgrade_suspicion_multiplier) * 100.0
+        ),
+        crate::state::BuildingKind::OssuaryKiln => format!(
+            "+{:.0}% kiln speed",
+            (def.upgrade_speed_multiplier - 1.0) * 100.0
+        ),
+    };
+    draw_text_block(
+        &format!("Next · {preview}"),
+        panel.x + 154.0,
+        panel.y + 163.0,
+        panel.w - 172.0,
+        18.0,
+        10.0,
+        0.0,
+        dark::ACCENT,
+    );
+}
+
 fn upgrade_label(ctx: &UiContext<'_>, building: &Building) -> String {
     let level = progression::building_level(ctx.session, building.kind);
     if !building.complete {
