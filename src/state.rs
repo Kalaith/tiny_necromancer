@@ -8,12 +8,14 @@ use serde_json::Value;
 
 mod building_upgrades;
 mod economy;
+mod market;
 mod research;
 mod route_policy;
 mod stewardship;
 mod workforce;
 pub use building_upgrades::BuildingUpgrades;
 pub use economy::EconomyState;
+pub use market::MarketState;
 pub use research::ResearchState;
 pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
 pub use stewardship::StewardshipPolicy;
@@ -424,6 +426,8 @@ pub struct ProgressState {
     pub building_upgrades: BuildingUpgrades,
     #[serde(default)]
     pub district_ledger: DistrictLedger,
+    #[serde(default)]
+    pub market: MarketState,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -590,6 +594,7 @@ impl GameSession {
                 production_queue: 0,
                 building_upgrades: BuildingUpgrades::default(),
                 district_ledger: DistrictLedger::default(),
+                market: MarketState::default(),
             },
             research: ResearchState::default(),
             stewardship_policy: StewardshipPolicy::default(),
@@ -626,6 +631,7 @@ impl GameSession {
         save.progress
             .building_upgrades
             .normalize(&save.world.buildings);
+        save.progress.market.normalize();
         for building in &mut save.world.buildings {
             if building.position == default_building_position() {
                 building.position = default_building_position_for_kind(building.kind);

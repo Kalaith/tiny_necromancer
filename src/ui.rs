@@ -17,6 +17,7 @@ mod components;
 mod domain;
 mod hud;
 mod layout;
+mod market;
 mod orders;
 mod panels;
 mod production;
@@ -45,6 +46,7 @@ pub enum Panel {
     Zones,
     Domain,
     Feed,
+    Market,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -111,6 +113,7 @@ pub enum UiAction {
     StartProduction(BuildingKind),
     CancelProduction(BuildingKind),
     UpgradeBuilding(BuildingKind),
+    ExecuteTrade,
     UseWardCharge,
     MovePriority(JobKind, i32),
     ToggleDomainOverlay(DomainOverlay),
@@ -201,7 +204,7 @@ fn ui_occludes(point: Vec2, ctx: &UiContext<'_>) -> bool {
         Rect::new(0.0, 0.0, 0.0, 0.0)
     };
     let panel = match ctx.panel {
-        Panel::Research | Panel::Orders | Panel::Domain | Panel::Feed => {
+        Panel::Research | Panel::Orders | Panel::Domain | Panel::Feed | Panel::Market => {
             Rect::new(238.0, 106.0, 680.0, 490.0)
         }
         Panel::Build | Panel::Undead | Panel::Zones => Rect::new(350.0, 460.0, 580.0, 150.0),

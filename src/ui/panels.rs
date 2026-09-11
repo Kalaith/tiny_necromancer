@@ -2,6 +2,7 @@
 
 use super::components::virtual_button;
 use super::domain::draw_domain_panel;
+use super::market::draw_market_panel;
 use super::orders::draw_orders_panel;
 use super::research::{draw_research_panel, draw_zones_panel};
 use super::{Panel, UiAction, UiContext};
@@ -260,6 +261,7 @@ pub(super) fn draw_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Ve
         Panel::Zones => draw_zones_panel(ctx, pointer, actions),
         Panel::Domain => draw_domain_panel(ctx, pointer, actions),
         Panel::Feed => draw_feed_history_panel(ctx, pointer, actions),
+        Panel::Market => draw_market_panel(ctx, pointer, actions),
         Panel::None => {}
     }
 }

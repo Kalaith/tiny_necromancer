@@ -123,6 +123,49 @@ pub(super) fn draw_desktop_upgrade_preview(ctx: &UiContext<'_>, panel: Rect, bui
     );
 }
 
+pub(super) fn draw_desktop_market_button(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    panel: Rect,
+    building: &Building,
+) {
+    if building.kind != crate::state::BuildingKind::GraveLantern || !building.complete {
+        return;
+    }
+    if virtual_button(
+        Rect::new(panel.x + 18.0, panel.y + 232.0, panel.w - 36.0, 44.0),
+        "Open night market",
+        ctx.session.phase == GamePhase::Playing,
+        ButtonTone::Positive,
+        pointer,
+    ) {
+        actions.push(UiAction::TogglePanel(super::Panel::Market));
+    }
+}
+
+pub(super) fn draw_compact_market_button(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    sheet: Rect,
+    building: &Building,
+) {
+    if building.kind != crate::state::BuildingKind::GraveLantern || !building.complete {
+        return;
+    }
+    if compact_virtual_button(
+        Rect::new(sheet.x + 16.0, sheet.y + 228.0, sheet.w - 32.0, 44.0),
+        "Open night market",
+        ctx.session.phase == GamePhase::Playing,
+        ButtonTone::Positive,
+        13.0,
+        pointer,
+    ) {
+        actions.push(UiAction::TogglePanel(super::Panel::Market));
+    }
+}
+
 fn upgrade_label(ctx: &UiContext<'_>, building: &Building) -> String {
     let level = progression::building_level(ctx.session, building.kind);
     if !building.complete {

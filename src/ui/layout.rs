@@ -30,7 +30,12 @@ impl UiLayout {
         }
         let management = matches!(
             panel,
-            Panel::Orders | Panel::Research | Panel::Zones | Panel::Domain | Panel::Feed
+            Panel::Orders
+                | Panel::Research
+                | Panel::Zones
+                | Panel::Domain
+                | Panel::Feed
+                | Panel::Market
         );
         let preferred_sheet_height = if management {
             height * 0.62

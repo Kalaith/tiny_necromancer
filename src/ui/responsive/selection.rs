@@ -340,6 +340,7 @@ fn draw_building(
                 3.0,
                 dark::TEXT_DIM,
             );
+            buildings::draw_compact_market_button(ctx, pointer, actions, sheet, building);
         }
     }
 }

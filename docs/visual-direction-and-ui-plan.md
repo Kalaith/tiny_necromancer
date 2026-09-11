@@ -139,7 +139,7 @@ Existing saves already receive deterministic defaults for positioned buildings, 
 7. **Responsive command surface (implemented for the current slice).** Compact viewports use a full-window logical canvas, preserve the world above a bottom sheet, and expose the same touch-first actions for selection, management, events, pause, placement recovery, and field notes. Verification captures include the 800 × 600 composition and a 360 × 640 narrow-navigation stress state.
 8. **Touch camera navigation (implemented for the current slice).** Compact viewports provide visible zoom and recenter controls plus gesture-aware map pan and pinch zoom. Claimed map gestures suppress accidental selection and command activation when the contact ends.
 
-Defer trade, farms, housing, multiple biomes, and large defence systems until the first colony slice works. Art for later systems follows approved gameplay rather than committing production effort based solely on the reference.
+Defer farms, housing, multiple biomes, and large defence systems until the first colony slice works. The contextual Night Market now supplies a small, lantern-gated trade loop without changing the victory slice. Art for later systems follows approved gameplay rather than committing production effort based solely on the reference.
 
 ## Review checklist
 
@@ -151,5 +151,10 @@ Defer trade, farms, housing, multiple biomes, and large defence systems until th
 - Test UI click blocking, zoomed picking, drag-versus-click, placement cancellation, resize, compact bottom-sheet states, and large text.
 - Verify research prerequisites in the simulation, save/load of unlocks, placements, destinations, and carried-resource defaults, and migration from an existing cemetery save.
 - Keep existing job, corpse, suspicion, and progression checks passing while each related system changes.
+
+The completed Grave Lantern now opens a contextual Night Market. Its three
+fixed offers rotate every 30 seconds, check storage and mana capacity before
+spending materials, add a small suspicion cost, and preserve trade history in
+the save without becoming a victory requirement.
 
 The first implementation target is a complete playable cemetery screen with the current mechanics and the new visual hierarchy. It establishes the identity before expanding the simulation into a colony builder.

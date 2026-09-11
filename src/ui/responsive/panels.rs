@@ -1,6 +1,7 @@
 //! Management panels presented inside the compact command sheet.
 
 use super::super::components::{compact_virtual_button, virtual_button};
+use super::super::market::draw_compact_market_panel;
 use super::super::{DomainOverlay, Panel, UiAction, UiContext};
 use crate::engine::{alerts, districts};
 use crate::state::{BuildingKind, GamePhase, Selection, Technology, UndeadKind, ZoneKind};
@@ -22,6 +23,7 @@ pub(super) fn draw_compact_panel(
         Panel::Zones => draw_compact_zones_panel(ctx, pointer, actions, sheet),
         Panel::Domain => draw_compact_domain_panel(ctx, pointer, actions, sheet),
         Panel::Feed => draw_compact_feed_panel(ctx, pointer, actions, sheet),
+        Panel::Market => draw_compact_market_panel(ctx, pointer, actions, sheet),
         Panel::None => {}
     }
 }

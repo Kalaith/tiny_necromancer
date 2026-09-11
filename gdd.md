@@ -196,9 +196,10 @@ building types, four research technologies, three corpse qualities, and three
 zone types. A single sprite sheet supplies the necromancer, worker, and
 building silhouettes; missing textures fall back to an obvious placeholder.
 
-The kiln's first specialized production loop is playable, while larger
-populations, trade, farms, housing, and additional biomes remain deliberately
-deferred from the current victory slice.
+The kiln's first specialized production loop is playable, and the completed
+grave lantern now opens a small rotating night market. Larger populations,
+farms, housing, and additional biomes remain deliberately deferred from the
+current victory slice.
 
 The Ossuary Kiln loads one ward-charge cycle at a time and accepts up to three
 reserved follow-up cycles. Reserved materials are removed when the cycle is
@@ -215,6 +216,14 @@ both input counts reach zero; the kiln inspector and operational alerts name the
 shortfall and the required Haul order. When storage is empty but a loose source
 already exists, the same route can feed the kiln directly without a needless
 storage detour.
+
+The completed Grave Lantern also gives access to the Night Market. One of
+three fixed offers rotates every 30 seconds: bones can become wood, wood can
+become mana, or a mixed material fee can become a ward charge. Exchanges check
+storage and mana limits before spending anything, add a small suspicion cost,
+and preserve a completed-trade count in the save. The market is opened from
+the lantern inspector so the new economy stays contextual rather than adding
+another permanent command-dock slot.
 
 ## 7. UI and interaction flow
 

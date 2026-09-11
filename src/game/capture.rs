@@ -40,6 +40,7 @@ impl Game {
             "route-policy" => self.prepare_capture_route_policy(),
             "route-policy-wait" => self.prepare_capture_route_policy_wait(),
             "colony" => self.prepare_capture_colony(),
+            "market" => self.prepare_capture_market(),
             "domain" => self.prepare_capture_domain(),
             "harvest-domain" => self.prepare_capture_harvest_domain(),
             "storage-domain" => self.prepare_capture_storage_domain(),
@@ -334,6 +335,19 @@ impl Game {
         self.session.world.selected = Some(Selection::Ground(TilePos::new(5, 5)));
         self.panel = Panel::Zones;
         self.zone_mode = Some(ZoneKind::Work);
+    }
+
+    fn prepare_capture_market(&mut self) {
+        self.prepare_capture_colony();
+        self.panel = Panel::Market;
+        self.zone_mode = None;
+        self.session.economy.bones = 48;
+        self.session.economy.mana = 36;
+        self.session.economy.wood = 36;
+        self.session.progress.market.offer_index = 0;
+        self.session.progress.market.refresh_seconds = 24.0;
+        self.session.progress.market.completed_trades = 2;
+        self.session.world.selected = Some(Selection::Building(1));
     }
 
     fn prepare_capture_domain(&mut self) {

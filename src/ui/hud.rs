@@ -694,6 +694,7 @@ fn draw_building_inspector(
     );
     buildings::draw_desktop_upgrade_preview(ctx, panel, building);
     buildings::draw_desktop_upgrade(ctx, pointer, actions, panel, building);
+    buildings::draw_desktop_market_button(ctx, pointer, actions, panel, building);
     if building.kind == BuildingKind::WorkShed
         && building.complete
         && virtual_button(

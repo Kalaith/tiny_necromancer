@@ -1,7 +1,7 @@
 //! Runtime orchestration: input intents, simulation ticks, persistence, and feedback.
 
 use crate::data::GameData;
-use crate::engine::{self, corpses, jobs, movement, progression, suspicion};
+use crate::engine::{self, corpses, jobs, movement, progression, suspicion, trade};
 use crate::state::{
     BuildingKind, GamePhase, GameSession, SaveData, Selection, Technology, Zone, ZoneKind,
 };
@@ -439,6 +439,10 @@ impl Game {
             }
             UiAction::UpgradeBuilding(kind) => {
                 let result = progression::upgrade_building(&mut self.session, &self.data, kind);
+                self.notify_result(result);
+            }
+            UiAction::ExecuteTrade => {
+                let result = trade::execute_trade(&mut self.session, &self.data);
                 self.notify_result(result);
             }
             UiAction::UseWardCharge => {

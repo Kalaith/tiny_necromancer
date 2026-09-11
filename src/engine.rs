@@ -8,6 +8,7 @@ pub mod movement;
 pub mod navigation;
 pub mod progression;
 pub mod suspicion;
+pub mod trade;
 
 use crate::data::GameData;
 use crate::state::GameSession;
@@ -21,6 +22,7 @@ pub struct TickReport {
 pub fn simulate_tick(session: &mut GameSession, data: &GameData, dt: f32) -> TickReport {
     let was_victorious = session.phase == crate::state::GamePhase::Victory;
     session.progress.elapsed_seconds += dt;
+    trade::advance_market(session, dt);
     session.tick_feed(dt);
     session.economy.mana_fraction += data.config.mana_regen_per_second * dt;
     while session.economy.mana_fraction >= 1.0 && session.economy.mana < data.config.max_mana {
