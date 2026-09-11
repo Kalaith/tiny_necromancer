@@ -35,6 +35,7 @@ impl MarketState {
         if !self.refresh_seconds.is_finite() || self.refresh_seconds <= 0.0 {
             self.refresh_seconds = MARKET_REFRESH_SECONDS;
         }
+        self.favor = self.favor.max(self.completed_trades);
     }
 
     pub fn standing_tier(&self) -> usize {
