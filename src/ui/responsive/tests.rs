@@ -28,3 +28,19 @@ fn zoom_buttons_stop_at_camera_limits() {
     assert!(compact_zoom_out_enabled(1.0));
     assert!(!compact_zoom_in_enabled(1.5));
 }
+
+#[test]
+fn compact_policy_labels_explain_each_stewardship_mode() {
+    assert_eq!(
+        compact_policy_label(StewardshipPolicy::Balanced),
+        "Policy · Balanced · shared priorities"
+    );
+    assert_eq!(
+        compact_policy_label(StewardshipPolicy::Secure),
+        "Policy · Secure · patrol first"
+    );
+    assert_eq!(
+        compact_policy_label(StewardshipPolicy::Harvest),
+        "Policy · Harvest · marked gaps first"
+    );
+}

@@ -429,7 +429,7 @@ fn draw_compact_domain_panel(
     );
     if virtual_button(
         Rect::new(sheet.x + 16.0, sheet.y + 232.0, sheet.w - 32.0, 44.0),
-        &format!("Policy · {}", ctx.session.stewardship_policy.label()),
+        super::compact_policy_label(ctx.session.stewardship_policy),
         ctx.session.phase == GamePhase::Playing,
         ButtonTone::Secondary,
         pointer,

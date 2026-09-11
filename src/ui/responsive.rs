@@ -2,7 +2,7 @@
 
 use super::components::{compact_virtual_button, selected_tile_at, virtual_button};
 use super::{CameraZoom, Panel, UiAction, UiContext};
-use crate::state::{GamePhase, Selection, Technology};
+use crate::state::{GamePhase, Selection, StewardshipPolicy, Technology};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
 use macroquad_toolkit::ui::Pointer;
@@ -130,6 +130,14 @@ fn compact_zoom_in_enabled(zoom: f32) -> bool {
 
 fn compact_zoom_out_enabled(zoom: f32) -> bool {
     zoom > 0.75 + f32::EPSILON
+}
+
+fn compact_policy_label(policy: StewardshipPolicy) -> &'static str {
+    match policy {
+        StewardshipPolicy::Balanced => "Policy · Balanced · shared priorities",
+        StewardshipPolicy::Secure => "Policy · Secure · patrol first",
+        StewardshipPolicy::Harvest => "Policy · Harvest · marked gaps first",
+    }
 }
 
 fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
