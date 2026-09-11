@@ -85,6 +85,28 @@ fn rule_summary_names_only_marked_districts() {
 }
 
 #[test]
+fn operations_summary_names_staffing_by_district() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    let work_tile = session.world.plots[0].position;
+    session.world.zones = vec![
+        crate::state::Zone {
+            kind: ZoneKind::Work,
+            tiles: vec![work_tile],
+        },
+        crate::state::Zone {
+            kind: ZoneKind::Patrol,
+            tiles: vec![WorldState::guard_position(session.world.road_x)],
+        },
+    ];
+
+    assert_eq!(
+        operations_summary(&session),
+        "Staffing: Work 1 · Storage 0 · Patrol 0/1 post"
+    );
+}
+
+#[test]
 fn marked_tile_summary_explains_the_local_domain_rule() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);

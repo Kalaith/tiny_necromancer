@@ -315,6 +315,16 @@ fn draw_stewardship_readout(
         0.0,
         dark::ACCENT,
     );
+    draw_text_block(
+        &districts::operations_summary(ctx.session),
+        rect.x + 24.0,
+        rect.y + 414.0,
+        440.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
 
     let operational = alerts::collect(ctx.session, ctx.data);
     let detail = operational.first().map_or_else(
@@ -329,7 +339,7 @@ fn draw_stewardship_readout(
             detail
         ),
         rect.x + 24.0,
-        rect.y + 414.0,
+        rect.y + 436.0,
         440.0,
         38.0,
         12.0,

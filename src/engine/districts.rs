@@ -1,7 +1,9 @@
 //! Domain Stewardship rules applied by marked district tiles.
 
 use crate::data::DistrictRules;
-use crate::state::{DistrictActivity, DistrictActivityKind, GameSession, Technology, ZoneKind};
+use crate::state::{
+    DistrictActivity, DistrictActivityKind, GameSession, JobKind, Technology, ZoneKind,
+};
 use macroquad_toolkit::grid::TilePos;
 
 const RECENT_ACTIVITY_LIMIT: usize = 8;
@@ -59,6 +61,22 @@ pub fn rule_summary(session: &GameSession, config: &DistrictRules) -> String {
     } else {
         format!("Rules: marked tiles · {}", rules.join(" · "))
     }
+}
+
+pub fn operations_summary(session: &GameSession) -> String {
+    let patrol_tiles = marked_tile_count(session, ZoneKind::Patrol);
+    let work_operators = operator_count(session, ZoneKind::Work);
+    let storage_operators = operator_count(session, ZoneKind::Storage);
+    let patrol_operators = operator_count(session, ZoneKind::Patrol);
+
+    format!(
+        "Staffing: Work {} · Storage {} · Patrol {}/{} post{}",
+        work_operators,
+        storage_operators,
+        patrol_operators,
+        patrol_tiles,
+        if patrol_tiles == 1 { "" } else { "s" }
+    )
 }
 
 pub fn tile_summary(
@@ -247,6 +265,29 @@ fn activity_label(entry: &DistrictActivity) -> String {
             format!("Patrol -{:.1} suspicion", entry.amount)
         }
     }
+}
+
+fn marked_tile_count(session: &GameSession, kind: ZoneKind) -> usize {
+    session
+        .world
+        .zones
+        .iter()
+        .filter(|zone| zone.kind == kind)
+        .map(|zone| zone.tiles.len())
+        .sum()
+}
+
+fn operator_count(session: &GameSession, kind: ZoneKind) -> usize {
+    session
+        .workforce
+        .workers
+        .iter()
+        .filter(|worker| match kind {
+            ZoneKind::Work => matches!(worker.assignment, JobKind::Dig | JobKind::Wood),
+            ZoneKind::Storage => worker.assignment == JobKind::Haul,
+            ZoneKind::Patrol => worker.assignment == JobKind::Guard,
+        })
+        .count()
 }
 
 fn rule_active(session: &GameSession, kind: ZoneKind) -> bool {
