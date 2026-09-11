@@ -283,9 +283,10 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
     );
     draw_text_block(
         &format!(
-            "{} notes · {} road events logged.",
+            "{} notes · {} road events logged · {} district effects tracked.",
             ctx.session.pressure.feed.len(),
-            ctx.session.pressure.event_history.len()
+            ctx.session.pressure.event_history.len(),
+            ctx.session.progress.district_ledger.recent_activity.len()
         ),
         rect.x + 24.0,
         rect.y + 50.0,
