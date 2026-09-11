@@ -615,6 +615,9 @@ impl GameSession {
     }
 
     pub fn from_save(mut save: SaveData) -> Self {
+        if save.economy.storage_capacity <= 0 {
+            save.economy.storage_capacity = economy::DEFAULT_STORAGE_CAPACITY;
+        }
         for building in &mut save.world.buildings {
             if building.position == default_building_position() {
                 building.position = default_building_position_for_kind(building.kind);

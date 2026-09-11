@@ -48,6 +48,21 @@ fn save_round_trip_preserves_rng_and_operation() {
 }
 
 #[test]
+fn save_recovery_restores_zero_storage_capacity() {
+    let data = crate::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.storage_capacity = 0;
+    let value = serde_json::to_value(session.to_save(&data.config.version)).unwrap();
+
+    let restored = GameSession::from_save(serde_json::from_value(value).unwrap());
+
+    assert_eq!(
+        restored.economy.storage_capacity,
+        crate::state::economy::DEFAULT_STORAGE_CAPACITY
+    );
+}
+
+#[test]
 fn route_policies_cycle_per_district_and_old_saves_default_them() {
     let data = crate::data::GameData::load().unwrap();
     let mut session = GameSession::new(&data.config);
