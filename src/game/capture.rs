@@ -254,9 +254,9 @@ impl Game {
     }
 
     fn prepare_capture_colony(&mut self) {
-        self.session.economy.bones = 240;
+        self.session.economy.bones = 72;
         self.session.economy.mana = 120;
-        self.session.economy.wood = 180;
+        self.session.economy.wood = 36;
         self.session.economy.ward_charges = 3;
         self.session.progress.unlocked_plots = 6;
         for plot in &mut self.session.world.plots {

@@ -318,6 +318,24 @@ fn draw_compact_zones_panel(
             actions.push(UiAction::ToggleZone(kind));
         }
     }
+    draw_text_block(
+        &format!(
+            "{} · +{} cap/tile",
+            districts::storage_summary(ctx.session, &ctx.data.config.district_rules),
+            ctx.data.config.district_rules.storage_volume_per_tile
+        ),
+        sheet.x + 16.0,
+        sheet.y + 210.0,
+        sheet.w - 32.0,
+        18.0,
+        11.0,
+        0.0,
+        if districts::storage_space(ctx.session, &ctx.data.config.district_rules) == 0 {
+            dark::WARNING
+        } else {
+            dark::ACCENT
+        },
+    );
     if ctx
         .session
         .research
@@ -326,7 +344,7 @@ fn draw_compact_zones_panel(
         draw_text_block(
             "ROUTE POLICY · repeat workers",
             sheet.x + 16.0,
-            sheet.y + 216.0,
+            sheet.y + 236.0,
             sheet.w - 32.0,
             18.0,
             11.0,
@@ -340,7 +358,7 @@ fn draw_compact_zones_panel(
             if compact_virtual_button(
                 Rect::new(
                     sheet.x + 16.0 + index as f32 * (width + 5.0),
-                    sheet.y + 236.0,
+                    sheet.y + 256.0,
                     width,
                     44.0,
                 ),
@@ -356,7 +374,7 @@ fn draw_compact_zones_panel(
         draw_text_block(
             "Direct orders keep their existing route behavior.",
             sheet.x + 16.0,
-            sheet.y + 286.0,
+            sheet.y + 306.0,
             sheet.w - 32.0,
             18.0,
             11.0,

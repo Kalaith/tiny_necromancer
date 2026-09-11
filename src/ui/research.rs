@@ -2,6 +2,7 @@
 
 use super::components::virtual_button;
 use super::{UiAction, UiContext};
+use crate::engine::districts;
 use crate::state::{Technology, ZoneKind};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -230,10 +231,29 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
                 actions.push(UiAction::CycleRoutePolicy(kind));
             }
         }
+        let storage_hint = format!(
+            "{} · +{} capacity/tile",
+            districts::storage_summary(ctx.session, &ctx.data.config.district_rules),
+            ctx.data.config.district_rules.storage_volume_per_tile
+        );
+        draw_text_block(
+            &storage_hint,
+            rect.x + 18.0,
+            rect.y + 160.0,
+            rect.w - 36.0,
+            18.0,
+            11.0,
+            0.0,
+            if districts::storage_space(ctx.session, &ctx.data.config.district_rules) == 0 {
+                dark::WARNING
+            } else {
+                dark::ACCENT
+            },
+        );
         draw_text_block(
             "Direct orders keep their existing route behavior.",
             rect.x + 18.0,
-            rect.y + 162.0,
+            rect.y + 180.0,
             rect.w - 36.0,
             18.0,
             12.0,

@@ -35,6 +35,15 @@ fn management_sheets_grow_for_touch_sized_lists() {
 }
 
 #[test]
+fn zone_editor_sheet_fits_storage_guidance_and_touch_controls() {
+    let layout = UiLayout::for_dimensions(800.0, 600.0, Panel::Zones);
+
+    assert!(layout.sheet_rect.h >= 360.0);
+    assert!(layout.sheet_rect.bottom() <= 600.0);
+    assert!(layout.world_rect.h >= 128.0);
+}
+
+#[test]
 fn compact_camera_controls_are_touch_sized_and_inside_the_world() {
     let layout = UiLayout::for_dimensions(360.0, 640.0, Panel::None);
 
