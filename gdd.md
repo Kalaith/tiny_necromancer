@@ -57,8 +57,10 @@ tapping the clearing, and can cancel a route from the visible inspector.
 
 Bones, mana, and wood are the primary resources. `game_config.json` authors
 starting resources, mana capacity and regeneration, plot expansion costs,
-research durations, corpse discovery chance, victory targets, and suspicion
-thresholds. `buildings.json`, `undead.json`, and `jobs.json` author costs,
+research durations and per-discovery costs, corpse discovery chance, victory
+targets, and suspicion thresholds. Binding Routines is studied from the
+completed Work Shed; the remaining technology tree is presented in the Research
+panel. `buildings.json`, `undead.json`, and `jobs.json` author costs,
 work rates, capacities, suspicion effects, construction effects, and the
 Ossuary Kiln's ward-charge recipe.
 

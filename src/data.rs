@@ -44,6 +44,7 @@ pub struct GameConfig {
     pub plot_unlock_step_wood: i32,
     pub district_rules: DistrictRules,
     pub research_durations: ResearchDurations,
+    pub research_costs: ResearchCosts,
     pub world_layout: WorldLayoutConfig,
     pub starting_content: StartingContentConfig,
 }
@@ -103,6 +104,37 @@ pub struct ResearchDurations {
     pub gravecraft: f32,
     pub ossuary_logistics: f32,
     pub domain_stewardship: f32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ResearchCosts {
+    pub binding_routines: ResearchCost,
+    pub gravecraft: ResearchCost,
+    pub ossuary_logistics: ResearchCost,
+    pub domain_stewardship: ResearchCost,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub struct ResearchCost {
+    pub bones: i32,
+    pub mana: i32,
+}
+
+impl ResearchCost {
+    pub fn label(self) -> String {
+        let mut parts = Vec::new();
+        if self.bones > 0 {
+            parts.push(format!("{} bones", self.bones));
+        }
+        if self.mana > 0 {
+            parts.push(format!("{} mana", self.mana));
+        }
+        if parts.is_empty() {
+            "free".to_owned()
+        } else {
+            parts.join(" + ")
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

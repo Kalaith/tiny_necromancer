@@ -1,6 +1,6 @@
 //! Serializable Tiny Necromancer session state and versioned save migration.
 
-use crate::data::{GameConfig, SuspicionStage};
+use crate::data::{GameConfig, ResearchCost, SuspicionStage};
 use macroquad_toolkit::grid::TilePos;
 use serde::{Deserialize, Serialize};
 
@@ -92,6 +92,15 @@ impl Technology {
             Self::Gravecraft => config.research_durations.gravecraft,
             Self::OssuaryLogistics => config.research_durations.ossuary_logistics,
             Self::DomainStewardship => config.research_durations.domain_stewardship,
+        }
+    }
+
+    pub fn cost(self, config: &GameConfig) -> ResearchCost {
+        match self {
+            Self::BindingRoutines => config.research_costs.binding_routines,
+            Self::Gravecraft => config.research_costs.gravecraft,
+            Self::OssuaryLogistics => config.research_costs.ossuary_logistics,
+            Self::DomainStewardship => config.research_costs.domain_stewardship,
         }
     }
 }

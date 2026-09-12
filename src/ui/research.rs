@@ -2,7 +2,7 @@
 
 use super::components::virtual_button;
 use super::{UiAction, UiContext};
-use crate::engine::districts;
+use crate::engine::{districts, progression};
 use crate::state::{Technology, ZoneKind};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -74,7 +74,6 @@ fn draw_research_choices(
     rect: Rect,
 ) {
     let techs = [
-        Technology::BindingRoutines,
         Technology::Gravecraft,
         Technology::OssuaryLogistics,
         Technology::DomainStewardship,
@@ -109,6 +108,21 @@ fn draw_research_choices(
             16.0,
             0.0,
             dark::TEXT_BRIGHT,
+        );
+        let cost = technology.cost(&ctx.data.config);
+        draw_text_block(
+            &format!("Cost · {}", cost.label()),
+            rect.x + 270.0,
+            y + 11.0,
+            190.0,
+            18.0,
+            11.0,
+            0.0,
+            if progression::can_afford_research(ctx.session, ctx.data, technology) {
+                dark::ACCENT
+            } else {
+                dark::WARNING
+            },
         );
         draw_text_block(
             research_text.map_or("", |entry| entry.description.as_str()),
@@ -153,6 +167,16 @@ fn draw_research_choices(
             actions.push(UiAction::StartResearch(technology));
         }
     }
+    draw_text_block(
+        "Binding Routines · study it at the completed Work Shed.",
+        rect.x + 40.0,
+        rect.y + 384.0,
+        rect.w - 80.0,
+        20.0,
+        12.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
 }
 pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
     let domain_unlocked = ctx

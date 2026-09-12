@@ -19,8 +19,9 @@ The authored loop is:
 1. Assign a skeleton to dig graves and haul loose bones.
 2. Raise more workers, including a Brute from a Notable corpse remnant.
 3. Build the Work Shed and Grave Lantern, then expand the usable plots.
-4. Study the research chain to unlock repeat priorities, placement, work areas,
-   logistics, and domain controls.
+4. Select the completed Work Shed to study Binding Routines, then use the
+   Research panel for Gravecraft, Ossuary Logistics, and Domain Stewardship.
+   Each discovery costs bones and mana.
 5. Raise an Ossuary Kiln, load it with bones and wood, and refine ward charges.
 6. Establish the settlement before suspicion reaches the investigation limit.
 

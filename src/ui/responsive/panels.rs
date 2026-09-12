@@ -3,7 +3,7 @@
 use super::super::components::{compact_virtual_button, virtual_button};
 use super::super::market::draw_compact_market_panel;
 use super::super::{DomainOverlay, Panel, UiAction, UiContext};
-use crate::engine::{alerts, districts};
+use crate::engine::{alerts, districts, progression};
 use crate::state::{BuildingKind, GamePhase, Selection, Technology, UndeadKind, ZoneKind};
 use macroquad::prelude::*;
 use macroquad_toolkit::prelude::*;
@@ -219,7 +219,6 @@ fn draw_compact_research_panel(
 ) {
     compact_panel_title("RESEARCH", sheet);
     let techs = [
-        Technology::BindingRoutines,
         Technology::Gravecraft,
         Technology::OssuaryLogistics,
         Technology::DomainStewardship,
@@ -237,15 +236,30 @@ fn draw_compact_research_panel(
             0.0,
             dark::TEXT_BRIGHT,
         );
+        let cost = technology.cost(&ctx.data.config);
+        draw_text_block(
+            &format!("Cost · {}", cost.label()),
+            sheet.x + 16.0,
+            y + 43.0,
+            sheet.w - 124.0,
+            14.0,
+            9.0,
+            0.0,
+            if progression::can_afford_research(ctx.session, ctx.data, technology) {
+                dark::ACCENT
+            } else {
+                dark::WARNING
+            },
+        );
         draw_text_block(
             ctx.data
                 .text
                 .research(technology.id())
                 .map_or("", |entry| entry.description.as_str()),
             sheet.x + 16.0,
-            y + 27.0,
+            y + 25.0,
             sheet.w - 124.0,
-            16.0,
+            14.0,
             10.0,
             0.0,
             dark::TEXT_DIM,
@@ -261,6 +275,7 @@ fn draw_compact_research_panel(
             },
             !complete
                 && ctx.session.research.can_start(technology)
+                && progression::can_afford_research(ctx.session, ctx.data, technology)
                 && ctx.session.phase == GamePhase::Playing,
             if complete {
                 ButtonTone::Secondary
@@ -273,6 +288,16 @@ fn draw_compact_research_panel(
             actions.push(UiAction::StartResearch(technology));
         }
     }
+    draw_text_block(
+        "Binding Routines is studied at the Work Shed.",
+        sheet.x + 16.0,
+        sheet.y + 278.0,
+        sheet.w - 32.0,
+        18.0,
+        10.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
 }
 
 fn compact_advisory_label(title: &str) -> &'static str {

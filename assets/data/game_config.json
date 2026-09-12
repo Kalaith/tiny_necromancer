@@ -34,6 +34,12 @@
     "ossuary_logistics": 14.0,
     "domain_stewardship": 18.0
   },
+  "research_costs": {
+    "binding_routines": { "bones": 6, "mana": 4 },
+    "gravecraft": { "bones": 10, "mana": 8 },
+    "ossuary_logistics": { "bones": 14, "mana": 12 },
+    "domain_stewardship": { "bones": 18, "mana": 16 }
+  },
   "world_layout": {
     "road_x": 8,
     "mana_source": { "x": 7, "y": 6 },

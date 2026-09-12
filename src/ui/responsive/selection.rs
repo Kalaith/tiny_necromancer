@@ -4,6 +4,7 @@ use super::super::buildings;
 use super::super::components::{compact_virtual_button, virtual_button};
 use super::super::production;
 use super::super::{UiAction, UiContext};
+use crate::engine::progression;
 use crate::state::{
     BuildingKind, GamePhase, JobKind, PlotStatus, Selection, Technology, UndeadKind,
 };
@@ -349,15 +350,37 @@ fn draw_building(
     match building.kind {
         BuildingKind::OssuaryKiln => production::draw_compact_kiln(ctx, pointer, actions, sheet),
         BuildingKind::WorkShed => {
+            let technology = Technology::BindingRoutines;
+            let cost = technology.cost(&ctx.data.config);
             if virtual_button(
                 Rect::new(sheet.x + 16.0, sheet.y + 174.0, sheet.w - 32.0, 48.0),
-                "Study Binding Routines",
-                building.complete && ctx.session.research.can_start(Technology::BindingRoutines),
+                if ctx.session.research.current == Some(technology) {
+                    "Bindings in progress"
+                } else {
+                    "Study Binding Routines"
+                },
+                building.complete
+                    && ctx.session.research.can_start(technology)
+                    && progression::can_afford_research(ctx.session, ctx.data, technology),
                 ButtonTone::Positive,
                 pointer,
             ) {
-                actions.push(UiAction::StartResearch(Technology::BindingRoutines));
+                actions.push(UiAction::StudyBindings);
             }
+            draw_text_block(
+                &format!("Cost · {}", cost.label()),
+                sheet.x + 16.0,
+                sheet.y + 232.0,
+                sheet.w - 32.0,
+                18.0,
+                11.0,
+                0.0,
+                if progression::can_afford_research(ctx.session, ctx.data, technology) {
+                    dark::ACCENT
+                } else {
+                    dark::WARNING
+                },
+            );
         }
         BuildingKind::GraveLantern => {
             draw_text_block(

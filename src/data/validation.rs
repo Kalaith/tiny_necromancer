@@ -65,6 +65,20 @@ fn validate_config(config: &GameConfig) -> Result<(), String> {
     if durations.iter().any(|duration| *duration <= 0.0) {
         return Err("game_config.json: research durations must be positive".to_owned());
     }
+    let costs = [
+        config.research_costs.binding_routines,
+        config.research_costs.gravecraft,
+        config.research_costs.ossuary_logistics,
+        config.research_costs.domain_stewardship,
+    ];
+    if costs
+        .iter()
+        .any(|cost| cost.bones < 0 || cost.mana < 0 || (cost.bones == 0 && cost.mana == 0))
+    {
+        return Err(
+            "game_config.json: research costs must be non-zero and non-negative".to_owned(),
+        );
+    }
     Ok(())
 }
 

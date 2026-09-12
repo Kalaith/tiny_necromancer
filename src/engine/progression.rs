@@ -269,20 +269,58 @@ pub fn advance_construction(session: &mut GameSession, data: &GameData, dt: f32)
     }
 }
 
-pub fn start_research(session: &mut GameSession, technology: Technology) -> Result<(), String> {
+pub fn study_bindings(session: &mut GameSession, data: &GameData) -> Result<(), String> {
+    start_research_project(session, data, Technology::BindingRoutines)
+}
+
+pub fn start_research(
+    session: &mut GameSession,
+    data: &GameData,
+    technology: Technology,
+) -> Result<(), String> {
+    if technology == Technology::BindingRoutines {
+        return Err("Study Binding Routines from the completed Work Shed.".to_owned());
+    }
+    start_research_project(session, data, technology)
+}
+
+fn start_research_project(
+    session: &mut GameSession,
+    data: &GameData,
+    technology: Technology,
+) -> Result<(), String> {
     if !session.has_building(BuildingKind::WorkShed) {
-        return Err("Restore the work shed before studying bindings.".to_owned());
+        return Err("Restore the Work Shed before researching its discoveries.".to_owned());
     }
     if !session.research.can_start(technology) {
         return Err(match session.research.current {
-            Some(current) => format!("The shed is already studying {}.", current.label()),
+            Some(current) => format!("The Work Shed is already studying {}.", current.label()),
             None => format!("{} is not reachable yet.", technology.label()),
         });
     }
+    let cost = technology.cost(&data.config);
+    if session.economy.bones < cost.bones || session.economy.mana < cost.mana {
+        return Err(format!(
+            "Need {} to research {}.",
+            cost.label(),
+            technology.label()
+        ));
+    }
+    session.economy.bones -= cost.bones;
+    session.economy.mana -= cost.mana;
     session.research.current = Some(technology);
     session.research.progress = 0.0;
-    session.add_feed(format!("Study begun: {}.", technology.label()));
+    session.add_feed(format!(
+        "Study begun: {} · {} spent.",
+        technology.label(),
+        cost.label()
+    ));
     Ok(())
+}
+
+pub fn can_afford_research(session: &GameSession, data: &GameData, technology: Technology) -> bool {
+    let cost = technology.cost(&data.config);
+    session.economy.bones >= cost.bones && session.economy.mana >= cost.mana
 }
 
 pub fn advance_research(session: &mut GameSession, data: &GameData, dt: f32) -> Option<String> {

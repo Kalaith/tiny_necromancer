@@ -1,6 +1,7 @@
 //! Contextual worker and building inspector panels.
 
 use super::*;
+use crate::engine::progression;
 use crate::state::{Building, Worker};
 
 pub(super) fn draw_worker_inspector(
@@ -312,27 +313,42 @@ fn draw_building_actions(
 ) {
     buildings::draw_desktop_upgrade(ctx, pointer, actions, panel, building);
     buildings::draw_desktop_market_button(ctx, pointer, actions, panel, building);
-    if building.kind == BuildingKind::WorkShed
-        && building.complete
-        && virtual_button(
+    if building.kind == BuildingKind::WorkShed && building.complete {
+        let technology = Technology::BindingRoutines;
+        let cost = technology.cost(&ctx.data.config);
+        let can_start = ctx.session.research.can_start(technology)
+            && progression::can_afford_research(ctx.session, ctx.data, technology);
+        if virtual_button(
             Rect::new(panel.x + 18.0, panel.y + 232.0, panel.w - 36.0, 44.0),
             if ctx.session.research.current == Some(Technology::BindingRoutines) {
                 "Bindings in progress"
             } else {
                 "Study bindings"
             },
-            ctx.session.research.can_start(Technology::BindingRoutines),
+            can_start,
             ButtonTone::Positive,
             pointer,
-        )
-    {
-        actions.push(UiAction::StartResearch(Technology::BindingRoutines));
-    }
-    if building.kind == BuildingKind::WorkShed && building.complete {
+        ) {
+            actions.push(UiAction::StudyBindings);
+        }
+        draw_text_block(
+            &format!("Cost · {}", cost.label()),
+            panel.x + 18.0,
+            panel.y + 284.0,
+            panel.w - 36.0,
+            18.0,
+            12.0,
+            0.0,
+            if progression::can_afford_research(ctx.session, ctx.data, technology) {
+                dark::ACCENT
+            } else {
+                dark::WARNING
+            },
+        );
         draw_text_block(
             "A restored shed is the first research station.",
             panel.x + 18.0,
-            panel.y + 296.0,
+            panel.y + 312.0,
             panel.w - 36.0,
             42.0,
             14.0,

@@ -31,6 +31,7 @@ impl Game {
             UiAction::ResolveEvent(choice) => self.resolve_event(&choice),
             UiAction::ZoomCamera(factor) => self.zoom_camera(factor),
             UiAction::CenterCamera => self.center_camera(),
+            UiAction::StudyBindings => self.study_bindings(),
             UiAction::StartResearch(technology) => self.start_research(technology),
             UiAction::SelectProductionRecipe(kind, recipe) => {
                 self.select_production_recipe(kind, recipe)
@@ -124,7 +125,12 @@ impl Game {
     }
 
     fn start_research(&mut self, technology: Technology) {
-        let result = progression::start_research(&mut self.session, technology);
+        let result = progression::start_research(&mut self.session, &self.data, technology);
+        self.notify_result(result);
+    }
+
+    fn study_bindings(&mut self) {
+        let result = progression::study_bindings(&mut self.session, &self.data);
         self.notify_result(result);
     }
 

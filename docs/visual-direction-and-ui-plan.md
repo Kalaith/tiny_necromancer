@@ -48,12 +48,15 @@ The following technology names and population ranges are proposals. Population d
 | Stage | Suggested scale | Technology / requirement | World change | Interface change |
 | --- | --- | --- | --- | --- |
 | Lone practitioner | 1–3 undead | Starting abilities | One grave, a clearing, a ruined shed, scattered supplies | Close camera, compact resources, selected-object actions |
-| Small operation | 3–8 undead | **Binding Routines**, researched at the restored shed | Stockpile and repeated work routes become visible | Jobs panel with priorities and repeat orders |
+| Small operation | 3–8 undead | **Binding Routines**, researched at the restored shed for a bone-and-mana cost | Stockpile and repeated work routes become visible | Jobs panel with priorities and repeat orders |
 | Permanent settlement | 8–20 undead | **Gravecraft**, following Binding Routines | Placeable buildings, paths, work areas, expanding boundary | Build palette, placement preview, zone painting; optional minimap |
 | Organized colony | 20+ undead | **Ossuary Logistics**, following Gravecraft | Linked storage and specialized production areas | Hauling rules, production queues, population summary and alerts |
 | Undead domain | Larger settlement | **Domain Stewardship**, following Logistics | District landmarks, patrol routes, ward network | District summaries and overlay controls; detailed worker selection remains available |
 
-Introduce research through a contextual “Study bindings” action at the shed. Once this starts, expose the Research control in its permanent position. Show the current project and the next reachable discoveries; reserve the full tree for the expanded panel.
+Introduce research through a contextual “Study bindings” action at the shed. Keep
+Binding Routines out of the Research panel; that panel owns the remaining tree,
+shows each discovery's bone-and-mana cost, and exposes the current project and
+next reachable discoveries.
 
 Each unlock teaches one practical change: “Set digging to repeat,” then “Place a stockpile,” then “Paint a work area.” Keep earlier commands available. Open the new control with a small highlight and a dismissible explanation; do not rearrange the entire HUD or force a zoom change.
 
