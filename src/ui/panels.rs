@@ -118,11 +118,11 @@ fn alert_action(ctx: &UiContext<'_>, target: Selection) -> UiAction {
         Selection::Necromancer => UiAction::SelectNecromancer,
         Selection::Ground(tile) => UiAction::SelectTile(tile),
         Selection::Grave(index) => ctx.session.world.plots.get(index).map_or(
-            UiAction::SelectTile(crate::state::WorldState::stockpile_position()),
+            UiAction::SelectTile(ctx.session.world.stockpile_position()),
             |plot| UiAction::SelectTile(plot.position),
         ),
         Selection::Building(index) => ctx.session.world.buildings.get(index).map_or(
-            UiAction::SelectTile(crate::state::WorldState::stockpile_position()),
+            UiAction::SelectTile(ctx.session.world.stockpile_position()),
             |building| UiAction::SelectTile(building.position),
         ),
     }
@@ -338,50 +338,7 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
         actions.push(UiAction::TogglePanel(Panel::None));
     }
     for (index, entry) in ctx.session.pressure.feed.iter().take(7).enumerate() {
-        let row = Rect::new(
-            rect.x + 24.0,
-            rect.y + 132.0 + index as f32 * 52.0,
-            632.0,
-            44.0,
-        );
-        draw_surface(
-            row,
-            &SurfaceStyle::new(if index == 0 {
-                Color::new(0.10, 0.14, 0.12, 1.0)
-            } else {
-                Color::new(0.075, 0.085, 0.085, 1.0)
-            })
-            .with_border(1.0, Color::new(0.40, 0.47, 0.43, 0.45)),
-        );
-        draw_text_block(
-            &entry.message,
-            row.x + 14.0,
-            row.y + 7.0,
-            492.0,
-            32.0,
-            13.0,
-            3.0,
-            if index == 0 {
-                dark::TEXT_BRIGHT
-            } else {
-                dark::TEXT
-            },
-        );
-        let age_label = if index == 0 {
-            format!("LATEST · {:.0}s", entry.age_seconds)
-        } else {
-            format!("{:.0}s ago", entry.age_seconds)
-        };
-        draw_text_block(
-            &age_label,
-            row.x + 520.0,
-            row.y + 14.0,
-            96.0,
-            18.0,
-            11.0,
-            0.0,
-            dark::TEXT_DIM,
-        );
+        draw_feed_entry(rect, index, entry);
     }
     if ctx.session.pressure.feed.is_empty() {
         draw_text_block(
@@ -395,6 +352,53 @@ fn draw_feed_history_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut 
             dark::TEXT_DIM,
         );
     }
+}
+
+fn draw_feed_entry(rect: Rect, index: usize, entry: &crate::state::FeedEntry) {
+    let row = Rect::new(
+        rect.x + 24.0,
+        rect.y + 132.0 + index as f32 * 52.0,
+        632.0,
+        44.0,
+    );
+    draw_surface(
+        row,
+        &SurfaceStyle::new(if index == 0 {
+            Color::new(0.10, 0.14, 0.12, 1.0)
+        } else {
+            Color::new(0.075, 0.085, 0.085, 1.0)
+        })
+        .with_border(1.0, Color::new(0.40, 0.47, 0.43, 0.45)),
+    );
+    draw_text_block(
+        &entry.message,
+        row.x + 14.0,
+        row.y + 7.0,
+        492.0,
+        32.0,
+        13.0,
+        3.0,
+        if index == 0 {
+            dark::TEXT_BRIGHT
+        } else {
+            dark::TEXT
+        },
+    );
+    let age_label = if index == 0 {
+        format!("LATEST · {:.0}s", entry.age_seconds)
+    } else {
+        format!("{:.0}s ago", entry.age_seconds)
+    };
+    draw_text_block(
+        &age_label,
+        row.x + 520.0,
+        row.y + 14.0,
+        96.0,
+        18.0,
+        11.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
 }
 
 fn draw_build_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {

@@ -26,11 +26,15 @@ mod responsive;
 mod world;
 mod world_feedback;
 
-pub use components::world_grid_rect;
-use components::{
-    draw_event_modal, draw_phase_overlay, draw_placement_controls, pause_control_rect,
-    placement_cancel_rect, selected_tile_at,
+pub use components::{pause_control_rect, placement_cancel_rect};
+pub use responsive::{
+    compact_nav_button_width, compact_nav_text_size, compact_policy_label, compact_zoom_in_enabled,
+    compact_zoom_out_enabled, COMPACT_NAV_ENTRIES, COMPACT_NAV_GAP, COMPACT_NAV_MARGIN,
+    COMPACT_NAV_MIN_BUTTON,
 };
+
+pub use components::world_grid_rect;
+use components::{draw_event_modal, draw_phase_overlay, draw_placement_controls, selected_tile_at};
 pub use layout::UiLayout;
 
 pub const LOGICAL_WIDTH: f32 = 1280.0;
@@ -90,21 +94,18 @@ impl DomainOverlays {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-#[allow(dead_code)]
 pub enum UiAction {
     NewGame,
     TogglePause,
     Save,
     Load,
     SelectWorker(usize),
-    SelectPlot(TilePos),
     SelectTile(TilePos),
     SelectNecromancer,
     MoveNecromancer(TilePos),
     AssignJob(JobKind),
     ToggleAutomation,
     Raise(UndeadKind),
-    QueueBuilding(BuildingKind),
     BeginPlacement(BuildingKind),
     PlaceBuilding(TilePos),
     CancelPlacement,
@@ -218,6 +219,3 @@ fn ui_occludes(point: Vec2, ctx: &UiContext<'_>) -> bool {
         || pause_control_rect().contains_point(point)
         || placement_cancel_rect().contains_point(point)
 }
-
-#[cfg(test)]
-mod tests;

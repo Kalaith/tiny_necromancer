@@ -67,6 +67,15 @@ pub(super) fn draw_market_panel(
         actions.push(UiAction::TogglePanel(super::Panel::None));
     }
     draw_offer(ctx, rect);
+    draw_market_actions(ctx, pointer, actions, rect);
+}
+
+fn draw_market_actions(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    rect: Rect,
+) {
     let offer = trade::current_offer(ctx.session);
     let trade_ready = ctx.session.phase == crate::state::GamePhase::Playing
         && trade::trade_status(ctx.session, ctx.data).is_ok();
@@ -264,6 +273,53 @@ pub(super) fn draw_compact_market_panel(
     ) {
         actions.push(UiAction::TogglePanel(super::Panel::None));
     }
+    let (trade_ready, trade_label) = draw_compact_offer_card(ctx, pointer, actions, sheet);
+    if compact_virtual_button(
+        Rect::new(sheet.x + 16.0, sheet.y + 280.0, sheet.w - 32.0, 48.0),
+        &trade_label,
+        trade_ready,
+        ButtonTone::Positive,
+        12.0,
+        pointer,
+    ) {
+        actions.push(UiAction::ExecuteTrade);
+    }
+    draw_text_block(
+        &trade_status_label(ctx, trade_ready),
+        sheet.x + 16.0,
+        sheet.y + 338.0,
+        sheet.w - 32.0,
+        22.0,
+        11.0,
+        2.0,
+        if trade_ready {
+            dark::POSITIVE
+        } else {
+            dark::WARNING
+        },
+    );
+    draw_text_block(
+        &format!(
+            "Next in {:.0}s · {} completed",
+            ctx.session.progress.market.refresh_seconds,
+            ctx.session.progress.market.completed_trades
+        ),
+        sheet.x + 16.0,
+        sheet.y + 368.0,
+        sheet.w - 32.0,
+        18.0,
+        12.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
+}
+
+fn draw_compact_offer_card(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    sheet: Rect,
+) -> (bool, String) {
     let offer = trade::current_offer(ctx.session);
     let (offer_number, offer_count) = trade::offer_position(ctx.session);
     let trade_ready = ctx.session.phase == crate::state::GamePhase::Playing
@@ -350,44 +406,7 @@ pub(super) fn draw_compact_market_panel(
             dark::WARNING,
         );
     }
-    if compact_virtual_button(
-        Rect::new(sheet.x + 16.0, sheet.y + 280.0, sheet.w - 32.0, 48.0),
-        &trade_label,
-        trade_ready,
-        ButtonTone::Positive,
-        12.0,
-        pointer,
-    ) {
-        actions.push(UiAction::ExecuteTrade);
-    }
-    draw_text_block(
-        &trade_status_label(ctx, trade_ready),
-        sheet.x + 16.0,
-        sheet.y + 338.0,
-        sheet.w - 32.0,
-        22.0,
-        11.0,
-        2.0,
-        if trade_ready {
-            dark::POSITIVE
-        } else {
-            dark::WARNING
-        },
-    );
-    draw_text_block(
-        &format!(
-            "Next in {:.0}s · {} completed",
-            ctx.session.progress.market.refresh_seconds,
-            ctx.session.progress.market.completed_trades
-        ),
-        sheet.x + 16.0,
-        sheet.y + 368.0,
-        sheet.w - 32.0,
-        18.0,
-        12.0,
-        0.0,
-        dark::TEXT_DIM,
-    );
+    (trade_ready, trade_label)
 }
 
 fn trade_status_label(ctx: &UiContext<'_>, ready: bool) -> String {

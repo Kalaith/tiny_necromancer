@@ -2,9 +2,7 @@
 
 use crate::data::{GameConfig, SuspicionStage};
 use macroquad_toolkit::grid::TilePos;
-use macroquad_toolkit::rng::SeededRng;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 mod building_upgrades;
 mod economy;
@@ -12,17 +10,19 @@ mod market;
 mod production;
 mod research;
 mod route_policy;
+mod session;
 mod stewardship;
 mod workforce;
 pub use crate::data::ProductionRecipeKind;
 pub use building_upgrades::BuildingUpgrades;
-pub use economy::EconomyState;
+pub use economy::{EconomyState, LooseResourcePile};
 pub use market::{
     MarketContract, MarketState, MARKET_CONTRACT_BONUS_FAVOR, MARKET_CONTRACT_SECONDS,
 };
 pub use production::ProductionLedger;
 pub use research::ResearchState;
 pub use route_policy::{DistrictRoutePolicies, RoutePolicy};
+pub use session::{migrate_save_value, GameSession};
 pub use stewardship::StewardshipPolicy;
 pub use workforce::{HaulDestination, HaulPlan, Worker, WorkforceState};
 
@@ -59,23 +59,21 @@ pub enum Technology {
 }
 
 impl Technology {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::BindingRoutines => "binding_routines",
+            Self::Gravecraft => "gravecraft",
+            Self::OssuaryLogistics => "ossuary_logistics",
+            Self::DomainStewardship => "domain_stewardship",
+        }
+    }
+
     pub fn label(self) -> &'static str {
         match self {
             Self::BindingRoutines => "Binding Routines",
             Self::Gravecraft => "Gravecraft",
             Self::OssuaryLogistics => "Ossuary Logistics",
             Self::DomainStewardship => "Domain Stewardship",
-        }
-    }
-
-    pub fn description(self) -> &'static str {
-        match self {
-            Self::BindingRoutines => "Repeat orders and worker priorities become reliable.",
-            Self::Gravecraft => {
-                "Place structures beyond the restored sites and paint work areas across the clearing."
-            }
-            Self::OssuaryLogistics => "Link stockpiles and queue specialized production.",
-            Self::DomainStewardship => "See districts, patrol routes, and ward coverage.",
         }
     }
 
@@ -237,7 +235,7 @@ pub struct Building {
     pub kind: BuildingKind,
     pub progress: f32,
     pub complete: bool,
-    #[serde(default = "default_building_position")]
+    #[serde(default = "default_missing_tile")]
     pub position: TilePos,
     #[serde(default = "default_building_width")]
     pub width: i32,
@@ -255,24 +253,12 @@ impl Building {
     }
 }
 
-fn default_building_position() -> TilePos {
-    TilePos::new(6, 2)
-}
-
 fn default_building_width() -> i32 {
     2
 }
 
 fn default_building_height() -> i32 {
     2
-}
-
-pub fn default_building_position_for_kind(kind: BuildingKind) -> TilePos {
-    match kind {
-        BuildingKind::WorkShed => TilePos::new(6, 2),
-        BuildingKind::GraveLantern => TilePos::new(7, 6),
-        BuildingKind::OssuaryKiln => TilePos::new(6, 4),
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -284,8 +270,10 @@ pub struct WorldState {
     pub buildings: Vec<Building>,
     pub road_x: i32,
     pub mana_source: TilePos,
+    #[serde(default = "default_missing_tile")]
+    pub stockpile_position: TilePos,
     pub forest_tiles: Vec<TilePos>,
-    #[serde(default = "default_necromancer_position")]
+    #[serde(default = "default_missing_tile")]
     pub necromancer_position: TilePos,
     #[serde(default)]
     pub necromancer_destination: Option<TilePos>,
@@ -297,8 +285,8 @@ pub struct WorldState {
     pub route_policies: DistrictRoutePolicies,
 }
 
-fn default_necromancer_position() -> TilePos {
-    TilePos::new(5, 5)
+fn default_missing_tile() -> TilePos {
+    TilePos::new(-1, -1)
 }
 
 impl WorldState {
@@ -306,12 +294,12 @@ impl WorldState {
         TilePos::new(road_x.saturating_sub(1), 1)
     }
 
-    pub fn stockpile_position() -> TilePos {
-        TilePos::new(6, 5)
+    pub fn stockpile_position(&self) -> TilePos {
+        self.stockpile_position
     }
 
     pub fn storage_position(&self) -> TilePos {
-        self.storage_position_for(Self::stockpile_position())
+        self.storage_position_for(self.stockpile_position)
     }
 
     pub fn storage_position_for(&self, origin: TilePos) -> TilePos {
@@ -320,7 +308,7 @@ impl WorldState {
             .filter(|zone| zone.kind == ZoneKind::Storage)
             .flat_map(|zone| zone.tiles.iter().copied())
             .min_by_key(|tile| tile_distance(origin, *tile))
-            .unwrap_or_else(Self::stockpile_position)
+            .unwrap_or(self.stockpile_position)
     }
 
     pub fn patrol_position(&self) -> TilePos {
@@ -495,299 +483,6 @@ pub struct SaveData {
     pub rng_state: u64,
 }
 
-#[derive(Debug, Clone)]
-pub struct GameSession {
-    pub phase: GamePhase,
-    pub world: WorldState,
-    pub workforce: WorkforceState,
-    pub economy: EconomyState,
-    pub pressure: PressureState,
-    pub progress: ProgressState,
-    pub research: ResearchState,
-    pub stewardship_policy: StewardshipPolicy,
-    pub rng: SeededRng,
-    pub error_message: Option<String>,
-}
-
-impl GameSession {
-    pub fn new(config: &GameConfig) -> Self {
-        let plot_positions = [
-            TilePos::new(2, 2),
-            TilePos::new(3, 2),
-            TilePos::new(4, 2),
-            TilePos::new(5, 2),
-            TilePos::new(2, 3),
-            TilePos::new(3, 3),
-        ];
-        let unlocked = config.starting_unlocked_plots.min(plot_positions.len());
-        let plots = plot_positions
-            .into_iter()
-            .enumerate()
-            .map(|(id, position)| Plot {
-                id,
-                position,
-                status: if id < unlocked {
-                    PlotStatus::Ready
-                } else {
-                    PlotStatus::Locked
-                },
-                progress: 0.0,
-            })
-            .collect();
-        let start = plot_positions[0];
-        Self {
-            phase: GamePhase::MainMenu,
-            world: WorldState {
-                width: config.world_width,
-                height: config.world_height,
-                selected_plot: Some(0),
-                plots,
-                buildings: Vec::new(),
-                road_x: 8,
-                mana_source: TilePos::new(7, 6),
-                forest_tiles: (0..8).map(|y| TilePos::new(0, y)).collect(),
-                necromancer_position: default_necromancer_position(),
-                necromancer_destination: None,
-                selected: Some(Selection::Grave(0)),
-                zones: Vec::new(),
-                route_policies: DistrictRoutePolicies::default(),
-            },
-            workforce: WorkforceState {
-                workers: vec![Worker {
-                    id: 1,
-                    name: "Rattlebones".to_owned(),
-                    kind: UndeadKind::Skeleton,
-                    assignment: JobKind::Dig,
-                    position: start,
-                    status: WorkerStatus::Idle,
-                    progress: 0.0,
-                    target_plot: None,
-                    carrying: 0,
-                    carrying_resource: None,
-                    priority_mode: false,
-                    haul_plan: None,
-                }],
-                selected_worker: 0,
-                next_worker_id: 2,
-                priorities: WorkforceState::default_priorities(),
-            },
-            economy: EconomyState {
-                bones: config.starting_bones,
-                mana: config.starting_mana,
-                mana_fraction: 0.0,
-                wood: config.starting_wood,
-                storage_capacity: config.storage_capacity,
-                shovels: 1,
-                loose_bones: 0,
-                loose_wood: 0,
-                ward_charges: 0,
-                loose_bones_source: None,
-                loose_wood_source: None,
-                loose_bones_piles: Vec::new(),
-                loose_wood_piles: Vec::new(),
-                corpses: Vec::new(),
-            },
-            pressure: PressureState {
-                suspicion: 0.0,
-                stage: SuspicionStage::Calm,
-                active_event: None,
-                event_history: Vec::new(),
-                feed: vec![FeedEntry {
-                    message: "Need shed wood? Tap Gather Wood, then Haul.".to_owned(),
-                    age_seconds: 0.0,
-                }],
-                last_reason: "Quiet cemetery".to_owned(),
-            },
-            progress: ProgressState {
-                unlocked_plots: unlocked,
-                elapsed_seconds: 0.0,
-                first_corpse_found: false,
-                first_building_started: false,
-                production: None,
-                production_queue: 0,
-                production_recipe: ProductionRecipeKind::default(),
-                production_ledger: ProductionLedger::default(),
-                building_upgrades: BuildingUpgrades::default(),
-                district_ledger: DistrictLedger::default(),
-                market: MarketState::default(),
-            },
-            research: ResearchState::default(),
-            stewardship_policy: StewardshipPolicy::default(),
-            rng: SeededRng::new(config.starting_seed),
-            error_message: None,
-        }
-    }
-
-    pub fn begin(&mut self) {
-        if self.phase == GamePhase::MainMenu {
-            self.phase = GamePhase::Playing;
-        }
-    }
-
-    pub fn to_save(&self, version: &str) -> SaveData {
-        SaveData {
-            version: version.to_owned(),
-            phase: self.phase,
-            world: self.world.clone(),
-            workforce: self.workforce.clone(),
-            economy: self.economy.clone(),
-            pressure: self.pressure.clone(),
-            progress: self.progress.clone(),
-            research: self.research.clone(),
-            stewardship_policy: self.stewardship_policy,
-            rng_state: self.rng.state(),
-        }
-    }
-
-    pub fn from_save(mut save: SaveData) -> Self {
-        if save.economy.storage_capacity <= 0 {
-            save.economy.storage_capacity = economy::DEFAULT_STORAGE_CAPACITY;
-        }
-        save.progress
-            .building_upgrades
-            .normalize(&save.world.buildings);
-        save.progress.market.normalize();
-        for building in &mut save.world.buildings {
-            if building.position == default_building_position() {
-                building.position = default_building_position_for_kind(building.kind);
-            }
-            let (width, height) = building.kind.dimensions();
-            building.width = width;
-            building.height = height;
-        }
-        for worker in &mut save.workforce.workers {
-            if worker.carrying > 0 && worker.carrying_resource.is_none() {
-                worker.carrying_resource = Some(ResourceKind::Bones);
-            }
-            if worker.carrying <= 0 {
-                worker.haul_plan = None;
-            }
-        }
-        if save.economy.loose_bones > 0 && save.economy.loose_bones_source.is_none() {
-            save.economy.loose_bones_source = save
-                .world
-                .plots
-                .iter()
-                .find(|plot| plot.status == PlotStatus::Dug)
-                .map(|plot| plot.position);
-        }
-        if save.economy.loose_wood > 0 && save.economy.loose_wood_source.is_none() {
-            save.economy.loose_wood_source = save.world.forest_tiles.first().copied();
-        }
-        save.economy.normalize_loose_piles();
-        save.workforce.normalize_priorities();
-        Self {
-            phase: save.phase,
-            world: save.world,
-            workforce: save.workforce,
-            economy: save.economy,
-            pressure: save.pressure,
-            progress: save.progress,
-            research: save.research,
-            stewardship_policy: save.stewardship_policy,
-            rng: SeededRng::from_state(save.rng_state),
-            error_message: None,
-        }
-    }
-
-    pub fn active_undead(&self) -> usize {
-        self.workforce.workers.len()
-    }
-
-    pub fn world_width(&self) -> usize {
-        self.world.width
-    }
-
-    pub fn world_height(&self) -> usize {
-        self.world.height
-    }
-
-    pub fn has_building(&self, kind: BuildingKind) -> bool {
-        self.world
-            .buildings
-            .iter()
-            .any(|building| building.kind == kind && building.complete)
-    }
-
-    pub fn building_in_progress(&self, kind: BuildingKind) -> bool {
-        self.world
-            .buildings
-            .iter()
-            .any(|building| building.kind == kind && !building.complete)
-    }
-
-    pub fn add_feed(&mut self, message: impl Into<String>) {
-        self.pressure.feed.insert(
-            0,
-            FeedEntry {
-                message: message.into(),
-                age_seconds: 0.0,
-            },
-        );
-        self.pressure.feed.truncate(7);
-    }
-
-    pub fn tick_feed(&mut self, dt: f32) {
-        for entry in &mut self.pressure.feed {
-            entry.age_seconds += dt;
-        }
-    }
-}
-
 pub fn next_plot_unlock_cost(config: &GameConfig, unlocked_plots: usize) -> i32 {
     config.plot_unlock_base_wood + unlocked_plots as i32 * config.plot_unlock_step_wood
 }
-
-#[derive(Debug, Default, Deserialize)]
-struct LegacySave {
-    points: Option<i64>,
-    energy: Option<f32>,
-    turn: Option<u32>,
-    player: Option<LegacyPlayer>,
-}
-
-#[derive(Debug, Deserialize)]
-struct LegacyPlayer {
-    points: Option<i64>,
-    energy: Option<f32>,
-    turn: Option<u32>,
-}
-
-pub fn migrate_save_value(
-    detected_version: Option<String>,
-    value: Value,
-    config: &GameConfig,
-) -> Result<SaveData, String> {
-    let payload = value.get("data").cloned().unwrap_or(value);
-    if let Ok(mut current) = serde_json::from_value::<SaveData>(payload.clone()) {
-        current.version = config.version.clone();
-        return Ok(current);
-    }
-    let legacy: LegacySave = serde_json::from_value(payload)
-        .map_err(|error| format!("Unsupported save format {:?}: {error}", detected_version))?;
-    let mut session = GameSession::new(config);
-    let legacy_player = legacy.player;
-    if let Some(points) = legacy
-        .points
-        .or_else(|| legacy_player.as_ref().and_then(|player| player.points))
-    {
-        session.economy.bones = points.clamp(0, i32::MAX as i64) as i32;
-    }
-    if let Some(energy) = legacy
-        .energy
-        .or_else(|| legacy_player.as_ref().and_then(|player| player.energy))
-    {
-        session.economy.mana = energy.max(0.0) as i32;
-    }
-    if let Some(turn) = legacy
-        .turn
-        .or_else(|| legacy_player.as_ref().and_then(|player| player.turn))
-    {
-        session.progress.elapsed_seconds = turn.saturating_sub(1) as f32 * config.tick_seconds;
-    }
-    session.phase = GamePhase::Playing;
-    Ok(session.to_save(&config.version))
-}
-
-#[cfg(test)]
-mod tests;

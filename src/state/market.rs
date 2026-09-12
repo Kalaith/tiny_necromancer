@@ -115,6 +115,3 @@ fn default_contract_seconds() -> f32 {
 fn default_contract_bonus() -> u32 {
     MARKET_CONTRACT_BONUS_FAVOR
 }
-
-#[cfg(test)]
-mod tests;

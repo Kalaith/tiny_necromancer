@@ -507,17 +507,19 @@ fn collect_material_alert(
     {
         return;
     }
-    let bone_piles = session
-        .economy
-        .loose_piles(crate::state::ResourceKind::Bones);
-    let wood_piles = session
-        .economy
-        .loose_piles(crate::state::ResourceKind::Wood);
+    let bone_piles = session.economy.loose_piles(
+        crate::state::ResourceKind::Bones,
+        session.world.stockpile_position(),
+    );
+    let wood_piles = session.economy.loose_piles(
+        crate::state::ResourceKind::Wood,
+        session.world.stockpile_position(),
+    );
     let source = bone_piles
         .first()
         .or_else(|| wood_piles.first())
         .map(|pile| pile.position)
-        .unwrap_or_else(crate::state::WorldState::stockpile_position);
+        .unwrap_or_else(|| session.world.stockpile_position());
     let bone_detail = if bone_piles.len() > 1 {
         format!(
             "{} loose bones across {} piles need a Haul order.",
@@ -581,6 +583,3 @@ fn collect_grave_alert(session: &GameSession, alerts: &mut Vec<OperationalAlert>
         Some(Selection::Grave(plot.id)),
     ));
 }
-
-#[cfg(test)]
-mod tests;

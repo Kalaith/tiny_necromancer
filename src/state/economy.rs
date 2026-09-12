@@ -1,6 +1,6 @@
 //! Loose-resource piles and compatibility helpers for the economy state.
 
-use super::{ResourceKind, WorldState};
+use super::ResourceKind;
 use macroquad_toolkit::grid::TilePos;
 use serde::{Deserialize, Serialize};
 
@@ -59,7 +59,7 @@ impl EconomyState {
             self.loose_bones_piles.push(LooseResourcePile {
                 position: self
                     .loose_bones_source
-                    .unwrap_or_else(WorldState::stockpile_position),
+                    .unwrap_or_else(compatibility_stockpile_position),
                 amount: self.loose_bones,
             });
         }
@@ -67,7 +67,7 @@ impl EconomyState {
             self.loose_wood_piles.push(LooseResourcePile {
                 position: self
                     .loose_wood_source
-                    .unwrap_or_else(WorldState::stockpile_position),
+                    .unwrap_or_else(compatibility_stockpile_position),
                 amount: self.loose_wood,
             });
         }
@@ -77,7 +77,7 @@ impl EconomyState {
         self.refresh_metadata(ResourceKind::Wood);
     }
 
-    pub fn loose_piles(&self, resource: ResourceKind) -> Vec<LooseResourcePile> {
+    pub fn loose_piles(&self, resource: ResourceKind, fallback: TilePos) -> Vec<LooseResourcePile> {
         let piles = self.piles(resource);
         if !piles.is_empty() {
             return piles.to_vec();
@@ -88,7 +88,7 @@ impl EconomyState {
         };
         if amount > 0 {
             vec![LooseResourcePile {
-                position: source.unwrap_or_else(WorldState::stockpile_position),
+                position: source.unwrap_or(fallback),
                 amount,
             }]
         } else {
@@ -97,7 +97,7 @@ impl EconomyState {
     }
 
     pub fn loose_amount_at(&self, resource: ResourceKind, position: TilePos) -> i32 {
-        self.loose_piles(resource)
+        self.loose_piles(resource, compatibility_stockpile_position())
             .iter()
             .filter(|pile| pile.position == position)
             .map(|pile| pile.amount)
@@ -194,4 +194,9 @@ impl EconomyState {
 
 fn default_storage_capacity() -> i32 {
     DEFAULT_STORAGE_CAPACITY
+}
+
+fn compatibility_stockpile_position() -> TilePos {
+    // Saves from before the layout became authored data have no source tile.
+    TilePos::new(6, 5)
 }

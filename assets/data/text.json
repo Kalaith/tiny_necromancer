@@ -1,0 +1,29 @@
+{
+  "new_game": "A fresh graveyard is ready. Start with Dig Graves.",
+  "victory": "The tiny operation has reached its finish line.",
+  "assets_loaded": "Cemetery ready; {count} authored textures loaded",
+  "movement_cancelled_feed": "The necromancer holds position; movement cancelled.",
+  "movement_cancelled_notification": "Necromancer movement cancelled.",
+  "movement_started_feed": "The necromancer walks toward {x}, {y}.",
+  "movement_started_notification": "Destination marked; the necromancer is walking.",
+  "automation_locked": "Study Binding Routines before repeating worker priorities.",
+  "production_cancelled": "Reserved cycle cancelled; materials returned.",
+  "save_success": "Saved the cemetery.",
+  "load_success": "Loaded the cemetery.",
+  "placement_guidance": "Tap an open tile in the world, or cancel placement below.",
+  "grave_open_hint": "The earth is yielding bones and the chance of a corpse remnant.",
+  "grave_ready_hint": "A worker can dig here. Need shed timber? Assign Gather Wood, then Haul the loose wood into the stockpile.",
+  "lantern_hint": "The lantern softens suspicion around every grave.",
+  "invalid_zone_tile": "Mark a clearing, grave, or forest tile inside the cemetery.",
+  "research": [
+    { "id": "binding_routines", "label": "Binding Routines", "description": "Repeat orders and worker priorities become reliable." },
+    { "id": "gravecraft", "label": "Gravecraft", "description": "Place structures beyond the restored sites and paint work areas across the clearing." },
+    { "id": "ossuary_logistics", "label": "Ossuary Logistics", "description": "Link stockpiles and queue specialized production." },
+    { "id": "domain_stewardship", "label": "Domain Stewardship", "description": "See districts, patrol routes, and ward coverage." }
+  ],
+  "stewardship": [
+    { "id": "balanced", "label": "Balanced", "description": "Respect the shared worker priority list." },
+    { "id": "secure", "label": "Secure", "description": "Move Guard ahead and staff uncovered patrol posts." },
+    { "id": "harvest", "label": "Harvest", "description": "Fill marked Work and Storage demand before other duties." }
+  ]
+}

@@ -101,6 +101,24 @@ pub(super) fn draw_orders_panel(
         0.0,
         dark::TEXT_DIM,
     );
+    draw_order_rows(ctx, pointer, actions, rect);
+    draw_order_footer(rect);
+}
+
+fn draw_order_footer(rect: Rect) {
+    draw_text_block(
+        "Changes apply to every worker using Repeat priorities and are saved with the cemetery.",
+        rect.x + 24.0,
+        rect.bottom() - 30.0,
+        rect.w - 48.0,
+        18.0,
+        12.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
+}
+
+fn draw_order_rows(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>, rect: Rect) {
     for (index, job) in ctx.session.workforce.priorities.iter().copied().enumerate() {
         let y = rect.y + 106.0 + index as f32 * 58.0;
         draw_surface(
@@ -166,34 +184,38 @@ pub(super) fn draw_orders_panel(
                 dark::TEXT_DIM
             },
         );
-        if virtual_button(
+        draw_priority_button(
+            pointer,
+            actions,
             Rect::new(rect.x + 526.0, y + 3.0, 64.0, 44.0),
+            job,
+            -1,
             "Up",
             index > 0 && ctx.session.phase == crate::state::GamePhase::Playing,
-            ButtonTone::Secondary,
+        );
+        draw_priority_button(
             pointer,
-        ) {
-            actions.push(UiAction::MovePriority(job, -1));
-        }
-        if virtual_button(
+            actions,
             Rect::new(rect.x + 596.0, y + 3.0, 64.0, 44.0),
+            job,
+            1,
             "Down",
             index + 1 < ctx.session.workforce.priorities.len()
                 && ctx.session.phase == crate::state::GamePhase::Playing,
-            ButtonTone::Secondary,
-            pointer,
-        ) {
-            actions.push(UiAction::MovePriority(job, 1));
-        }
+        );
     }
-    draw_text_block(
-        "Changes apply to every worker using Repeat priorities and are saved with the cemetery.",
-        rect.x + 24.0,
-        rect.bottom() - 30.0,
-        rect.w - 48.0,
-        18.0,
-        12.0,
-        0.0,
-        dark::TEXT_DIM,
-    );
+}
+
+fn draw_priority_button(
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    rect: Rect,
+    job: crate::state::JobKind,
+    direction: i32,
+    label: &str,
+    enabled: bool,
+) {
+    if virtual_button(rect, label, enabled, ButtonTone::Secondary, pointer) {
+        actions.push(UiAction::MovePriority(job, direction));
+    }
 }

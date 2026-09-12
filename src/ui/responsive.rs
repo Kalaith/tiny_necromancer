@@ -9,9 +9,7 @@ use macroquad_toolkit::ui::Pointer;
 
 mod panels;
 mod selection;
-
-#[cfg(test)]
-mod tests;
+mod status;
 
 pub(super) fn draw_compact_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
     let pointer = Pointer::read(|point| ctx.ui.screen_to_ui(point));
@@ -26,7 +24,7 @@ pub(super) fn draw_compact_game_ui(ctx: UiContext<'_>) -> Vec<UiAction> {
         draw_compact_menu(&ctx, pointer, &mut actions);
         return actions;
     }
-    draw_compact_status(&ctx, pointer, &mut actions);
+    status::draw_compact_status(&ctx, pointer, &mut actions);
     draw_compact_camera_controls(&ctx, pointer, &mut actions);
     if let Some(event_id) = &ctx.session.pressure.active_event {
         draw_compact_event(&ctx, event_id, pointer, &mut actions);
@@ -124,150 +122,20 @@ fn draw_compact_camera_controls(
     );
 }
 
-fn compact_zoom_in_enabled(zoom: f32) -> bool {
+pub fn compact_zoom_in_enabled(zoom: f32) -> bool {
     zoom < 1.5 - f32::EPSILON
 }
 
-fn compact_zoom_out_enabled(zoom: f32) -> bool {
+pub fn compact_zoom_out_enabled(zoom: f32) -> bool {
     zoom > 0.75 + f32::EPSILON
 }
 
-fn compact_policy_label(policy: StewardshipPolicy) -> &'static str {
+pub fn compact_policy_label(policy: StewardshipPolicy) -> &'static str {
     match policy {
         StewardshipPolicy::Balanced => "Policy · Balanced · shared priorities",
         StewardshipPolicy::Secure => "Policy · Secure · patrol first",
         StewardshipPolicy::Harvest => "Policy · Harvest · marked gaps first",
     }
-}
-
-fn draw_compact_status(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
-    let width = ctx.layout.logical_width;
-    let pause = Rect::new(width - 88.0, 8.0, 80.0, 48.0);
-    let values = [
-        ("BONES", ctx.session.economy.bones, dark::TEXT_BRIGHT),
-        (
-            "MANA",
-            ctx.session.economy.mana,
-            Color::new(0.73, 0.79, 1.0, 1.0),
-        ),
-        (
-            "WOOD",
-            ctx.session.economy.wood,
-            Color::new(0.86, 0.68, 0.40, 1.0),
-        ),
-    ];
-    let show_undead_card = width >= 400.0;
-    let card_count = if show_undead_card { 4.0 } else { 3.0 };
-    let card_width = ((width - 104.0) / card_count).max(72.0);
-    for (index, (label, value, color)) in values.into_iter().enumerate() {
-        let rect = Rect::new(8.0 + index as f32 * card_width, 8.0, card_width - 4.0, 48.0);
-        draw_surface(
-            rect,
-            &SurfaceStyle::new(Color::new(0.055, 0.07, 0.065, 0.92))
-                .with_border(1.0, Color::new(0.42, 0.54, 0.46, 0.60)),
-        );
-        draw_text_block(
-            label,
-            rect.x + 8.0,
-            rect.y + 7.0,
-            rect.w - 16.0,
-            14.0,
-            9.0,
-            0.0,
-            dark::TEXT_DIM,
-        );
-        draw_text_block(
-            &value.to_string(),
-            rect.x + 8.0,
-            rect.y + 23.0,
-            rect.w - 16.0,
-            20.0,
-            17.0,
-            0.0,
-            color,
-        );
-    }
-    if show_undead_card {
-        let rect = Rect::new(8.0 + 3.0 * card_width, 8.0, card_width - 4.0, 48.0);
-        draw_surface(
-            rect,
-            &SurfaceStyle::new(Color::new(0.055, 0.07, 0.065, 0.92))
-                .with_border(1.0, Color::new(0.42, 0.54, 0.46, 0.60)),
-        );
-        draw_text_block(
-            "UNDEAD",
-            rect.x + 8.0,
-            rect.y + 7.0,
-            rect.w - 16.0,
-            14.0,
-            9.0,
-            0.0,
-            dark::TEXT_DIM,
-        );
-        draw_text_block(
-            &ctx.session.active_undead().to_string(),
-            rect.x + 8.0,
-            rect.y + 23.0,
-            rect.w - 16.0,
-            20.0,
-            17.0,
-            0.0,
-            dark::TEXT_BRIGHT,
-        );
-    }
-    if virtual_button(
-        pause,
-        if ctx.session.phase == GamePhase::Paused {
-            "Resume"
-        } else {
-            "Pause"
-        },
-        true,
-        ButtonTone::Secondary,
-        pointer,
-    ) {
-        actions.push(UiAction::TogglePause);
-    }
-    let suspicion = if show_undead_card {
-        format!(
-            "SUSPICION · {} {:.0}% · STORE {}/{}",
-            super::components::stage_label(ctx.session.pressure.stage),
-            ctx.session.pressure.suspicion,
-            ctx.session.economy.stored_materials(),
-            crate::engine::districts::storage_capacity(
-                ctx.session,
-                &ctx.data.config.district_rules
-            )
-        )
-    } else {
-        format!(
-            "SUSPICION · {} {:.0}% · STORE {}/{} · UNDEAD {}",
-            super::components::stage_label(ctx.session.pressure.stage),
-            ctx.session.pressure.suspicion,
-            ctx.session.economy.stored_materials(),
-            crate::engine::districts::storage_capacity(
-                ctx.session,
-                &ctx.data.config.district_rules
-            ),
-            ctx.session.active_undead()
-        )
-    };
-    let storage_full =
-        crate::engine::districts::storage_space(ctx.session, &ctx.data.config.district_rules) == 0;
-    draw_text_block(
-        &suspicion,
-        12.0,
-        64.0,
-        width - 24.0,
-        18.0,
-        12.0,
-        0.0,
-        if ctx.session.pressure.suspicion >= 50.0 || storage_full {
-            dark::WARNING
-        } else {
-            dark::TEXT_DIM
-        },
-    );
 }
 
 fn draw_compact_menu(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>) {
@@ -438,18 +306,18 @@ fn draw_compact_navigation(
     }
 }
 
-const COMPACT_NAV_ENTRIES: f32 = 7.0;
-const COMPACT_NAV_GAP: f32 = 4.0;
-const COMPACT_NAV_MARGIN: f32 = 24.0;
-const COMPACT_NAV_MIN_BUTTON: f32 = 44.0;
+pub const COMPACT_NAV_ENTRIES: f32 = 7.0;
+pub const COMPACT_NAV_GAP: f32 = 4.0;
+pub const COMPACT_NAV_MARGIN: f32 = 24.0;
+pub const COMPACT_NAV_MIN_BUTTON: f32 = 44.0;
 
-fn compact_nav_button_width(width: f32) -> f32 {
+pub fn compact_nav_button_width(width: f32) -> f32 {
     ((width - COMPACT_NAV_MARGIN - COMPACT_NAV_GAP * (COMPACT_NAV_ENTRIES - 1.0))
         / COMPACT_NAV_ENTRIES)
         .max(COMPACT_NAV_MIN_BUTTON)
 }
 
-fn compact_nav_text_size(button_width: f32) -> f32 {
+pub fn compact_nav_text_size(button_width: f32) -> f32 {
     if button_width < 56.0 {
         9.0
     } else {

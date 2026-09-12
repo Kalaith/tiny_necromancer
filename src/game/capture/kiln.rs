@@ -3,7 +3,7 @@
 use super::Game;
 use crate::state::{
     BuildingKind, HaulDestination, JobKind, ProductionOrder, ProductionRecipeKind, RoutePolicy,
-    Selection, Technology, WorkerStatus, WorldState,
+    Selection, Technology, WorkerStatus,
 };
 use macroquad_toolkit::grid::TilePos;
 
@@ -82,7 +82,7 @@ impl Game {
             bones_remaining: 12,
             wood_remaining: 6,
         });
-        let source = WorldState::stockpile_position();
+        let source = self.session.world.stockpile_position();
         let destination = crate::engine::progression::production_destination(&self.session)
             .expect("capture kiln should have a work position");
         let worker = &mut self.session.workforce.workers[0];

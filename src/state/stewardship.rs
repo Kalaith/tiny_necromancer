@@ -12,19 +12,19 @@ pub enum StewardshipPolicy {
 }
 
 impl StewardshipPolicy {
+    pub fn id(self) -> &'static str {
+        match self {
+            Self::Balanced => "balanced",
+            Self::Secure => "secure",
+            Self::Harvest => "harvest",
+        }
+    }
+
     pub fn label(self) -> &'static str {
         match self {
             Self::Balanced => "Balanced",
             Self::Secure => "Secure",
             Self::Harvest => "Harvest",
-        }
-    }
-
-    pub fn description(self) -> &'static str {
-        match self {
-            Self::Balanced => "Respect the shared worker priority list.",
-            Self::Secure => "Move Guard ahead and staff uncovered patrol posts.",
-            Self::Harvest => "Fill marked Work and Storage demand before other duties.",
         }
     }
 

@@ -33,5 +33,34 @@
     "gravecraft": 10.0,
     "ossuary_logistics": 14.0,
     "domain_stewardship": 18.0
+  },
+  "world_layout": {
+    "road_x": 8,
+    "mana_source": { "x": 7, "y": 6 },
+    "stockpile_position": { "x": 6, "y": 5 },
+    "necromancer_position": { "x": 5, "y": 5 },
+    "forest_tiles": [
+      { "x": 0, "y": 0 }, { "x": 0, "y": 1 }, { "x": 0, "y": 2 }, { "x": 0, "y": 3 },
+      { "x": 0, "y": 4 }, { "x": 0, "y": 5 }, { "x": 0, "y": 6 }, { "x": 0, "y": 7 }
+    ],
+    "plot_positions": [
+      { "x": 2, "y": 2 }, { "x": 3, "y": 2 }, { "x": 4, "y": 2 },
+      { "x": 5, "y": 2 }, { "x": 2, "y": 3 }, { "x": 3, "y": 3 }
+    ],
+    "building_positions": [
+      { "id": "work_shed", "position": { "x": 6, "y": 2 } },
+      { "id": "grave_lantern", "position": { "x": 7, "y": 6 } },
+      { "id": "ossuary_kiln", "position": { "x": 6, "y": 4 } }
+    ]
+  },
+  "starting_content": {
+    "worker": {
+      "id": 1,
+      "name": "Rattlebones",
+      "undead_id": "skeleton",
+      "job_id": "dig"
+    },
+    "initial_feedback": "Need shed wood? Tap Gather Wood, then Haul.",
+    "initial_reason": "Quiet cemetery"
   }
 }

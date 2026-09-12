@@ -19,7 +19,7 @@ pub(super) fn draw(
     sheet: Rect,
 ) {
     if ctx.placement.is_some() {
-        draw_placement(pointer, actions, sheet);
+        draw_placement(ctx, pointer, actions, sheet);
         return;
     }
     match ctx.session.world.selected {
@@ -32,7 +32,7 @@ pub(super) fn draw(
     }
 }
 
-fn draw_placement(pointer: Pointer, actions: &mut Vec<UiAction>, sheet: Rect) {
+fn draw_placement(ctx: &UiContext<'_>, pointer: Pointer, actions: &mut Vec<UiAction>, sheet: Rect) {
     draw_text_block(
         "PLACEMENT",
         sheet.x + 16.0,
@@ -44,7 +44,7 @@ fn draw_placement(pointer: Pointer, actions: &mut Vec<UiAction>, sheet: Rect) {
         dark::WARNING,
     );
     draw_text_block(
-        "Tap an open tile in the world, or cancel placement below.",
+        ctx.data.text.placement_guidance.as_str(),
         sheet.x + 16.0,
         sheet.y + 112.0,
         sheet.w - 32.0,
@@ -275,7 +275,7 @@ fn draw_grave(
         actions.push(UiAction::AssignJob(JobKind::Dig));
     }
     draw_text_block(
-        "Need shed timber? Gather it, then use Haul.",
+        ctx.data.text.grave_ready_hint.as_str(),
         sheet.x + 16.0,
         sheet.y + 178.0,
         sheet.w - 32.0,
@@ -361,7 +361,7 @@ fn draw_building(
         }
         BuildingKind::GraveLantern => {
             draw_text_block(
-                "The lantern softens suspicion around every grave.",
+                ctx.data.text.lantern_hint.as_str(),
                 sheet.x + 16.0,
                 sheet.y + 174.0,
                 sheet.w - 32.0,

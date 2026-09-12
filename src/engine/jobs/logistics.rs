@@ -54,7 +54,7 @@ fn production_plan(session: &GameSession, worker: &crate::state::Worker) -> Opti
         return None;
     };
     let source = if stockpiled_supply_available(session, resource) {
-        crate::state::WorldState::stockpile_position()
+        session.world.stockpile_position()
     } else {
         targets::loose_source_for_resource(session, worker, resource)?
     };
@@ -97,7 +97,7 @@ fn stockpiled_supply_available(session: &GameSession, resource: ResourceKind) ->
 }
 
 fn kiln_source_amount(session: &GameSession, plan: HaulPlan) -> i32 {
-    if plan.source == crate::state::WorldState::stockpile_position() {
+    if plan.source == session.world.stockpile_position() {
         match plan.resource {
             ResourceKind::Bones => session.economy.bones,
             ResourceKind::Wood => session.economy.wood,
@@ -162,7 +162,7 @@ pub(super) fn destination_for_cargo(
         previous_plan
             .filter(|plan| plan.destination_kind == HaulDestination::Kiln)
             .map(|plan| plan.source)
-            .unwrap_or_else(crate::state::WorldState::stockpile_position)
+            .unwrap_or_else(|| session.world.stockpile_position())
     } else {
         previous_source
     };

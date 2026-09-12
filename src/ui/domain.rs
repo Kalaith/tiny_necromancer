@@ -225,6 +225,23 @@ fn draw_stewardship_readout(
     pointer: Pointer,
     actions: &mut Vec<UiAction>,
 ) {
+    draw_text_block(
+        "STEWARDSHIP READOUT",
+        rect.x + 24.0,
+        rect.y + 286.0,
+        220.0,
+        16.0,
+        12.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
+    draw_stewardship_status(ctx, rect);
+    draw_stewardship_policy(ctx, rect, pointer, actions);
+    draw_stewardship_operations(ctx, rect);
+    draw_stewardship_alerts(ctx, rect, pointer, actions);
+}
+
+fn draw_stewardship_status(ctx: &UiContext<'_>, rect: Rect) {
     let (clear_routes, total_routes) = super::world_feedback::route_counts(ctx);
     let patrol_coverage = jobs::patrol_coverage(ctx.session);
     let route_summary = if total_routes == 0 {
@@ -238,16 +255,6 @@ fn draw_stewardship_readout(
             patrol_coverage.covered_posts, patrol_coverage.total_posts
         )
     };
-    draw_text_block(
-        "STEWARDSHIP READOUT",
-        rect.x + 24.0,
-        rect.y + 286.0,
-        220.0,
-        16.0,
-        12.0,
-        0.0,
-        dark::TEXT_DIM,
-    );
     draw_readout_line(
         "ROAD PRESSURE",
         &format!(
@@ -275,25 +282,40 @@ fn draw_stewardship_readout(
             dark::WARNING
         },
     );
+}
+
+fn draw_stewardship_policy(
+    ctx: &UiContext<'_>,
+    rect: Rect,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+) {
     if virtual_button(
         Rect::new(rect.x + 24.0, rect.y + 366.0, 192.0, 44.0),
-        &format!("Policy · {}", ctx.session.stewardship_policy.label()),
+        &format!(
+            "Policy · {}",
+            ctx.data
+                .text
+                .stewardship(ctx.session.stewardship_policy.id())
+                .map_or(ctx.session.stewardship_policy.label(), |entry| entry
+                    .label
+                    .as_str())
+        ),
         ctx.session.phase == GamePhase::Playing,
         ButtonTone::Secondary,
         pointer,
     ) {
         actions.push(UiAction::CycleStewardshipPolicy);
     }
+    let policy_description = ctx
+        .data
+        .text
+        .stewardship(ctx.session.stewardship_policy.id())
+        .map_or("", |entry| entry.description.as_str());
     let policy_hint = if ctx.session.phase == GamePhase::Playing {
-        format!(
-            "Tap to cycle · {}",
-            ctx.session.stewardship_policy.description()
-        )
+        format!("Tap to cycle · {}", policy_description)
     } else {
-        format!(
-            "Resume play to change · {}",
-            ctx.session.stewardship_policy.description()
-        )
+        format!("Resume play to change · {}", policy_description)
     };
     draw_text_block(
         &policy_hint,
@@ -315,6 +337,9 @@ fn draw_stewardship_readout(
         0.0,
         dark::ACCENT,
     );
+}
+
+fn draw_stewardship_operations(ctx: &UiContext<'_>, rect: Rect) {
     draw_text_block(
         &districts::operations_summary(ctx.session),
         rect.x + 24.0,
@@ -357,7 +382,14 @@ fn draw_stewardship_readout(
             dark::TEXT_DIM
         },
     );
+}
 
+fn draw_stewardship_alerts(
+    ctx: &UiContext<'_>,
+    rect: Rect,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+) {
     let operational = alerts::collect(ctx.session, ctx.data);
     let detail = operational.first().map_or_else(
         || "No active blockers detected; the clearing is answering its orders.".to_owned(),
@@ -438,11 +470,11 @@ fn alert_action(ctx: &UiContext<'_>, target: Selection) -> UiAction {
         Selection::Necromancer => UiAction::SelectNecromancer,
         Selection::Ground(tile) => UiAction::SelectTile(tile),
         Selection::Grave(index) => ctx.session.world.plots.get(index).map_or(
-            UiAction::SelectTile(crate::state::WorldState::stockpile_position()),
+            UiAction::SelectTile(ctx.session.world.stockpile_position()),
             |plot| UiAction::SelectTile(plot.position),
         ),
         Selection::Building(index) => ctx.session.world.buildings.get(index).map_or(
-            UiAction::SelectTile(crate::state::WorldState::stockpile_position()),
+            UiAction::SelectTile(ctx.session.world.stockpile_position()),
             |building| UiAction::SelectTile(building.position),
         ),
     }

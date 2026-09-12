@@ -3,13 +3,7 @@
 use macroquad::prelude::*;
 use macroquad_toolkit::capture;
 
-mod data;
-mod engine;
-mod game;
-mod state;
-mod ui;
-
-use game::Game;
+use tiny_necromancer::{game::Game, ui};
 
 fn window_conf() -> Conf {
     capture::capture_window_conf(

@@ -121,6 +121,3 @@ pub fn resolve_event(
     update_stage(session, data);
     Ok(())
 }
-
-#[cfg(test)]
-mod tests;

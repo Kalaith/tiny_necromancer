@@ -1,12 +1,10 @@
 //! Runtime orchestration: input intents, simulation ticks, persistence, and feedback.
 
 use crate::data::GameData;
-use crate::engine::{self, corpses, jobs, movement, progression, suspicion, trade};
-use crate::state::{
-    BuildingKind, GamePhase, GameSession, SaveData, Selection, Technology, Zone, ZoneKind,
-};
+use crate::engine::{self, movement};
+use crate::state::{BuildingKind, GamePhase, GameSession, ZoneKind};
 use crate::ui::animation::AnimationClock;
-use crate::ui::{self, CameraZoom, DomainOverlays, Panel, UiAction, UiContext};
+use crate::ui::{self, DomainOverlays, Panel, UiAction, UiContext};
 use macroquad::prelude::*;
 use macroquad_toolkit::assets::AssetManager;
 use macroquad_toolkit::camera::{CameraBounds, CameraBoundsPolicy, CameraTransform};
@@ -15,12 +13,10 @@ use macroquad_toolkit::input::{TouchGesture, TouchGestureFrame};
 use macroquad_toolkit::notifications::{
     NotificationAnchor, NotificationManager, NotificationRenderConfig,
 };
-use macroquad_toolkit::persistence::{
-    load_from_slot_with_migration, save_to_slot_with_version, slot_exists,
-};
 use macroquad_toolkit::prelude::{begin_virtual_ui_frame, dark, end_virtual_ui_frame, InputState};
 use macroquad_toolkit::ui::VirtualUi;
 
+mod actions;
 mod capture;
 
 pub struct Game {
@@ -53,9 +49,11 @@ impl Game {
         assets.set_placeholder_texture_direct(Texture2D::from_image(&placeholder));
         let loaded_assets = assets.load_texture_configs(&data.texture_manifest).await;
         let mut notifications = NotificationManager::new();
-        notifications.info(format!(
-            "Cemetery ready; {loaded_assets} authored textures loaded"
-        ));
+        notifications.info(
+            data.text
+                .assets_loaded
+                .replace("{count}", &loaded_assets.to_string()),
+        );
         let session = GameSession::new(&data.config);
         let motions = movement::MotionState::new(&session);
         let camera = CameraTransform::new(Vec2::ZERO, 1.0).expect("valid initial camera");
@@ -119,8 +117,7 @@ impl Game {
                     self.notifications.info(message);
                 }
                 if report.became_victorious {
-                    self.notifications
-                        .success("The tiny operation has reached its finish line.");
+                    self.notifications.success(&self.data.text.victory);
                 }
             }
         }
@@ -235,417 +232,5 @@ impl Game {
                 anchor: NotificationAnchor::TopRight,
                 ..Default::default()
             });
-        let _ = self.assets.len();
-    }
-
-    fn apply_action(&mut self, action: UiAction) {
-        match action {
-            UiAction::NewGame => {
-                self.session = GameSession::new(&self.data.config);
-                self.session.begin();
-                self.tick_accumulator = 0.0;
-                self.motions.reset(&self.session);
-                self.animation.reset();
-                self.panel = Panel::None;
-                self.placement = None;
-                self.zone_mode = None;
-                self.domain_overlays = DomainOverlays::default();
-                self.notifications
-                    .info("A fresh graveyard is ready. Start with Dig Graves.");
-            }
-            UiAction::TogglePause => match self.session.phase {
-                GamePhase::Playing => self.session.phase = GamePhase::Paused,
-                GamePhase::Paused => self.session.phase = GamePhase::Playing,
-                _ => {}
-            },
-            UiAction::Save => self.save_game(),
-            UiAction::Load => self.load_game(),
-            UiAction::SelectWorker(index) => {
-                jobs::select_worker(&mut self.session, index);
-                if index < self.session.workforce.workers.len() {
-                    self.session.world.selected = Some(Selection::Worker(index));
-                }
-            }
-            UiAction::SelectPlot(tile) => {
-                if let Some(plot) = self.session.world.plots.iter().find(|plot| {
-                    plot.position == tile && plot.status != crate::state::PlotStatus::Locked
-                }) {
-                    self.session.world.selected_plot = Some(plot.id);
-                    self.session.world.selected = Some(Selection::Grave(plot.id));
-                    self.notifications.info(format!(
-                        "Selected plot {} ({:?})",
-                        plot.id + 1,
-                        plot.status
-                    ));
-                }
-            }
-            UiAction::SelectTile(tile) => {
-                if let Some((index, _)) =
-                    self.session
-                        .workforce
-                        .workers
-                        .iter()
-                        .enumerate()
-                        .find(|(_, worker)| {
-                            worker.position == tile
-                                || self.motions.worker_occupies_tile(worker.id, tile)
-                        })
-                {
-                    self.session.workforce.selected_worker = index;
-                    self.session.world.selected = Some(Selection::Worker(index));
-                } else if self.session.world.necromancer_position == tile
-                    || self.motions.necromancer_occupies_tile(tile)
-                {
-                    self.session.world.selected = Some(Selection::Necromancer);
-                } else if let Some((index, _)) = self
-                    .session
-                    .world
-                    .buildings
-                    .iter()
-                    .enumerate()
-                    .find(|(_, building)| {
-                        tile.x >= building.position.x
-                            && tile.x < building.position.x + building.width
-                            && tile.y >= building.position.y
-                            && tile.y < building.position.y + building.height
-                    })
-                {
-                    self.session.world.selected = Some(Selection::Building(index));
-                } else if let Some(plot) = self.session.world.plots.iter().find(|plot| {
-                    plot.position == tile && plot.status != crate::state::PlotStatus::Locked
-                }) {
-                    self.session.world.selected_plot = Some(plot.id);
-                    self.session.world.selected = Some(Selection::Grave(plot.id));
-                } else {
-                    self.session.world.selected = Some(Selection::Ground(tile));
-                }
-            }
-            UiAction::SelectNecromancer => {
-                self.session.world.selected = Some(Selection::Necromancer);
-            }
-            UiAction::MoveNecromancer(tile) => {
-                let current = self.session.world.necromancer_position;
-                match movement::request_necromancer_destination(&mut self.session, tile) {
-                    Ok(()) => {
-                        self.session.world.selected = Some(Selection::Necromancer);
-                        if tile == current {
-                            self.session
-                                .add_feed("The necromancer holds position; movement cancelled.");
-                            self.notifications.info("Necromancer movement cancelled.");
-                        } else {
-                            self.session.add_feed(format!(
-                                "The necromancer walks toward {}, {}.",
-                                tile.x + 1,
-                                tile.y + 1
-                            ));
-                            self.notifications
-                                .info("Destination marked; the necromancer is walking.");
-                        }
-                    }
-                    Err(error) => self.notifications.warning(error),
-                }
-            }
-            UiAction::AssignJob(job) => {
-                let result = jobs::assign_job(&mut self.session, job);
-                self.notify_result(result);
-            }
-            UiAction::ToggleAutomation => {
-                let result = if self
-                    .session
-                    .research
-                    .is_unlocked(Technology::BindingRoutines)
-                {
-                    jobs::toggle_automation(&mut self.session)
-                } else {
-                    Err("Study Binding Routines before repeating worker priorities.".to_owned())
-                };
-                self.notify_result(result);
-            }
-            UiAction::Raise(kind) => {
-                let result = corpses::raise(&mut self.session, &self.data, kind);
-                self.notify_result(result);
-            }
-            UiAction::QueueBuilding(kind) => {
-                let result = progression::queue_building(&mut self.session, &self.data, kind);
-                self.notify_result(result);
-            }
-            UiAction::BeginPlacement(kind) => {
-                self.placement = Some(kind);
-                self.panel = Panel::None;
-            }
-            UiAction::PlaceBuilding(tile) => {
-                let Some(kind) = self.placement else {
-                    return;
-                };
-                let result =
-                    progression::queue_building_at(&mut self.session, &self.data, kind, tile);
-                if result.is_ok() {
-                    self.placement = None;
-                    self.session.world.selected =
-                        Some(Selection::Building(self.session.world.buildings.len() - 1));
-                }
-                self.notify_result(result);
-            }
-            UiAction::CancelPlacement => {
-                self.placement = None;
-                self.zone_mode = None;
-            }
-            UiAction::UnlockPlot => {
-                let result = progression::unlock_plot(&mut self.session, &self.data);
-                self.notify_result(result);
-            }
-            UiAction::ResolveEvent(choice) => {
-                let result = suspicion::resolve_event(&mut self.session, &self.data, &choice);
-                self.notify_result(result);
-            }
-            UiAction::ZoomCamera(factor) => {
-                let layout = ui::UiLayout::current(self.panel);
-                let factor = match factor {
-                    CameraZoom::In => 1.15,
-                    CameraZoom::Out => 1.0 / 1.15,
-                };
-                self.camera.zoom_at(
-                    layout.world_rect,
-                    layout.world_rect.center(),
-                    factor,
-                    (0.75, 1.5),
-                );
-            }
-            UiAction::CenterCamera => {
-                self.camera = CameraTransform::new(Vec2::ZERO, self.camera.zoom())
-                    .expect("valid camera reset");
-            }
-            UiAction::StartResearch(technology) => {
-                let result = progression::start_research(&mut self.session, technology);
-                self.notify_result(result);
-            }
-            UiAction::SelectProductionRecipe(kind, recipe) => {
-                let result = progression::select_production_recipe(
-                    &mut self.session,
-                    &self.data,
-                    kind,
-                    recipe,
-                );
-                self.notify_result(result);
-            }
-            UiAction::StartProduction(kind) => {
-                let result = progression::start_production(&mut self.session, &self.data, kind);
-                self.notify_result(result);
-            }
-            UiAction::CancelProduction(kind) => {
-                let result = progression::cancel_production(&mut self.session, &self.data, kind);
-                match result {
-                    Ok(()) => self
-                        .notifications
-                        .success("Reserved cycle cancelled; materials returned."),
-                    Err(error) => self.notifications.warning(error),
-                }
-            }
-            UiAction::UpgradeBuilding(kind) => {
-                let result = progression::upgrade_building(&mut self.session, &self.data, kind);
-                self.notify_result(result);
-            }
-            UiAction::ExecuteTrade => {
-                let offer = trade::current_offer(&self.session);
-                let previous_standing = self.session.progress.market.standing_label();
-                let contract_bonus = self
-                    .session
-                    .progress
-                    .market
-                    .contract
-                    .as_ref()
-                    .map(|contract| contract.bonus_favor);
-                let result = trade::execute_trade(&mut self.session, &self.data);
-                match result {
-                    Ok(()) => {
-                        let current_standing = self.session.progress.market.standing_label();
-                        let receipt = if let Some(bonus) = contract_bonus {
-                            format!(
-                                "Request fulfilled: {} for {} · +{} favor.",
-                                offer.cost,
-                                offer.reward,
-                                1 + bonus
-                            )
-                        } else {
-                            format!("Exchange complete: {} for {}.", offer.cost, offer.reward)
-                        };
-                        if current_standing != previous_standing {
-                            self.notifications
-                                .success(format!("{receipt} Standing: {current_standing}."));
-                        } else {
-                            self.notifications.success(receipt);
-                        }
-                    }
-                    Err(error) => self.notifications.warning(error),
-                }
-            }
-            UiAction::AcceptMarketContract => {
-                let result = trade::accept_contract(&mut self.session);
-                self.notify_result(result);
-            }
-            UiAction::UseWardCharge => {
-                let result = progression::use_ward_charge(&mut self.session);
-                self.notify_result(result);
-            }
-            UiAction::MovePriority(job, direction) => {
-                let result = jobs::move_priority(&mut self.session, job, direction);
-                self.notify_result(result);
-            }
-            UiAction::ToggleDomainOverlay(overlay) => {
-                if self
-                    .session
-                    .research
-                    .is_unlocked(Technology::DomainStewardship)
-                {
-                    self.domain_overlays.toggle(overlay);
-                }
-            }
-            UiAction::CycleStewardshipPolicy => {
-                if self.session.phase == GamePhase::Playing
-                    && self
-                        .session
-                        .research
-                        .is_unlocked(Technology::DomainStewardship)
-                {
-                    self.session.stewardship_policy = self.session.stewardship_policy.next();
-                    let policy = self.session.stewardship_policy.label();
-                    self.session
-                        .add_feed(format!("Stewardship policy: {policy}."));
-                    self.notifications
-                        .info(format!("Automated workers now follow {policy}."));
-                }
-            }
-            UiAction::CycleRoutePolicy(kind) => {
-                if self.session.phase == GamePhase::Playing
-                    && self
-                        .session
-                        .research
-                        .is_unlocked(Technology::DomainStewardship)
-                {
-                    let policy = self.session.world.route_policies.cycle(kind);
-                    self.session.add_feed(format!(
-                        "{} route policy: {} · {}.",
-                        kind.label(),
-                        policy.label(),
-                        policy.description()
-                    ));
-                    self.notifications.info(format!(
-                        "{} routes: {} · {}.",
-                        kind.label(),
-                        policy.label(),
-                        policy.description()
-                    ));
-                }
-            }
-            UiAction::TogglePanel(panel) => {
-                self.panel = if self.panel == panel {
-                    Panel::None
-                } else {
-                    panel
-                };
-            }
-            UiAction::ToggleZone(kind) => {
-                if self.session.research.is_unlocked(Technology::Gravecraft) {
-                    self.zone_mode = if self.zone_mode == Some(kind) {
-                        None
-                    } else {
-                        Some(kind)
-                    };
-                }
-            }
-            UiAction::PaintZone(tile) => {
-                let Some(kind) = self.zone_mode else {
-                    return;
-                };
-                if !self.session.world.zone_contains(kind, tile)
-                    && !self.session.world.is_zone_tile_allowed(tile)
-                {
-                    self.notifications
-                        .warning("Mark a clearing, grave, or forest tile inside the cemetery.");
-                    return;
-                }
-                let mut cleared = false;
-                let mut remove_zone = false;
-                if let Some(zone) = self
-                    .session
-                    .world
-                    .zones
-                    .iter_mut()
-                    .find(|zone| zone.kind == kind)
-                {
-                    cleared = zone.toggle_tile(tile);
-                    remove_zone = zone.tiles.is_empty();
-                } else {
-                    self.session.world.zones.push(Zone {
-                        kind,
-                        tiles: vec![tile],
-                    });
-                }
-                if remove_zone {
-                    self.session.world.zones.retain(|zone| zone.kind != kind);
-                }
-                self.session.add_feed(format!(
-                    "{} zone {} at {}, {}.",
-                    kind.label(),
-                    if cleared { "cleared" } else { "marked" },
-                    tile.x + 1,
-                    tile.y + 1
-                ));
-            }
-        }
-        suspicion::update_stage(&mut self.session, &self.data);
-        progression::check_victory(&mut self.session, &self.data);
-    }
-
-    fn notify_result(&mut self, result: Result<(), String>) {
-        match result {
-            Ok(()) => self.notifications.success("Order accepted."),
-            Err(error) => self.notifications.warning(error),
-        }
-    }
-
-    fn save_game(&mut self) {
-        let save = self.session.to_save(&self.data.config.version);
-        match save_to_slot_with_version(
-            &self.data.config.game_name,
-            &self.data.config.save_slot,
-            &save,
-            &self.data.config.version,
-        ) {
-            Ok(()) => {
-                self.notifications.success("Saved the cemetery.");
-                self.refresh_save_state();
-            }
-            Err(error) => self.notifications.danger(format!("Save failed: {error}")),
-        }
-    }
-
-    fn load_game(&mut self) {
-        let loaded: Result<SaveData, String> = load_from_slot_with_migration(
-            &self.data.config.game_name,
-            &self.data.config.save_slot,
-            &self.data.config.version,
-            |version, value| crate::state::migrate_save_value(version, value, &self.data.config),
-        );
-        match loaded {
-            Ok(save) => {
-                self.session = GameSession::from_save(save);
-                self.motions.reset(&self.session);
-                self.animation.reset();
-                self.tick_accumulator = 0.0;
-                self.panel = Panel::None;
-                self.placement = None;
-                self.zone_mode = None;
-                self.camera_drag = None;
-                self.domain_overlays = DomainOverlays::default();
-                self.notifications.success("Loaded the cemetery.");
-                self.refresh_save_state();
-            }
-            Err(error) => self.notifications.warning(format!("Load failed: {error}")),
-        }
-    }
-
-    fn refresh_save_state(&mut self) {
-        self.save_exists = slot_exists(&self.data.config.game_name, &self.data.config.save_slot);
     }
 }

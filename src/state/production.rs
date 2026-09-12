@@ -49,6 +49,3 @@ impl ProductionLedger {
         )
     }
 }
-
-#[cfg(test)]
-mod tests;

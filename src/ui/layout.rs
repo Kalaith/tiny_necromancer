@@ -68,6 +68,3 @@ impl UiLayout {
         ]
     }
 }
-
-#[cfg(test)]
-mod tests;

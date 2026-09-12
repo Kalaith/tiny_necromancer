@@ -64,6 +64,15 @@ pub(super) fn draw_research_panel(
             dark::ACCENT,
         );
     }
+    draw_research_choices(ctx, pointer, actions, rect);
+}
+
+fn draw_research_choices(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    rect: Rect,
+) {
     let techs = [
         Technology::BindingRoutines,
         Technology::Gravecraft,
@@ -90,8 +99,9 @@ pub(super) fn draw_research_panel(
                 },
             ),
         );
+        let research_text = ctx.data.text.research(technology.id());
         draw_text_block(
-            technology.label(),
+            research_text.map_or(technology.label(), |entry| entry.label.as_str()),
             rect.x + 40.0,
             y + 10.0,
             210.0,
@@ -101,7 +111,7 @@ pub(super) fn draw_research_panel(
             dark::TEXT_BRIGHT,
         );
         draw_text_block(
-            technology.description(),
+            research_text.map_or("", |entry| entry.description.as_str()),
             rect.x + 40.0,
             y + 32.0,
             390.0,
@@ -176,6 +186,16 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
         0.0,
         dark::TEXT_DIM,
     );
+    draw_zone_controls(ctx, pointer, actions, rect, domain_unlocked);
+}
+
+fn draw_zone_controls(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    rect: Rect,
+    domain_unlocked: bool,
+) {
     for (index, kind) in [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
         .into_iter()
         .enumerate()
@@ -201,65 +221,7 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
         }
     }
     if domain_unlocked {
-        draw_text_block(
-            "ROUTE POLICY · repeat workers",
-            rect.x + 18.0,
-            rect.y + 96.0,
-            280.0,
-            16.0,
-            11.0,
-            0.0,
-            dark::TEXT_DIM,
-        );
-        let button_width = (rect.w - 52.0) / 3.0;
-        for (index, kind) in [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
-            .into_iter()
-            .enumerate()
-        {
-            if virtual_button(
-                Rect::new(
-                    rect.x + 18.0 + index as f32 * (button_width + 8.0),
-                    rect.y + 114.0,
-                    button_width,
-                    40.0,
-                ),
-                ctx.session.world.route_policies.for_kind(kind).label(),
-                ctx.session.phase == crate::state::GamePhase::Playing,
-                ButtonTone::Secondary,
-                pointer,
-            ) {
-                actions.push(UiAction::CycleRoutePolicy(kind));
-            }
-        }
-        let storage_hint = format!(
-            "{} · +{} capacity/tile",
-            districts::storage_summary(ctx.session, &ctx.data.config.district_rules),
-            ctx.data.config.district_rules.storage_volume_per_tile
-        );
-        draw_text_block(
-            &storage_hint,
-            rect.x + 18.0,
-            rect.y + 160.0,
-            rect.w - 36.0,
-            18.0,
-            11.0,
-            0.0,
-            if districts::storage_space(ctx.session, &ctx.data.config.district_rules) == 0 {
-                dark::WARNING
-            } else {
-                dark::ACCENT
-            },
-        );
-        draw_text_block(
-            "Direct orders keep their existing route behavior.",
-            rect.x + 18.0,
-            rect.y + 180.0,
-            rect.w - 36.0,
-            18.0,
-            12.0,
-            0.0,
-            dark::TEXT_DIM,
-        );
+        draw_zone_route_controls(ctx, pointer, actions, rect);
     } else {
         let message = if ctx
             .session
@@ -282,6 +244,73 @@ pub(super) fn draw_zones_panel(ctx: &UiContext<'_>, pointer: Pointer, actions: &
             dark::TEXT_DIM,
         );
     }
+}
+
+fn draw_zone_route_controls(
+    ctx: &UiContext<'_>,
+    pointer: Pointer,
+    actions: &mut Vec<UiAction>,
+    rect: Rect,
+) {
+    draw_text_block(
+        "ROUTE POLICY · repeat workers",
+        rect.x + 18.0,
+        rect.y + 96.0,
+        280.0,
+        16.0,
+        11.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
+    let button_width = (rect.w - 52.0) / 3.0;
+    for (index, kind) in [ZoneKind::Work, ZoneKind::Storage, ZoneKind::Patrol]
+        .into_iter()
+        .enumerate()
+    {
+        if virtual_button(
+            Rect::new(
+                rect.x + 18.0 + index as f32 * (button_width + 8.0),
+                rect.y + 114.0,
+                button_width,
+                40.0,
+            ),
+            ctx.session.world.route_policies.for_kind(kind).label(),
+            ctx.session.phase == crate::state::GamePhase::Playing,
+            ButtonTone::Secondary,
+            pointer,
+        ) {
+            actions.push(UiAction::CycleRoutePolicy(kind));
+        }
+    }
+    let storage_hint = format!(
+        "{} · +{} capacity/tile",
+        districts::storage_summary(ctx.session, &ctx.data.config.district_rules),
+        ctx.data.config.district_rules.storage_volume_per_tile
+    );
+    draw_text_block(
+        &storage_hint,
+        rect.x + 18.0,
+        rect.y + 160.0,
+        rect.w - 36.0,
+        18.0,
+        11.0,
+        0.0,
+        if districts::storage_space(ctx.session, &ctx.data.config.district_rules) == 0 {
+            dark::WARNING
+        } else {
+            dark::ACCENT
+        },
+    );
+    draw_text_block(
+        "Direct orders keep their existing route behavior.",
+        rect.x + 18.0,
+        rect.y + 180.0,
+        rect.w - 36.0,
+        18.0,
+        12.0,
+        0.0,
+        dark::TEXT_DIM,
+    );
 }
 
 pub(super) fn draw_small_info_panel(title: &str, message: &str) {

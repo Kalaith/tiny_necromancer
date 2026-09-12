@@ -55,11 +55,11 @@ pub fn destination_for_worker(session: &GameSession, worker: &Worker) -> Option<
 
 fn haul_source_destination(session: &GameSession, worker: &Worker) -> Option<TilePos> {
     if production_supply_resource(session).is_some() {
-        return Some(WorldState::stockpile_position());
+        return Some(session.world.stockpile_position());
     }
     if session.economy.loose_bones > 0 {
         loose_source_for_resource(session, worker, ResourceKind::Bones)
-            .or(Some(WorldState::stockpile_position()))
+            .or(Some(session.world.stockpile_position()))
     } else if session.economy.loose_wood > 0 {
         loose_source_for_resource(session, worker, ResourceKind::Wood)
     } else {
@@ -91,7 +91,7 @@ pub(super) fn loose_source_for_resource(
             session.economy.loose_bones_source,
             session
                 .economy
-                .loose_piles(ResourceKind::Bones)
+                .loose_piles(ResourceKind::Bones, session.world.stockpile_position())
                 .into_iter()
                 .map(|pile| pile.position)
                 .collect::<Vec<_>>(),
@@ -111,7 +111,7 @@ pub(super) fn loose_source_for_resource(
             session.economy.loose_wood_source,
             session
                 .economy
-                .loose_piles(ResourceKind::Wood)
+                .loose_piles(ResourceKind::Wood, session.world.stockpile_position())
                 .into_iter()
                 .map(|pile| pile.position)
                 .collect::<Vec<_>>(),
@@ -133,7 +133,7 @@ pub(super) fn loose_source_for_resource(
 fn haul_plan_source_amount(session: &GameSession, plan: crate::state::HaulPlan) -> i32 {
     match plan.destination_kind {
         HaulDestination::Storage => session.economy.loose_amount_at(plan.resource, plan.source),
-        HaulDestination::Kiln if plan.source == WorldState::stockpile_position() => {
+        HaulDestination::Kiln if plan.source == session.world.stockpile_position() => {
             match plan.resource {
                 ResourceKind::Bones => session.economy.bones,
                 ResourceKind::Wood => session.economy.wood,
@@ -294,7 +294,7 @@ fn structure_destination(
 fn storage_destination(session: &GameSession, origin: TilePos, worker_id: u32) -> Option<TilePos> {
     let policy = route_policy(session, worker_id, ZoneKind::Storage);
     let fallback = if policy == RoutePolicy::Nearest {
-        WorldState::stockpile_position()
+        session.world.stockpile_position()
     } else {
         session.world.storage_position()
     };
@@ -376,7 +376,7 @@ pub(super) fn storage_destination_is_current(
     destination: TilePos,
 ) -> bool {
     match storage_route_policy(session, worker_id) {
-        RoutePolicy::Nearest => destination == WorldState::stockpile_position(),
+        RoutePolicy::Nearest => destination == session.world.stockpile_position(),
         RoutePolicy::MarkedOnly => session.world.zone_contains(ZoneKind::Storage, destination),
         RoutePolicy::MarkedFirst => {
             let marked = unique_tiles(zone_tiles(session, ZoneKind::Storage));

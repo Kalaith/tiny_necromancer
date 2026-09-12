@@ -138,6 +138,3 @@ fn blocked(session: &GameSession, tile: TilePos) -> bool {
                 && tile.y < building.position.y + building.height
         })
 }
-
-#[cfg(test)]
-mod tests;

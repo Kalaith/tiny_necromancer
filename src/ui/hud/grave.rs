@@ -60,9 +60,9 @@ pub(super) fn draw(
     }
     draw_text_block(
         if plot.status == PlotStatus::Dug {
-            "The earth is yielding bones and the chance of a corpse remnant."
+            ctx.data.text.grave_open_hint.as_str()
         } else {
-            "A worker can dig here. Need shed timber? Assign Gather Wood, then Haul the loose wood into the stockpile."
+            ctx.data.text.grave_ready_hint.as_str()
         },
         panel.x + 18.0,
         panel.y + 158.0,

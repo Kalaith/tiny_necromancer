@@ -2,6 +2,7 @@
 
 use macroquad_toolkit::assets::TextureConfig;
 use macroquad_toolkit::data_loader::{load_embedded_json_labeled, DataRegistry};
+use macroquad_toolkit::grid::TilePos;
 use serde::{Deserialize, Serialize};
 
 const CONFIG_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/game_config.json");
@@ -10,8 +11,11 @@ const UNDEAD_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/u
 const BUILDINGS_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/buildings.json");
 const CORPSES_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/corpses.json");
 const EVENTS_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/events.json");
+const TEXT_JSON: &str = macroquad_toolkit::include_json_str!("../assets/data/text.json");
 const TEXTURES_JSON: &str =
     macroquad_toolkit::include_json_str!("../assets/data/texture_manifest.json");
+
+mod validation;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GameConfig {
@@ -40,6 +44,49 @@ pub struct GameConfig {
     pub plot_unlock_step_wood: i32,
     pub district_rules: DistrictRules,
     pub research_durations: ResearchDurations,
+    pub world_layout: WorldLayoutConfig,
+    pub starting_content: StartingContentConfig,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorldLayoutConfig {
+    pub road_x: i32,
+    pub mana_source: TilePos,
+    pub stockpile_position: TilePos,
+    pub necromancer_position: TilePos,
+    pub forest_tiles: Vec<TilePos>,
+    pub plot_positions: Vec<TilePos>,
+    pub building_positions: Vec<NamedTilePosition>,
+}
+
+impl WorldLayoutConfig {
+    pub fn building_position(&self, building_id: &str) -> Option<TilePos> {
+        self.building_positions
+            .iter()
+            .find(|entry| entry.id == building_id)
+            .map(|entry| entry.position)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NamedTilePosition {
+    pub id: String,
+    pub position: TilePos,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StartingContentConfig {
+    pub worker: StartingWorkerConfig,
+    pub initial_feedback: String,
+    pub initial_reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StartingWorkerConfig {
+    pub id: u32,
+    pub name: String,
+    pub undead_id: String,
+    pub job_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,7 +156,7 @@ pub struct ProductionDef {
     pub recipes: Vec<ProductionRecipeDef>,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProductionRecipeKind {
     #[default]
@@ -191,6 +238,52 @@ pub struct EventDef {
     pub choices: Vec<EventChoiceDef>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GameText {
+    pub new_game: String,
+    pub victory: String,
+    pub assets_loaded: String,
+    pub movement_cancelled_feed: String,
+    pub movement_cancelled_notification: String,
+    pub movement_started_feed: String,
+    pub movement_started_notification: String,
+    pub automation_locked: String,
+    pub production_cancelled: String,
+    pub save_success: String,
+    pub load_success: String,
+    pub placement_guidance: String,
+    pub grave_open_hint: String,
+    pub grave_ready_hint: String,
+    pub lantern_hint: String,
+    pub invalid_zone_tile: String,
+    pub research: Vec<ResearchTextDef>,
+    pub stewardship: Vec<StewardshipTextDef>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResearchTextDef {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StewardshipTextDef {
+    pub id: String,
+    pub label: String,
+    pub description: String,
+}
+
+impl GameText {
+    pub fn research(&self, id: &str) -> Option<&ResearchTextDef> {
+        self.research.iter().find(|entry| entry.id == id)
+    }
+
+    pub fn stewardship(&self, id: &str) -> Option<&StewardshipTextDef> {
+        self.stewardship.iter().find(|entry| entry.id == id)
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct GameData {
     pub config: GameConfig,
@@ -199,6 +292,7 @@ pub struct GameData {
     pub buildings: DataRegistry<BuildingDef>,
     pub corpse_bands: DataRegistry<CorpseBandDef>,
     pub events: DataRegistry<EventDef>,
+    pub text: GameText,
     pub texture_manifest: Vec<TextureConfig>,
 }
 
@@ -215,6 +309,7 @@ impl GameData {
             .map_err(|error| format!("corpses.json: {error}"))?;
         let events = DataRegistry::from_embedded_json(EVENTS_JSON, "id")
             .map_err(|error| format!("events.json: {error}"))?;
+        let text = load_embedded_json_labeled("text.json", TEXT_JSON)?;
         let texture_manifest = load_embedded_json_labeled("texture_manifest.json", TEXTURES_JSON)?;
         let data = Self {
             config,
@@ -223,6 +318,7 @@ impl GameData {
             buildings,
             corpse_bands,
             events,
+            text,
             texture_manifest,
         };
         data.validate()?;
@@ -230,174 +326,7 @@ impl GameData {
     }
 
     pub fn validate(&self) -> Result<(), String> {
-        let config = &self.config;
-        if config.world_width == 0 || config.world_height == 0 {
-            return Err("game_config.json: world dimensions must be positive".to_owned());
-        }
-        if config.tick_seconds <= 0.0 || config.mana_regen_per_second < 0.0 {
-            return Err("game_config.json: tick and mana rates are invalid".to_owned());
-        }
-        if config.starting_bones < 0
-            || config.starting_mana < 0
-            || config.starting_wood < 0
-            || config.storage_capacity <= 0
-            || config.max_mana <= 0
-            || config.worker_wood_reserve < 0
-            || config.starting_unlocked_plots == 0
-            || config.starting_unlocked_plots > config.victory_plots
-            || config.victory_plots > 6
-        {
-            return Err(
-                "game_config.json: starting resources or plot targets are invalid".to_owned(),
-            );
-        }
-        if !(0.0..=1.0).contains(&config.corpse_discovery_chance) {
-            return Err("game_config.json: corpse chance must be between 0 and 1".to_owned());
-        }
-        if config.suspicion_thresholds[0] <= 0.0
-            || config.suspicion_thresholds[0] >= config.suspicion_thresholds[1]
-            || config.suspicion_thresholds[1] >= config.suspicion_thresholds[2]
-            || config.suspicion_thresholds[2] > 100.0
-        {
-            return Err(
-                "game_config.json: suspicion thresholds must increase within 0..100".to_owned(),
-            );
-        }
-        if config.plot_unlock_base_wood < 0 || config.plot_unlock_step_wood < 0 {
-            return Err("game_config.json: plot unlock costs cannot be negative".to_owned());
-        }
-        if config.district_rules.work_speed_multiplier < 1.0
-            || config.district_rules.storage_capacity_bonus < 0
-            || config.district_rules.storage_volume_per_tile < 0
-            || config.district_rules.patrol_mitigation_multiplier < 1.0
-        {
-            return Err(
-                "game_config.json: district rules must provide non-negative bonuses".to_owned(),
-            );
-        }
-        if [
-            config.research_durations.binding_routines,
-            config.research_durations.gravecraft,
-            config.research_durations.ossuary_logistics,
-            config.research_durations.domain_stewardship,
-        ]
-        .iter()
-        .any(|duration| *duration <= 0.0)
-        {
-            return Err("game_config.json: research durations must be positive".to_owned());
-        }
-        for (id, job) in self.jobs.iter() {
-            if job.work_seconds <= 0.0 || job.base_speed <= 0.0 || job.output_amount < 0 {
-                return Err(format!("jobs.json: invalid balance for '{id}'"));
-            }
-        }
-        for (id, undead) in self.undead.iter() {
-            if undead.bones_cost < 0 || undead.mana_cost < 0 || undead.work_speed <= 0.0 {
-                return Err(format!("undead.json: impossible cost or speed for '{id}'"));
-            }
-        }
-        for (id, building) in self.buildings.iter() {
-            if building.bones_cost < 0
-                || building.mana_cost < 0
-                || building.wood_cost < 0
-                || building.upgrade_bones_cost < 0
-                || building.upgrade_mana_cost < 0
-                || building.upgrade_wood_cost < 0
-                || building.build_seconds <= 0.0
-                || building.speed_multiplier <= 0.0
-                || building.suspicion_multiplier <= 0.0
-                || building.upgrade_speed_multiplier < 1.0
-                || building.upgrade_suspicion_multiplier <= 0.0
-                || building.upgrade_effect_text.is_empty()
-            {
-                return Err(format!(
-                    "buildings.json: impossible cost or time for '{id}'"
-                ));
-            }
-            if let Some(production) = &building.production {
-                if production.recipes.is_empty()
-                    || production.recipes.iter().any(|recipe| {
-                        recipe.name.is_empty()
-                            || recipe.bones_cost < 0
-                            || recipe.wood_cost < 0
-                            || recipe.seconds <= 0.0
-                            || recipe.output_amount <= 0
-                            || !recipe.suspicion_delta.is_finite()
-                    })
-                {
-                    return Err(format!(
-                        "buildings.json: impossible production recipe for '{id}'"
-                    ));
-                }
-                let mut kinds = production.recipes.iter().map(|recipe| recipe.kind);
-                if kinds.clone().any(|kind| {
-                    production
-                        .recipes
-                        .iter()
-                        .filter(|recipe| recipe.kind == kind)
-                        .count()
-                        > 1
-                }) || !kinds.any(|kind| kind == ProductionRecipeKind::WardCharge)
-                {
-                    return Err(format!(
-                        "buildings.json: production recipes for '{id}' need one unique ward_charge entry"
-                    ));
-                }
-            }
-        }
-        for (id, event) in self.events.iter() {
-            if event.choices.is_empty() || event.choices.iter().any(|choice| choice.id.is_empty()) {
-                return Err(format!(
-                    "events.json: event '{id}' needs choices with stable IDs"
-                ));
-            }
-        }
-        for (id, band) in self.corpse_bands.iter() {
-            if !(0.0..=1.0).contains(&band.min_integrity)
-                || !(0.0..=1.0).contains(&band.min_strength)
-            {
-                return Err(format!("corpses.json: invalid quality range for '{id}'"));
-            }
-        }
-        for required in ["poor", "sound", "notable"] {
-            if !self.corpse_bands.contains(required) {
-                return Err(format!("corpses.json: missing quality band '{required}'"));
-            }
-        }
-        if !self
-            .corpse_bands
-            .get("notable")
-            .is_some_and(|band| band.brute_eligible)
-        {
-            return Err("corpses.json: notable band must permit Brute resurrection".to_owned());
-        }
-        for stage in [
-            SuspicionStage::Rumour,
-            SuspicionStage::Questioning,
-            SuspicionStage::Investigation,
-        ] {
-            if self.event_for_stage(stage).is_none() {
-                return Err(format!("events.json: missing event for {stage:?}"));
-            }
-        }
-        for required in ["dig", "haul", "guard", "wood", "refine"] {
-            if !self.jobs.contains(required) {
-                return Err(format!("jobs.json: missing required job '{required}'"));
-            }
-        }
-        for required in ["skeleton", "brute_skeleton"] {
-            if !self.undead.contains(required) {
-                return Err(format!("undead.json: missing required type '{required}'"));
-            }
-        }
-        for required in ["work_shed", "grave_lantern", "ossuary_kiln"] {
-            if !self.buildings.contains(required) {
-                return Err(format!(
-                    "buildings.json: missing required building '{required}'"
-                ));
-            }
-        }
-        Ok(())
+        validation::validate(self)
     }
 
     pub fn event_for_stage(&self, stage: SuspicionStage) -> Option<&EventDef> {
@@ -407,6 +336,3 @@ impl GameData {
             .find(|event| event.stage == stage)
     }
 }
-
-#[cfg(test)]
-mod tests;

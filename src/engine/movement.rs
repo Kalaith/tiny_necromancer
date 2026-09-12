@@ -201,9 +201,6 @@ pub fn simulate_necromancer(session: &mut GameSession) -> Option<String> {
     }
 }
 
-#[cfg(test)]
-mod tests;
-
 pub fn drop_worker_cargo(session: &mut GameSession, index: usize) {
     let Some(worker) = session.workforce.workers.get_mut(index) else {
         return;

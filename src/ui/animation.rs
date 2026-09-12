@@ -97,50 +97,64 @@ pub fn necromancer_visual(motion: &ActorMotion, elapsed: f32, tile_size: f32) ->
 }
 
 pub fn draw_worker_feedback(worker: &Worker, center: Vec2, tile_size: f32, elapsed: f32) {
-    let active = worker.status != WorkerStatus::Idle || worker.carrying > 0;
-    if active {
-        let color = job_color(worker.assignment, worker.status);
-        let icon_center = center + vec2(tile_size * 0.30, -tile_size * 0.39);
-        draw_circle(
-            icon_center.x,
-            icon_center.y,
-            tile_size * 0.105,
-            color.with_alpha(0.92),
-        );
-        draw_text_centered_in_box(
-            job_glyph(worker.assignment),
-            icon_center.x - tile_size * 0.10,
-            icon_center.y - tile_size * 0.10,
-            tile_size * 0.20,
-            tile_size * 0.20,
-            (tile_size * 0.16).clamp(10.0, 18.0),
-            color,
-        );
+    if worker.status != WorkerStatus::Idle || worker.carrying > 0 {
+        draw_worker_badge(worker, center, tile_size);
     }
     if worker.carrying > 0 {
-        let sway = (elapsed * std::f32::consts::TAU * 1.35).sin() * tile_size * 0.025;
-        let bundle = center + vec2(sway, tile_size * 0.03);
-        let bundle_color = match worker.carrying_resource.unwrap_or(ResourceKind::Bones) {
-            ResourceKind::Bones => Color::new(0.82, 0.82, 0.72, 1.0),
-            ResourceKind::Wood => Color::new(0.62, 0.38, 0.17, 1.0),
-        };
-        draw_circle(bundle.x, bundle.y, tile_size * 0.11, bundle_color);
-        draw_line(
-            bundle.x - tile_size * 0.09,
-            bundle.y,
-            bundle.x + tile_size * 0.09,
-            bundle.y,
-            2.0,
-            Color::new(0.16, 0.10, 0.08, 0.8),
-        );
+        draw_carrying_bundle(worker, center, tile_size, elapsed);
     }
-    if worker.status != WorkerStatus::Working
-        && !(worker.assignment == JobKind::Guard && worker.status == WorkerStatus::Hiding)
-    {
+    if !worker_action_is_active(worker) {
         return;
     }
     let pulse = (elapsed * std::f32::consts::TAU * 1.6).sin();
-    match worker.assignment {
+    draw_worker_action(worker.assignment, center, tile_size, pulse);
+}
+
+fn draw_worker_badge(worker: &Worker, center: Vec2, tile_size: f32) {
+    let color = job_color(worker.assignment, worker.status);
+    let icon_center = center + vec2(tile_size * 0.30, -tile_size * 0.39);
+    draw_circle(
+        icon_center.x,
+        icon_center.y,
+        tile_size * 0.105,
+        color.with_alpha(0.92),
+    );
+    draw_text_centered_in_box(
+        job_glyph(worker.assignment),
+        icon_center.x - tile_size * 0.10,
+        icon_center.y - tile_size * 0.10,
+        tile_size * 0.20,
+        tile_size * 0.20,
+        (tile_size * 0.16).clamp(10.0, 18.0),
+        color,
+    );
+}
+
+fn draw_carrying_bundle(worker: &Worker, center: Vec2, tile_size: f32, elapsed: f32) {
+    let sway = (elapsed * std::f32::consts::TAU * 1.35).sin() * tile_size * 0.025;
+    let bundle = center + vec2(sway, tile_size * 0.03);
+    let bundle_color = match worker.carrying_resource.unwrap_or(ResourceKind::Bones) {
+        ResourceKind::Bones => Color::new(0.82, 0.82, 0.72, 1.0),
+        ResourceKind::Wood => Color::new(0.62, 0.38, 0.17, 1.0),
+    };
+    draw_circle(bundle.x, bundle.y, tile_size * 0.11, bundle_color);
+    draw_line(
+        bundle.x - tile_size * 0.09,
+        bundle.y,
+        bundle.x + tile_size * 0.09,
+        bundle.y,
+        2.0,
+        Color::new(0.16, 0.10, 0.08, 0.8),
+    );
+}
+
+fn worker_action_is_active(worker: &Worker) -> bool {
+    worker.status == WorkerStatus::Working
+        || (worker.assignment == JobKind::Guard && worker.status == WorkerStatus::Hiding)
+}
+
+fn draw_worker_action(assignment: JobKind, center: Vec2, tile_size: f32, pulse: f32) {
+    match assignment {
         JobKind::Dig => {
             let hand = center + vec2(tile_size * 0.08, tile_size * 0.08);
             let head = hand + vec2(tile_size * 0.15, -tile_size * (0.22 + pulse.abs() * 0.04));

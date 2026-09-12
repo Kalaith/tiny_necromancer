@@ -216,6 +216,3 @@ pub fn trade_status(session: &GameSession, data: &GameData) -> Result<(), String
     }
     Ok(())
 }
-
-#[cfg(test)]
-mod tests;

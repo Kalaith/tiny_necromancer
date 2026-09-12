@@ -1,7 +1,6 @@
 {
   "title": "Tiny Necromancer",
   "wasm": "tiny_necromancer",
-  "roost_slug": "rust_tiny_necromancer",
   "status": {
     "text": "Playable",
     "class": "playable"

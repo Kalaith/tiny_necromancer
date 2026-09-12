@@ -5,14 +5,20 @@ use super::UiContext;
 use crate::engine::{districts, jobs, navigation};
 use crate::state::{
     HaulDestination, JobKind, PlotStatus, ResourceKind, RoutePolicy, Selection, Worker,
-    WorkerStatus, WorldState, ZoneKind,
+    WorkerStatus, ZoneKind,
 };
 use macroquad::prelude::*;
 use macroquad_toolkit::grid::TilePos;
 use macroquad_toolkit::prelude::*;
 
+mod routes;
+
 pub(super) fn draw_loose_resource_feedback(ctx: &UiContext<'_>, view: &GridView) {
-    for pile in ctx.session.economy.loose_piles(ResourceKind::Bones) {
+    for pile in ctx
+        .session
+        .economy
+        .loose_piles(ResourceKind::Bones, ctx.session.world.stockpile_position())
+    {
         draw_resource_pile(
             view.tile_rect(pile.position).center(),
             "B",
@@ -20,7 +26,11 @@ pub(super) fn draw_loose_resource_feedback(ctx: &UiContext<'_>, view: &GridView)
             Color::new(0.82, 0.82, 0.72, 1.0),
         );
     }
-    for pile in ctx.session.economy.loose_piles(ResourceKind::Wood) {
+    for pile in ctx
+        .session
+        .economy
+        .loose_piles(ResourceKind::Wood, ctx.session.world.stockpile_position())
+    {
         draw_resource_pile(
             view.tile_rect(pile.position).center() + vec2(0.0, 7.0),
             "W",
@@ -55,14 +65,14 @@ fn draw_resource_pile(center: Vec2, glyph: &str, amount: i32, color: Color) {
 
 pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
     if ctx.domain_overlays.routes {
-        draw_route_legend(ctx);
+        routes::draw_route_legend(ctx);
     }
     for (index, worker) in ctx.session.workforce.workers.iter().enumerate() {
         if ctx.domain_overlays.routes
             || ctx.session.world.selected == Some(Selection::Worker(index))
         {
             if let Some(destination) = jobs::destination_for_worker(ctx.session, worker) {
-                draw_route_hint(ctx, view, worker, destination);
+                routes::draw_route_hint(ctx, view, worker, destination);
             }
         }
     }
@@ -95,154 +105,6 @@ pub(super) fn draw_actor_destinations(ctx: &UiContext<'_>, view: &GridView) {
             0.0,
             dark::ACCENT,
         );
-    }
-}
-
-fn draw_route_legend(ctx: &UiContext<'_>) {
-    let rect = if ctx.layout.compact {
-        Rect::new(206.0, 146.0, 252.0, 26.0)
-    } else {
-        Rect::new(24.0, 92.0, 306.0, 28.0)
-    };
-    draw_surface(
-        rect,
-        &SurfaceStyle::new(Color::new(0.03, 0.06, 0.045, 0.90))
-            .with_border(1.0, dark::ACCENT.with_alpha(0.54)),
-    );
-    draw_text_block(
-        "ROUTE · dots = steps · amber = blocked",
-        rect.x + 8.0,
-        rect.y + 6.0,
-        rect.w - 16.0,
-        16.0,
-        11.0,
-        0.0,
-        dark::TEXT,
-    );
-}
-
-fn draw_route_hint(ctx: &UiContext<'_>, view: &GridView, worker: &Worker, destination: TilePos) {
-    let worker_id = worker.id;
-    let start = worker.position;
-    let actor = ctx.motions.worker(worker_id).map_or_else(
-        || view.tile_rect(start).center(),
-        |motion| view.actor_center(motion.visual_position()),
-    );
-    let target_center = view.tile_rect(destination).center();
-    let route = navigation::plan_route(ctx.session, start, destination);
-    if let Ok(route) = &route {
-        let mut previous = actor;
-        for (index, tile) in route.steps().iter().enumerate().skip(1) {
-            let point = view.tile_rect(*tile).center();
-            draw_line(
-                previous.x,
-                previous.y,
-                point.x,
-                point.y,
-                2.0,
-                dark::ACCENT.with_alpha(if index == 1 { 0.58 } else { 0.42 }),
-            );
-            draw_circle(point.x, point.y, 3.0, dark::ACCENT.with_alpha(0.72));
-            previous = point;
-        }
-    } else {
-        draw_line(
-            actor.x,
-            actor.y,
-            target_center.x,
-            target_center.y,
-            2.0,
-            dark::WARNING.with_alpha(0.48),
-        );
-    }
-
-    let route_color = if route.is_ok() {
-        dark::ACCENT
-    } else {
-        dark::WARNING
-    };
-    let target = view.tile_rect(destination).inset(view.tile_size() * 0.25);
-    draw_rectangle_lines(target.x, target.y, target.w, target.h, 2.0, route_color);
-    let route_summary = match &route {
-        Ok(route) => format!("ROUTE · {} steps", route.step_count()),
-        Err(failure) => format!("NO ROUTE · {}", failure.label()),
-    };
-    let route_label = if ctx.domain_overlays.routes {
-        district_rule_hint(ctx, worker, destination).map_or_else(
-            || {
-                format!(
-                    "{} · {} · {route_summary}",
-                    worker.name,
-                    worker.assignment.label()
-                )
-            },
-            |hint| {
-                format!(
-                    "{} · {} · {hint} · {route_summary}",
-                    worker.name,
-                    worker.assignment.label()
-                )
-            },
-        )
-    } else {
-        route_summary
-    };
-    draw_text_block(
-        &route_label,
-        target.x - 44.0,
-        target.y - view.tile_size() * 0.38,
-        220.0,
-        30.0,
-        10.0,
-        2.0,
-        route_color,
-    );
-    if let Some(worker) = ctx
-        .session
-        .workforce
-        .workers
-        .iter()
-        .find(|worker| worker.id == worker_id)
-    {
-        if worker.status == WorkerStatus::Working || worker.status == WorkerStatus::Carrying {
-            let seconds = match worker.assignment {
-                JobKind::Dig => ctx.data.jobs.get("dig").map_or(8.0, |job| job.work_seconds),
-                JobKind::Haul => ctx
-                    .data
-                    .jobs
-                    .get("haul")
-                    .map_or(4.0, |job| job.work_seconds),
-                JobKind::Wood => ctx
-                    .data
-                    .jobs
-                    .get("wood")
-                    .map_or(7.0, |job| job.work_seconds),
-                JobKind::Build => ctx
-                    .data
-                    .jobs
-                    .get("build")
-                    .map_or(1.0, |job| job.work_seconds),
-                JobKind::Refine => ctx
-                    .data
-                    .jobs
-                    .get("refine")
-                    .map_or(1.0, |job| job.work_seconds),
-                JobKind::Guard => 1.0,
-            };
-            progress_bar(
-                target.x,
-                target.bottom() + 5.0,
-                target.w,
-                6.0,
-                worker.progress,
-                seconds,
-                if worker.status == WorkerStatus::Carrying {
-                    dark::POSITIVE
-                } else {
-                    dark::ACCENT
-                },
-            );
-        }
     }
 }
 
@@ -373,7 +235,7 @@ fn haul_source_label(ctx: &UiContext<'_>, worker: &Worker) -> Option<String> {
             None
         };
     if let Some(resource) = kiln_resource {
-        let source = WorldState::stockpile_position();
+        let source = ctx.session.world.stockpile_position();
         let label = match resource {
             ResourceKind::Bones => "bones",
             ResourceKind::Wood => "wood",

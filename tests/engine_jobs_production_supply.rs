@@ -1,0 +1,176 @@
+use tiny_necromancer::engine::jobs::*;
+use tiny_necromancer::engine::progression::{production_input_need, start_production};
+use tiny_necromancer::state::{
+    Building, BuildingKind, GameSession, HaulDestination, JobKind, Technology, WorkerStatus,
+};
+
+fn session_with_empty_kiln(data: &tiny_necromancer::data::GameData) -> GameSession {
+    let mut session = GameSession::new(&data.config);
+    session.research.completed = vec![Technology::Gravecraft, Technology::OssuaryLogistics];
+    let position = data
+        .config
+        .world_layout
+        .building_position(BuildingKind::OssuaryKiln.id())
+        .expect("validated position");
+    session.world.buildings.push(Building {
+        kind: BuildingKind::OssuaryKiln,
+        progress: 14.0,
+        complete: true,
+        position,
+        width: 2,
+        height: 1,
+    });
+    session.economy.bones = 0;
+    session.economy.wood = 0;
+    session
+}
+
+#[test]
+fn kiln_supply_haul_delivers_stockpiled_inputs_before_refining() {
+    let data = tiny_necromancer::data::GameData::load().unwrap();
+    let mut session = session_with_empty_kiln(&data);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    assert_eq!(
+        production_input_need(&session, tiny_necromancer::state::ResourceKind::Bones),
+        12
+    );
+    assert_eq!(
+        production_input_need(&session, tiny_necromancer::state::ResourceKind::Wood),
+        6
+    );
+
+    session.economy.bones = 12;
+    session.economy.wood = 6;
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = session.world.stockpile_position();
+
+    for _ in 0..100 {
+        simulate(&mut session, &data, 1.0);
+        if production_input_need(&session, tiny_necromancer::state::ResourceKind::Bones) == 0
+            && production_input_need(&session, tiny_necromancer::state::ResourceKind::Wood) == 0
+        {
+            break;
+        }
+    }
+
+    assert_eq!(
+        production_input_need(&session, tiny_necromancer::state::ResourceKind::Bones),
+        0
+    );
+    assert_eq!(
+        production_input_need(&session, tiny_necromancer::state::ResourceKind::Wood),
+        0
+    );
+    assert_eq!(session.economy.bones, 0);
+    assert_eq!(session.economy.wood, 0);
+    assert_eq!(session.economy.ward_charges, 0);
+}
+
+#[test]
+fn kiln_supply_plan_names_the_kiln_as_its_destination() {
+    let data = tiny_necromancer::data::GameData::load().unwrap();
+    let mut session = session_with_empty_kiln(&data);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    session.economy.bones = 4;
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = session.world.stockpile_position();
+
+    simulate(&mut session, &data, 0.0);
+
+    let plan = session.workforce.workers[0]
+        .haul_plan
+        .expect("missing kiln input should create a haul plan");
+    assert_eq!(plan.destination_kind, HaulDestination::Kiln);
+    assert_eq!(plan.source, session.world.stockpile_position());
+    assert_eq!(
+        plan.destination,
+        tiny_necromancer::engine::progression::production_destination(&session).unwrap()
+    );
+}
+
+#[test]
+fn refiner_waits_without_advancing_an_unloaded_cycle() {
+    let data = tiny_necromancer::data::GameData::load().unwrap();
+    let mut session = session_with_empty_kiln(&data);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    let work_position =
+        tiny_necromancer::engine::progression::production_destination(&session).unwrap();
+    session.workforce.workers[0].assignment = JobKind::Refine;
+    session.workforce.workers[0].position = work_position;
+
+    simulate(&mut session, &data, 1.0);
+
+    assert_eq!(
+        session
+            .progress
+            .production
+            .as_ref()
+            .expect("cycle should still be waiting")
+            .progress,
+        0.0
+    );
+    assert_eq!(session.workforce.workers[0].status, WorkerStatus::Idle);
+}
+
+#[test]
+fn automated_refiner_switches_to_kiln_supply_when_inputs_are_stockpiled() {
+    let data = tiny_necromancer::data::GameData::load().unwrap();
+    let mut session = session_with_empty_kiln(&data);
+    session.research.completed.push(Technology::BindingRoutines);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    session.economy.bones = 12;
+    session.economy.wood = 6;
+    session.workforce.workers[0].assignment = JobKind::Refine;
+    session.workforce.workers[0].priority_mode = true;
+    session.workforce.workers[0].position = session.world.stockpile_position();
+
+    simulate(&mut session, &data, 0.0);
+
+    assert_eq!(session.workforce.workers[0].assignment, JobKind::Haul);
+    assert_eq!(
+        session.workforce.workers[0]
+            .haul_plan
+            .expect("automation should reserve kiln supply")
+            .destination_kind,
+        HaulDestination::Kiln
+    );
+}
+
+#[test]
+fn loose_material_can_feed_the_waiting_kiln_without_a_storage_detour() {
+    let data = tiny_necromancer::data::GameData::load().unwrap();
+    let mut session = session_with_empty_kiln(&data);
+    start_production(&mut session, &data, BuildingKind::OssuaryKiln).unwrap();
+    let source = session.world.plots[0].position;
+    session
+        .economy
+        .add_loose(tiny_necromancer::state::ResourceKind::Bones, source, 8);
+    session.workforce.workers[0].assignment = JobKind::Haul;
+    session.workforce.workers[0].position = source;
+
+    simulate(&mut session, &data, 0.0);
+
+    let plan = session.workforce.workers[0]
+        .haul_plan
+        .expect("loose input should create a kiln plan");
+    assert_eq!(plan.destination_kind, HaulDestination::Kiln);
+    assert_eq!(plan.source, source);
+    assert_eq!(session.workforce.workers[0].carrying, 8);
+    assert_eq!(
+        session
+            .economy
+            .loose_amount_at(tiny_necromancer::state::ResourceKind::Bones, source),
+        0
+    );
+
+    for _ in 0..40 {
+        simulate(&mut session, &data, 1.0);
+        if production_input_need(&session, tiny_necromancer::state::ResourceKind::Bones) == 4 {
+            break;
+        }
+    }
+    assert_eq!(
+        production_input_need(&session, tiny_necromancer::state::ResourceKind::Bones),
+        4
+    );
+}

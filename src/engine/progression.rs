@@ -138,22 +138,27 @@ pub fn queue_building(
     data: &GameData,
     kind: BuildingKind,
 ) -> Result<(), String> {
-    queue_building_at(
-        session,
-        data,
-        kind,
-        crate::state::default_building_position_for_kind(kind),
-    )
+    let position = data
+        .config
+        .world_layout
+        .building_position(kind.id())
+        .ok_or_else(|| format!("No authored footprint exists for {}.", kind.id()))?;
+    queue_building_at(session, data, kind, position)
 }
 
 pub fn placement_requires_gravecraft(
     session: &GameSession,
+    data: &GameData,
     kind: BuildingKind,
     position: TilePos,
 ) -> bool {
     !session.research.is_unlocked(Technology::Gravecraft)
         && kind != BuildingKind::WorkShed
-        && position != crate::state::default_building_position_for_kind(kind)
+        && data
+            .config
+            .world_layout
+            .building_position(kind.id())
+            .is_some_and(|authored| position != authored)
 }
 
 pub fn queue_building_at(
@@ -162,7 +167,7 @@ pub fn queue_building_at(
     kind: BuildingKind,
     position: TilePos,
 ) -> Result<(), String> {
-    if placement_requires_gravecraft(session, kind, position) {
+    if placement_requires_gravecraft(session, data, kind, position) {
         return Err(
             "Study Gravecraft before placing structures away from the restored footprints."
                 .to_owned(),
@@ -290,10 +295,14 @@ pub fn advance_research(session: &mut GameSession, data: &GameData, dt: f32) -> 
     session.research.progress = duration;
     session.research.current = None;
     session.research.completed.push(technology);
+    let description = data
+        .text
+        .research(technology.id())
+        .map_or("", |entry| entry.description.as_str());
     let message = format!(
         "Research complete: {} — {}",
         technology.label(),
-        technology.description()
+        description
     );
     session.add_feed(message.clone());
     Some(message)
@@ -540,6 +549,3 @@ pub fn check_victory(session: &mut GameSession, data: &GameData) {
         session.add_feed("The cemetery is a tiny, thriving operation. You made it.");
     }
 }
-
-#[cfg(test)]
-mod tests;

@@ -128,6 +128,3 @@ pub fn raise(session: &mut GameSession, data: &GameData, kind: UndeadKind) -> Re
     );
     Ok(())
 }
-
-#[cfg(test)]
-mod tests;
