@@ -2,7 +2,7 @@
 
 use crate::data::GameData;
 use crate::engine::{self, movement};
-use crate::state::{BuildingKind, GamePhase, GameSession, ZoneKind};
+use crate::state::{BuildingKind, GamePhase, GameSession, Selection, ZoneKind};
 use crate::ui::animation::AnimationClock;
 use crate::ui::{self, DomainOverlays, Panel, UiAction, UiContext};
 use macroquad::prelude::*;
@@ -38,6 +38,50 @@ pub struct Game {
     placement: Option<BuildingKind>,
     zone_mode: Option<ZoneKind>,
     domain_overlays: DomainOverlays,
+}
+
+pub fn selection_for_tile(
+    session: &GameSession,
+    motions: &movement::MotionState,
+    tile: macroquad_toolkit::grid::TilePos,
+) -> Selection {
+    if let Some((index, _)) = session
+        .workforce
+        .workers
+        .iter()
+        .enumerate()
+        .find(|(_, worker)| {
+            worker.position == tile || motions.worker_occupies_tile(worker.id, tile)
+        })
+    {
+        Selection::Worker(index)
+    } else if session.world.necromancer_position == tile || motions.necromancer_occupies_tile(tile)
+    {
+        Selection::Necromancer
+    } else if let Some((index, _)) =
+        session
+            .world
+            .buildings
+            .iter()
+            .enumerate()
+            .find(|(_, building)| {
+                tile.x >= building.position.x
+                    && tile.x < building.position.x + building.width
+                    && tile.y >= building.position.y
+                    && tile.y < building.position.y + building.height
+            })
+    {
+        Selection::Building(index)
+    } else if let Some(plot) = session
+        .world
+        .plots
+        .iter()
+        .find(|plot| plot.position == tile && plot.status != crate::state::PlotStatus::Locked)
+    {
+        Selection::Grave(plot.id)
+    } else {
+        Selection::Ground(tile)
+    }
 }
 
 impl Game {

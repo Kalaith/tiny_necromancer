@@ -1,6 +1,6 @@
 //! UI intent dispatch and persistence actions for the running game.
 
-use super::Game;
+use super::{selection_for_tile, Game};
 use crate::engine::{corpses, jobs, movement, progression, suspicion, trade};
 use crate::state::{GamePhase, GameSession, Selection, Technology, Zone};
 use crate::ui::{self, CameraZoom, DomainOverlay, DomainOverlays, Panel, UiAction};
@@ -198,49 +198,23 @@ impl Game {
     }
 
     fn select_tile(&mut self, tile: macroquad_toolkit::grid::TilePos) {
-        if let Some((index, _)) =
-            self.session
-                .workforce
-                .workers
-                .iter()
-                .enumerate()
-                .find(|(_, worker)| {
-                    worker.position == tile || self.motions.worker_occupies_tile(worker.id, tile)
-                })
-        {
-            self.session.workforce.selected_worker = index;
-            self.session.world.selected = Some(Selection::Worker(index));
-        } else if self.session.world.necromancer_position == tile
-            || self.motions.necromancer_occupies_tile(tile)
-        {
-            self.session.world.selected = Some(Selection::Necromancer);
-        } else if let Some((index, _)) =
-            self.session
-                .world
-                .buildings
-                .iter()
-                .enumerate()
-                .find(|(_, building)| {
-                    tile.x >= building.position.x
-                        && tile.x < building.position.x + building.width
-                        && tile.y >= building.position.y
-                        && tile.y < building.position.y + building.height
-                })
-        {
-            self.session.world.selected = Some(Selection::Building(index));
-        } else if let Some(plot) =
-            self.session.world.plots.iter().find(|plot| {
-                plot.position == tile && plot.status != crate::state::PlotStatus::Locked
-            })
-        {
-            self.session.world.selected_plot = Some(plot.id);
-            self.session.world.selected = Some(Selection::Grave(plot.id));
-        } else {
-            self.session.world.selected = Some(Selection::Ground(tile));
+        let selection = selection_for_tile(&self.session, &self.motions, tile);
+        match selection {
+            Selection::Worker(index) => self.session.workforce.selected_worker = index,
+            Selection::Grave(plot_id) => self.session.world.selected_plot = Some(plot_id),
+            Selection::Building(_) | Selection::Ground(_) | Selection::Necromancer => {}
         }
+        self.session.world.selected = Some(selection);
     }
 
     fn move_necromancer(&mut self, tile: macroquad_toolkit::grid::TilePos) {
+        if !matches!(
+            selection_for_tile(&self.session, &self.motions, tile),
+            Selection::Ground(_)
+        ) {
+            self.select_tile(tile);
+            return;
+        }
         let current = self.session.world.necromancer_position;
         match movement::request_necromancer_destination(&mut self.session, tile) {
             Ok(()) => {
