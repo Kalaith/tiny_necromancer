@@ -77,6 +77,15 @@ pub fn can_raise(session: &GameSession, data: &GameData, kind: UndeadKind) -> Re
 }
 
 pub fn raise(session: &mut GameSession, data: &GameData, kind: UndeadKind) -> Result<(), String> {
+    raise_with_name(session, data, kind, None)
+}
+
+pub fn raise_with_name(
+    session: &mut GameSession,
+    data: &GameData,
+    kind: UndeadKind,
+    suggested_name: Option<&str>,
+) -> Result<(), String> {
     can_raise(session, data, kind)?;
     let def = data.undead.get(kind.id()).expect("validated undead recipe");
     session.economy.bones -= def.bones_cost;
@@ -100,14 +109,21 @@ pub fn raise(session: &mut GameSession, data: &GameData, kind: UndeadKind) -> Re
     let worker_id = session.workforce.next_worker_id;
     session.workforce.next_worker_id += 1;
     let position = session.world.mana_source;
+    let name = suggested_name
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .filter(|name| {
+            !session
+                .workforce
+                .workers
+                .iter()
+                .any(|worker| worker.name.eq_ignore_ascii_case(name))
+        })
+        .map(str::to_owned)
+        .unwrap_or_else(|| fallback_worker_name(session, kind, worker_id));
     session.workforce.workers.push(Worker {
         id: worker_id,
-        name: if kind == UndeadKind::BruteSkeleton {
-            "Thump"
-        } else {
-            "Knucklebones"
-        }
-        .to_owned(),
+        name,
         kind,
         assignment: JobKind::Haul,
         position,
@@ -127,4 +143,62 @@ pub fn raise(session: &mut GameSession, data: &GameData, kind: UndeadKind) -> Re
         "a magical resurrection disturbed the night",
     );
     Ok(())
+}
+
+const SKELETON_NAMES: &[&str] = &[
+    "Knucklebones",
+    "Marrow",
+    "Gravewhistle",
+    "Dustcap",
+    "Clatter",
+    "Palehand",
+    "Riblet",
+    "Mourn",
+];
+
+const BRUTE_SKELETON_NAMES: &[&str] = &[
+    "Thump",
+    "Ossifer",
+    "Stonejaw",
+    "Gravelord",
+    "Ironrib",
+    "Boulder",
+    "Breakbone",
+    "Maw",
+];
+
+fn fallback_worker_name(session: &GameSession, kind: UndeadKind, worker_id: u32) -> String {
+    let names = match kind {
+        UndeadKind::Skeleton => SKELETON_NAMES,
+        UndeadKind::BruteSkeleton => BRUTE_SKELETON_NAMES,
+    };
+    let start = worker_id as usize % names.len();
+    for offset in 0..names.len() {
+        let candidate = names[(start + offset) % names.len()];
+        if !session
+            .workforce
+            .workers
+            .iter()
+            .any(|worker| worker.name.eq_ignore_ascii_case(candidate))
+        {
+            return candidate.to_owned();
+        }
+    }
+    let prefix = match kind {
+        UndeadKind::Skeleton => "Skeleton",
+        UndeadKind::BruteSkeleton => "Brute",
+    };
+    let mut suffix = worker_id;
+    loop {
+        let candidate = format!("{prefix} {suffix}");
+        if !session
+            .workforce
+            .workers
+            .iter()
+            .any(|worker| worker.name.eq_ignore_ascii_case(&candidate))
+        {
+            return candidate;
+        }
+        suffix = suffix.saturating_add(1);
+    }
 }

@@ -91,7 +91,10 @@ impl Game {
     }
 
     fn raise_undead(&mut self, kind: crate::state::UndeadKind) {
-        let result = corpses::raise(&mut self.session, &self.data, kind);
+        let name = self
+            .name_generator
+            .take_name(&self.session.workforce.workers);
+        let result = corpses::raise_with_name(&mut self.session, &self.data, kind, name.as_deref());
         self.notify_result(result);
     }
 

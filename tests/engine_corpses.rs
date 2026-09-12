@@ -39,3 +39,38 @@ fn resurrection_spends_costs_and_adds_worker() {
     assert_eq!(session.economy.bones, bones - 18);
     assert!(session.economy.corpses.is_empty());
 }
+
+#[test]
+fn repeated_skeleton_resurrections_receive_unique_names() {
+    let data = tiny_necromancer::data::GameData::load().unwrap();
+    let mut session = GameSession::new(&data.config);
+    session.economy.bones = 100;
+    session.economy.mana = 100;
+    for id in 1..=3 {
+        session.economy.corpses.push(Corpse {
+            id,
+            integrity: 0.6,
+            strength: 0.5,
+            skill: 0.2,
+            magical_residue: 0.5,
+            cause_of_death: "test".to_owned(),
+            quality: CorpseQuality::Sound,
+        });
+    }
+
+    for _ in 0..3 {
+        raise(&mut session, &data, UndeadKind::Skeleton).unwrap();
+    }
+
+    let names: Vec<&str> = session
+        .workforce
+        .workers
+        .iter()
+        .map(|worker| worker.name.as_str())
+        .collect();
+    assert_eq!(names.len(), 4);
+    assert_eq!(
+        names.iter().collect::<std::collections::HashSet<_>>().len(),
+        4
+    );
+}

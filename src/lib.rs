@@ -3,6 +3,7 @@
 pub mod data;
 pub mod engine;
 pub mod game;
+pub mod name_generator;
 pub mod state;
 pub mod ui;
 

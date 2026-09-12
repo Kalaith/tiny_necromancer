@@ -2,6 +2,7 @@
 
 use crate::data::GameData;
 use crate::engine::{self, movement};
+use crate::name_generator::NameGenerator;
 use crate::state::{BuildingKind, GamePhase, GameSession, Selection, ZoneKind};
 use crate::ui::animation::AnimationClock;
 use crate::ui::{self, DomainOverlays, Panel, UiAction, UiContext};
@@ -22,6 +23,7 @@ mod capture;
 pub struct Game {
     data: GameData,
     session: GameSession,
+    name_generator: NameGenerator,
     assets: AssetManager,
     notifications: NotificationManager,
     camera: CameraTransform,
@@ -99,11 +101,13 @@ impl Game {
                 .replace("{count}", &loaded_assets.to_string()),
         );
         let session = GameSession::new(&data.config);
+        let name_generator = NameGenerator::new();
         let motions = movement::MotionState::new(&session);
         let camera = CameraTransform::new(Vec2::ZERO, 1.0).expect("valid initial camera");
         let mut game = Self {
             data,
             session,
+            name_generator,
             assets,
             notifications,
             camera,
@@ -127,6 +131,7 @@ impl Game {
 
     pub fn update(&mut self, dt: f32) {
         let frame_dt = dt.min(0.1);
+        self.name_generator.poll(frame_dt);
         let input = InputState::capture();
         if input.escape_pressed {
             if self.placement.is_some() || self.zone_mode.is_some() {
